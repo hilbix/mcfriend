@@ -1,5 +1,7 @@
 #!/usr/bin/env nodejs
 'use strict';
+// This Works is placed under the terms of the Copyright Less License,
+// see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
 // 'chat message messagestr'	// last ist best
 const DEBUG	= 'goal_reached goal_updated path_reset path_stop' //'blockUpdate' //'entityGone entityDead blockUpdate itemDrop'
