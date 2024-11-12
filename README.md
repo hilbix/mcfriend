@@ -74,7 +74,7 @@ Then initialize the bot on the Server Console:
 	tell bot op admin YourUsername
 	tell bot say /trigger TimberToggle
 
-- This all needs only to be done once
+- This all needs only to be done once (per bot)
   - The bot must run as Server Admin to be able to use all commands
   - Also without Admin rights, the bot will be kicked from the server for spamming quite too often
 - Above makes `YourUsername` (probably you) an Admin of the bot
