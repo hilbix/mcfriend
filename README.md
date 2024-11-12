@@ -75,19 +75,22 @@ Then initialize the bot on the Server Console:
 	tell bot say /trigger TimberToggle
 
 - This all needs only to be done once (per bot)
-  - The bot must run as Server Admin to be able to use all commands
-  - Also without Admin rights, the bot will be kicked from the server for spamming quite too often
+  - The bot must run as Admin for the Minecraft Server to be able to use all Minecraft commands
+  - Also without Minecraft Admin rights, the bot will be kicked from the server for spamming quite too often
+  - The bot itslf should runs fine as unprivileged or restricted user, though, it only needs to be able to use all cheat codes for Minecraft
 - Above makes `YourUsername` (probably you) an Admin of the bot
   - The server console ist automatically always Admin, as long as it is still called `Server`
 
 
 ### install Datapacks
 
-Following are needed on the Server currently.  Nothing needs to be installed on the clients, so a Vanilla client fully works.
+Following additional things are needed on the Server currently.
+
+> Nothing needs to be installed on the Minecraft Clients, so a Vanilla Clients fully work.
 
 Install [timber](https://www.planetminecraft.com/data-pack/timber-datapack/).
 
-This is currently needed to allow the bot to chop down trees.
+> This is currently needed to allow the bot to chop down trees with a single hit.
 
 On the console enter:
 
@@ -96,16 +99,19 @@ On the console enter:
 - This enables timber for the bot
   - In future the bot might take over what timber does, so we do no more need timber
 
-Also install `datapacks/mcfriend` into `world/datapacks` like with this command (UNTESTED!):
+Also install `datapacks/mcfriend` into the Server's `world/datapacks/` like with this command:
 
 	ln -s --relative datapacks/mcfriend ~/server/world/datapacks/
 
+- The datapack currently is untested
+  - It is a stripped down version of some other datapack which is not designed to be usable by others
 - This teleports all items which lay on the ground to an entity called `mcFriend`
-  - This way you can put an Armor Standnamed named `mcFriend` (hint: Anvil) on top of a hopper to suck in all items
+  - This way you can put an Armor Stand named `mcFriend` (hint: see Anvil) on top of a hopper to suck in all items
   - Note that a single Hopper usually is too slow, hence I use a bunch of Hopper Minecarts below the Armor Stand
   - These Hopper Minecarts are on a curved rail on top of a Hopper Minecart in the middle of 4 Hoppers enclosed by sand
   - So I can suck in 4 times the number of items this way and buffer a lot of items in the bunch of Hopper Minecarts
-- This is because the bot breaks items in enormous numbers, so there must be something to pick them up, else they will vanish
+- This is needed, because the bot breaks items in enormous numbers, so there must be something to pick them up, else they will vanish
+  - Note that the bot currently does not do this.  This is done by my undisclosed datapack, though, which will be replaced by the bot.
 - It is important to keep the Chunks loaded and active for this to work in all Worlds
 - Either do not use the bot in other dimensions, so the Overworld is not unloaded
   - or use multiple named Armor Stands, so there always is one near you loaded and active
@@ -117,7 +123,7 @@ Also install `datapacks/mcfriend` into `world/datapacks` like with this command 
 
 To use the bot you need following:
 
-- An unaltered vanilla Minecraft Server Java Edition
+- An unaltered Vanilla Minecraft Server Java Edition
   - See Mojang.
   - Perhaps this works with altered Minecraft Servers, too, as only Vanilla compatibility is required
 - A datapack which must be installed on the Minecracft Server
@@ -166,7 +172,7 @@ But for now this uses `npm`, so it is a bit dangerous as I am not able to verify
 - Main programming is done with signs.
 - And in future:
   - Books
-  - and possibly loadable javascript modules
+  - and possibly loadable Javascript modules
 
 > Currently everything is hardcoded, in future this should become more customizable, but I cannot promise anything.
 
@@ -175,7 +181,7 @@ There are types of access control to the bot:
 - A: admin  (Creative and bot Ops)
 - B: user   (Survival)
 - C: player (Adventure)
-- D: guest  (Spectator)
+- (future likely) D: guest  (Spectator)
 - (future perhaps) E: not authenticated (Spectator)
 - (future perhaps) F: Unknown (Spectator)
 
@@ -183,7 +189,7 @@ There are types of access control to the bot:
 > 
 > Currently there is also no access control to signs, so anybody who is able to place or change signs is able to control the bot via signs.
 >
-> **Also many details below are not yet implmented!**
+> **Also most of the details below are not yet implmented!**
 
 Block naming:
 
@@ -230,7 +236,7 @@ There are also regional signs where two signs define the region (cube or plane) 
 To differentiate, use the same (optional) `tag` on both signs.
 
 
-### Already working
+### Available signs
 
 - `sleep`
   - must be placed near/above the bed the bot shall use to sleep
@@ -332,20 +338,23 @@ Common keywords used below:
 #### C: Player commands
 
 - `eat ITEM` fetch food and eat
-  - if ITEM is missing it uses some default food items
-  - These are currently `cooked_chicken` and `bread` (both is easy to get)
+  - It currently does not yet fetch food
+  - If ITEM is not given, it uses defaults
+  - The defaults are currently `cooked_chicken` and `bread` (both is easy to get)
   - Currently you cannot `set` the default food items
 - `help TEXT` outputs possible commands
   - if TEXT is missing, possible values for TEXT are output
   - you only see commands you are allowed to use
   - there is no further deeper help for commands yet
   - many commands present a help if they are called without parameter
+  - `/tell bot help food` lists the food items sorted by value
+  - `/tell bot help food apple` prints the JSON of the apple from `minecraft-data`
 - `state` the bot tells its state
 
 
 ## Future (perhaps)
 
-> Better skip this part and fast forward to "Resources needed"
+> **Better skip this part and fast forward to "Resources needed"**
 
 This here is an unorganized scratchpad for things I want to remember for the future.
 
@@ -444,26 +453,27 @@ Not yet implemented.  In future this controls, which commands you can tell a rob
 
 T.B.D.
 
-> Continue reading from here
+> **Continue reading from here**
 
 
 ## Resources needed
 
 - The Mincraft Server should have at least 2 vCPU and 4 GB RAM
-  - You can try with 2 GB, but I doubt this makes you happy
+  - You can try with 2 GB, but I doubt this keeps you happy
   - vCPU means threads, so a CPU with Hyperthreading counts as 2 vCPUs
 - For bots you probably need 1 vCPU (combined) plus 1 GB (per bot) RAM
+  - currenyly bots have a high CPU load when started, in future I'd like to reduce this
 - The system itself shall have 1 vCPU and 1 GB left
 - Combined this makes 4 vCPU and 6 GB RAM
-  - This is exactly the VM paramters I test it with
+  - My test VM has exactly this parameters
   - It should run with 2 vCPU, but it is likely you will get some lag issues when the bot starts to spam commands to the server
   - May be that you can run on 4 GB RAM with 3 GB for the server and 1 GB shared for the bot+system
   - I would not even dare to try to run on only 2 GB RAM, but for a small single player test world this might be enough
-  - If you use a Raspberry PI 5 for this, rather get one with 8 GB of RAM than one with only 4 GB or RAM
-- You should not have less than 40 GB of disk space, better 60 GB or 80 GB if you are unable to extend it
+  - If you use a Raspberry PI 5 for this, rather get one with 8 GB of RAM than one with only 4 GB of RAM
+- You should not have less than 40 GB of disk space, better 60 GB or 80 GB if you are unable to extend it on demand
   - 10 GB for `/`, 8 GB for `/var`, 2 GB for `/tmp`, and a `swap` partition of the size of RAM
-  - If you have a separate `/boot` partition, use at least 1 GB, so you have enough room
-  - Allow `/home` to be grown if you only start with 15 GB or less
+  - If you have a separate `/boot` partition, use at least 1 GB, so you have enough room for future kernel variants
+  - Allow `/home` to grow if you only start with 15 GB or less
   - Do not use a single partition setup, better use separate volumes
   - Rule of thumb:  When a parition fills above 70%, extend it
 - On a Raspberry PI5 (with 8 GB):
@@ -472,18 +482,19 @@ T.B.D.
   - Instead use a separate fast USB3 SSD or SD card for Minecraft.  External USB3 sticks usually break very soon, because they have a low or meaningless TBW.
   - For casual use I got good results with a genuine Samsung SD card with the original Samsung SD card reader bundle.  This is very fast, but I do not know if it runs stable enough.
   - Another way is an M2 SSD attached to the PI via USB3 or riser card, but I think this is a bit expensive.
+  - BTW, ZFS runs fine on PIs, and is self healing in mirrored setups.
 
 Notes on the IO performance:
 
-- The server has a low IO amount when it is idle
-  - however it is constantly writing updates to disk
+- The Server has a low IO amount when it is idle
+  - however it is constantly writing data to disk
   - so it will wear out cheap USB/SD storage very fast
 - When chunks are generated or areas are loaded, disk speed is crucial
   - When you explore new areas, the write speed can easily peak up to 10+ MB/s
   - When you teleport to existing areas, the read speed exceeds 40+ MB/s
-- So USB2 speed is not enough, you need USB3 speed
-  - Most USB3 sticks and USB3 card readers are real crap and do not reach this speed, even if advertised
-- My recommention is that you should try genine Samsung flash storage devices and their readers
+- So USB2 speed is not enough, you need real(!) USB3 speed
+  - Most USB3 sticks and USB3 card readers are crap and do not reach this speed, even if advertised
+- My recommention is that you should try genine Samsung flash storage devices and readers bundles from Samsung
   - With these you usually can expect to reach at least half the speed that is advertised for real!
   - Remember that cooling SD/SSD is crucial
   - Hardware from good manufactureres usually slows down (a lot!) when it gets too hot
@@ -491,12 +502,12 @@ Notes on the IO performance:
 
 Minecraft Network speed is moderate:
 
-- This all is per player
+- Following is per player
 - When idle
   - 16 KiB/s peak
    - 6 KiB/s average
 - When exploring new areas
-  - 3 MiB/s peak
+  - 3-4 MiB/s peak
   - 100 KiB/s average
 - This is byte/second
   - Use factor 10 to calculate bit/s from this
@@ -507,8 +518,8 @@ Minecraft Network speed is moderate:
   - When it comes to network speed, a period of 1s already is long!  (So longer should not exceed 5s)
 - Watch your ping
   - This is F3+3 in the Mincraft Client
-  - Mine is 25 ms on average to my Server, which is 400km away.  I also use an `ssh` tunnel to my server.
-  - A high ping usually means the connection to the server is too slow
+  - Mine is 25 ms on average to my Server, which is 400km away.  I also use an `ssh` tunnel to my Server.
+  - A high ping usually means the connection to or from the Server is slow and probably too overloaded (too few Bandwidth)
 
 
 ## FAQ
@@ -534,34 +545,36 @@ Output?
   - Note it usually only chats when you use `tell bot` from the Server commandline
 - Just ignore all this babble please
 - Please do not count on that this will become better or more helpful in future.
+  - as this has very low priority at my side
 
 Security
 
 - Currently the bot is probably very insecure
-  - So it probably can be used to destroy your server
+  - So it probably can be used to destroy your server if others gain access to the bot
   - This may change in a distant future, but has very low priority for me yet, sorry
   - This even may be true when you manage to run it with `online-mode=true`
-- Be sure not to open a Vanilla server to the public when `online-mode=false`
-  - Hence be sure that only you and your trusted friends can connect to your server!
-  - `ssh -L 127.0.0.1:25565:127.0.0.1:25565 host` or the similar Putty tunnel is your friend for Linux based servers
-  - On Windows probably use WSL
-- Help (perhaps) welcome!
-  - All players then spawn in Spectator mode
+- Be sure not to open a Minecraft Server to the public when `online-mode=false`
+  - Hence be sure that only you and your trusted friends can connect to your Server!
+  - Use `ssh -L 127.0.0.1:25565:127.0.0.1:25565 host` or a similar Putty tunnel
+  - On Windows probably use WSL to run the server
+- Help to implement Security (perhaps) welcome!
+  - The idea is that all players first spawn in Spectator mode
   - Unknown players must first register to the bot to get out of the Spectator mode
-  - After authorization, the players will be put into the correct mode by the bot
+  - After authorization, the players will be put into the correct mode (Adventure, Survival, Creative) by the bot
   - Hopefully this can be archived with plain Vanilla without glitches
 
 Signs?
 
 - Signs are easy to use and are able to keep the bot state in-game.
   - So the bot does not keep states by itself, which might create asynchronicity issues
+  - Signs also allow bots (in future) to cooperate
 - Also if you reset your world or restore a backup of it, you do not need to worry much about bot states
   - The bot caches some information in the `.state.json`.  This will be automatically updated after you restore or change the world.
 - However please keep in mind, there are some internal bot states which are saved into the `.state.json` file, like the `op` settings etc.
   - But hopefully this is what you want, because you certainly do not want old OPs to show up suddenly and unexpectedly.
-- The internal state also contains what the bot has learned via books
+- The internal state will also contain what the bot has learned via books
   - (Note that books are not yet implemented)
-  - Books are restored with the game, too, but this does not affect the state of the bot as long as the old books are not learned, too
+  - Books are restored with the game, too, but this does not affect the state of the bot as long as the old books are not re-learned
 
 Books?
 
