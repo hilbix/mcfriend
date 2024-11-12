@@ -1,0 +1,8 @@
+{
+  "dependencies": {
+    "mineflayer": "^4.22.0",
+    "mineflayer-auto-eat": "^5.0.0",
+    "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-viewer": "^1.28.0"
+  }
+}
