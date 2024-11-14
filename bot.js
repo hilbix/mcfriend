@@ -225,13 +225,17 @@ const DUMP = (_,d) =>
   _ && 'object' === typeof _ ? `{${Object.keys(_).map(k => `${toJ(k)}:${DUMP(_[k],d-1)}`).join(',')}}` :
   toJ(_);
 
-const goNear = async (_,max=4) =>
+// this starts moving without blocking
+// returns truish (goal) if moving else void 0
+const goNear = (_,max=3) =>
   {
     if (B.entity.position.distanceTo(_) <= max) return;
     const goal = new pathfinder.goals.GoalNear(_.x, _.y, _.z, max);
-    return B.pathfinder.setGoal(goal, true);
+    B.pathfinder.setGoal(goal, false);	// sync void 0
+    return goal;
 //    return B.pathfinder.goto(goal);
   };
+const MOVE = goal => (goal ??= B.pathfinder.goal) && B.pathfinder.goto(goal);
 
 const MESS = _ =>
   {
@@ -945,7 +949,9 @@ class Run extends Enum('ADMIN', 'USER')
     {
 //      const b = B.blockAt(p);
 //      if (!b) return yield `location not loaded: ${p}`;
-      await goNear(b.position);
+
+      goNear(b.position);
+      await MOVE();
 
       const ok = B.canDigBlock(b);
       if (!ok) return yield `cannot dig ${b.displayName} at ${POS(b.position)}`;
@@ -964,7 +970,8 @@ class Run extends Enum('ADMIN', 'USER')
       for (const bed of this.iter_signs('sleep'))
         {
           yield `trying to sleep near ${bed[0]}`;
-          await goNear(bed[2].position);
+          goNear(bed[2].position);
+          await MOVE();
           const b = B.findBlock({ matching:isBed, maxDistance:5 });
           try {
             if (!b) throw 'cannot sleep, no bed';
@@ -991,9 +998,9 @@ class Run extends Enum('ADMIN', 'USER')
       t.push({});
     }
 
-  TBdiggingCompleted(_)	{ this.digok(_, 'o') }
-  TBdiggingAborted(_)	{ this.digok(_, 'k') }
-  digok(block, fn)
+  TBdiggingCompleted(_)	{ this.digok('o', _) }
+  TBdiggingAborted(_)	{ this.digok('k', _) }
+  digok(fn, block)
     {
       const p = POS(block.position);
       const d = this.digs[p];
@@ -1003,6 +1010,18 @@ class Run extends Enum('ADMIN', 'USER')
           d[fn](block);
         }
     }
+
+  TBgoal_reached(..._)	{ this.moved('o', _) }
+  TBpath_stop(..._)	{ this.moved('k', _) }
+  moved(fn, _)
+    {
+      console.warn('MOVED', fn, _);
+      const p = this._move;
+      this._move	= void 0;
+      if (p)
+        p[fn](_);
+    }
+  move()		{ return this._move ??= PO() }
 
   TBmessagestr(str, who, data)	// chat message
     {
