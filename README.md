@@ -449,12 +449,40 @@ Regional commands, there must be at least 2 signs just above diametral opposite 
 Not yet implemented.  In future this controls, which commands you can tell a robot.
 
 
-### Standard library
+## Tasks
 
-T.B.D.
+> NOT YET IMPLEMETNED
+
+The Bot has an internal Task prority queue and a Task stack.
+
+- Tasks must be invoked trough the task system
+- Tasks are JavaScript generator functions (feathers)
+  - they can be synchronous or asynchronous
+- Tasks can have following properties:
+  - Recursive:  They do not interrupt themself.
+  - Interrupting:  They can interrupt other tasks (including itself)
+  - Interruptible:  These are not restarted when interrupted
+  - The default is nothing of this, so they are restarted when interrupted
+- Tasks can invoke other tasks
+  - They then wait for the return value of the other tasks
+  - They can cooperate and communicate with each other
+- Tasks can cooperate
+  - This is they can hand over 
+
+- f a task is invoked it adds itself to the Task queue.
+- Only a single Task can run at once
+
+When a task is started
+
+- Only a single task can run at the same time
+- Only a single Task runs at once, this is the topmost task
+- If the task stack is empty, the next task is taken from the task queue
+- Tasks have priorities
+  - Higher priority tasks 
+
+
 
 > **Continue reading from here**
-
 
 ## Resources needed
 
