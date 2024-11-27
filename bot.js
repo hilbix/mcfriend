@@ -4,7 +4,7 @@
 // see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
 // 'chat message messagestr'	// last ist best
-const DEBUG	= 'goal_reached goal_updated path_reset path_stop' //'blockUpdate' //'entityGone entityDead blockUpdate itemDrop'
+const DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entityDead blockUpdate itemDrop'
 'login spawn end kicked error whisper'
 
 // CONFIG
@@ -29,6 +29,17 @@ const DELAYED = Promise.all(['mineflayer-auto-eat'].map(_ => import(_)));	// req
 // MiniLib
 //
 
+const THROW	= (_,...a) =>
+  {
+    console.error(_, ...a);
+    const x = [];
+    while (a.length)
+      x.push(_.shift(), a.shift());
+    x.push(_.shift());
+    if (_.length) throw `WTF? ${x} ${_}`;
+    console.error(...x);
+    throw x.join(' ');
+  };
 const fsCB	= (fn,a,b) =>	// FS promises (my Node is too old)
   {
     const f = fs[fn];
@@ -36,7 +47,7 @@ const fsCB	= (fn,a,b) =>	// FS promises (my Node is too old)
     a ??= [];
     b ??= [];
     return (..._) => new Promise((o,k) => f.call(fs, ...a, ..._, ...b, (e,_) => e ? k(e) : o(_)));
-  }
+  };
 const Read	= fsCB('readFile', [], ['utf8']);
 const Write	= fsCB('writeFile');
 const Rename	= fsCB('rename');
@@ -48,13 +59,16 @@ const isObjectOrNull = _ => isObject(_ ?? {});
 const isObjectOrFalse = _ => isObject(_ || {});
 const isString	= _ => 'string' === typeof _;
 
+const map_get	= (m,k,fn,...a) => { if (m.has(k)) return m.get(k); const v=fn(...a); m.set(k,v); return v }
+
 const NOP	= () => void 0;
 const fromJ	= JSON.parse;
 const toJ	= JSON.stringify;
 const OB	= (..._) => Object.assign(Object.create(null), ..._);	// Object without prototype
 const PO	= (..._) =>
   {	// Promise Object: ._ = args; _.p = Promise; _.o = ok (for return); _.k = ko (for error)
-    const r = {_};
+    const r = {};
+    if (_.length) r._ = _;
     r.p	= new Promise((o,k) => { r.o=o; r.k=k });
     return r;
   };
@@ -100,6 +114,19 @@ const Wrap	= (ob,fn,cb) =>
     const FPA = Function.prototype.apply;
     ob[fn] = function (...a) { return FPA.call(orig, this, cb(...a)) }
     return ob;
+  };
+
+const Enum = (..._) =>			// Enum('a','b','c').c === 3
+  {
+    const c = class {};
+    _.forEach((_,i) => c[_] = i+1);
+    return c;
+  };
+const Symbols = (..._) =>		// like Enum
+  {
+    const c = class {};
+    _.forEach((_,i) => c[_] = Symbol(_));
+    return c;
   };
 
 class RunQueue
@@ -174,6 +201,9 @@ class AsyncQueue
       return this;
     }
   };
+
+const T = {add:_=>_};	// XXX REMOVE XXX workaround for a marker that here is something to do for now
+
 
 //
 // Globals
@@ -511,7 +541,7 @@ function run(klass)
 //      console.log('K', k);
       if (!k?.startsWith) continue;
       // B.world.on() seems not to work correctly.
-      const on = k.startsWith('TB') ? B : k.startsWith('TW') ? B.world : void 0;	// Luckily we are not in PHP.
+      const on = k.startsWith('QB') ? B : k.startsWith('QW') ? B.world : void 0;	// Luckily we are not in PHP.
       if (!on) continue;
       const q = Q.Q(k.substring(1));
       on.on(k.substring(2), (..._) => { q(..._) });				// make sure the return value is void 0
@@ -567,20 +597,14 @@ const track = (_=>_())(() =>
 // Implementation
 //
 
-const Enum = (..._) =>
-  {
-    const c = class {};
-    _.forEach((_,i) => c[_] = i+1);
-    return c;
-  };
-
 const SETS =
   { sleep: 1
   };
 
 // If these return a Promise (thenable), the next function will not be called until the Promise resolves or throws:
 // T	tasks
-// TB	bot callbacks
+// QB	bot callbacks
+// QW	world callbacks
 // globals:
 // state	then current state (Proxy object automatically keeping state)
 class Run extends Enum('ADMIN', 'USER')
@@ -616,58 +640,56 @@ class Run extends Enum('ADMIN', 'USER')
       this.nr	= ++Run.runcount;
       this.tasks= {};
 
-      Q.add('task', 'start');
-
       this.signs	= OB();
       this.chunks	= new AsyncQueue(() => this.checksigns(1), () => this.checksigns());
 
 //      for (const s of B.inventory.slots) if (s) console.log(s.slot, s.count, s.name);
 
       // this must come last
-      Q.Run(this, 'T');
+//      Q.add('task', 'start');
+      Q.Run(this, 'Q');
 
 //      this.time();
+//      Q.add('task', 'chunks');
+      // B.world.async.columns might not yet be available here
+      // so we need to delay it until the columns are loaded
+      this.chunksinit	= 1;
     }
 
   //
   // signs
   //
-  // TODO:
-  //
-  block_scan_start()	// unused
-    {
-      const p = B.entity.position;
-      return this.block_scan(p.x|0, p.y|0, p.z|0);
-    }
+
   // register chunk to scan and scan it asynchronously
   chunk_scan(_)
     {
+      if (this.chunksinit)
+        for (const c of Object.keys(B.world.async.columns??{}))
+          {
+	    this.chunksinit	= void 0;
+            const [x,z] = c.split(',').map(_ => _|0);
+            this.chunk_scan({x:x*16, z:z*16});
+          }
       const x = _.x|0;
       // y probably 0
       const z = _.z|0;
+//      console.log('cc:', x,z);
 
-      if (!this.chunks)
-        {
-          this.chunks = Promise.resolve();
-          Chat('start to scan chunks');
-        }
       for (let a=16; --a>=0; )
-        {
-          this.chunks.add(x =>
-            {
-              for (let b=16; --b>=0; )
-                {
-                  const l = z+b;
-                  for (let c=320; --c>=-64; )
-                    {
-                      const v = v3(x, c, l);
-                      const d = B.blockAt(v);
-                      if (!d?.name.endsWith('_sign')) continue;
-                      this.sign(d);
-                    }
-                }
-            }, x+a);
-        }
+        this.chunks.add(x =>
+          {
+            for (let b=16; --b>=0; )
+              {
+                const l = z+b;
+                for (let c=320; --c>=-64; )
+                  {
+                    const v = v3(x, c, l);
+                    const d = B.blockAt(v);
+                    if (!d?.name.endsWith('_sign')) continue;
+                    this.sign(d);
+                  }
+              }
+          }, x+a);
     }
   // check if signs are still present or lost while offline
   checksigns(start)
@@ -683,6 +705,8 @@ class Run extends Enum('ADMIN', 'USER')
           else
             console.log('not loaded', p);
         }
+      if (!this.signchange) return;
+      this.signchange	= void 0;
       this.act();
     }
   // register or deregister a sign
@@ -724,6 +748,7 @@ class Run extends Enum('ADMIN', 'USER')
         this.inc('sign', 'known');
 
       this.signs[p] = [];
+      this.signchange = true;
     }
   // n=0: last line of front (default)
   // n=1: first line of back
@@ -744,7 +769,7 @@ class Run extends Enum('ADMIN', 'USER')
             {
               //console.warn('setSign', p, x, n);
               const j = toJ({text:x});
-//	      this.data([], 'modify block', ...p.split(','), `${n?'back':'front'}_text.messages[`, (n || 4)-1, '] set value', toJ(j));
+//              this.data([], 'modify block', ...p.split(','), `${n?'back':'front'}_text.messages[`, (n || 4)-1, '] set value', toJ(j));
               Chat(`/data modify block ${p.split(',').join(' ')} ${n?'back':'front'}_text.messages[${(n || 4)-1}] set value ${toJ(j)}`);
               if (!isArray(this.signs[p])) this.signs[p] = [];
               this.signs[p][n] = x;
@@ -832,6 +857,7 @@ class Run extends Enum('ADMIN', 'USER')
       Chat('start acting');
       for (const [p,s,b,l] of this.iter_signs())
         {
+          if (!this.signs[p]) continue;
           const x = s[2];
           const c = `S${x}`;
           const f = this[c];
@@ -855,6 +881,7 @@ class Run extends Enum('ADMIN', 'USER')
     }
   Ssleep = false;
   Snote = false;
+  Sget = false;
   async *Ssort(p,s)
     {
       yield `sort ${p} ${s}`;
@@ -972,6 +999,7 @@ class Run extends Enum('ADMIN', 'USER')
           yield `trying to sleep near ${bed[0]}`;
           goNear(bed[2].position);
           await MOVE();
+
           const b = B.findBlock({ matching:isBed, maxDistance:5 });
           try {
             if (!b) throw 'cannot sleep, no bed';
@@ -991,15 +1019,15 @@ class Run extends Enum('ADMIN', 'USER')
   //
   // Tasks and Events
   //
-  Ttask(task, ...a)
+  Qtask(task, ...a)
     {
       this.chat(`${task}`, this.nr);
       const t = this.tasks[task]	??= [];
       t.push({});
     }
 
-  TBdiggingCompleted(_)	{ this.digok('o', _) }
-  TBdiggingAborted(_)	{ this.digok('k', _) }
+  QBdiggingCompleted(_)	{ this.digok('o', _) }
+  QBdiggingAborted(_)	{ this.digok('k', _) }
   digok(fn, block)
     {
       const p = POS(block.position);
@@ -1011,8 +1039,8 @@ class Run extends Enum('ADMIN', 'USER')
         }
     }
 
-  TBgoal_reached(..._)	{ this.moved('o', _) }
-  TBpath_stop(..._)	{ this.moved('k', _) }
+  QBgoal_reached(..._)	{ this.moved('o', _) }
+  QBpath_stop(..._)	{ this.moved('k', _) }
   moved(fn, _)
     {
       console.warn('MOVED', fn, _);
@@ -1023,67 +1051,38 @@ class Run extends Enum('ADMIN', 'USER')
     }
   move()		{ return this._move ??= PO() }
 
-  TBmessagestr(str, who, data)	// chat message
+  // chat message
+  // apparently "str" is truncated and missing the last character
+  QBmessagestr(str, who, data)	{ console.log('CHAT:', toJ(who), str); data?.json && this.runwant(data.json.translate, () => MJ(data)) }
+  QBweatherUpdate(..._)		{ T.add(this.tick()); track('weather', 'rainState thunderState') }
+  QBtime(..._)			{ T.add(this.tick()) }
+  QBchunkColumnLoad(_)		{ T.add(this.chunk_scan(_)) }
+  QBblockPlaced(orig, now)	{ IGN(orig) & IGN(now) & 8 || console.log('BBP', POS(now.position), now.name) }
+  QWblockUpdate(..._)		{ console.log('WBU', _) }
+  QBblockUpdate(orig, now)
     {
-      // apparently "str" is truncated and missing the last character
-      console.log('CHAT:', toJ(who), str);
-      //console.warn('MESS:', MESS(data));
-      //console.warn('MESS:', MESS(data.json.with));
-      if (data?.json)
-        this.runwant(data.json.translate, () => MJ(data));
-    }
-  TBweatherUpdate(..._)
-    {
-      this.tick();
-      track('weather', 'rainState thunderState');
-    }
-  TBtime(..._)
-    {
-      this.tick();
-//      track('time', 'timeOfDay');
-    }
-  TBchunkColumnLoad(_)
-    {
-      this.chunk_scan(_);
-    }
-  TBblockPlaced(orig, now)
-    {
-      if (IGN(orig) & IGN(now) & 8) return;
-      console.log('BBP', POS(now.position), now.name);
-    }
-  TBblockUpdate(orig, now)
-    {
-      if (isSign(now) || isSign(orig))
-        this.sign(now);
-      if (orig.name === now.name) return;
-      if (IGN(orig) & IGN(now) & 4) return;
-      console.log('BBU', POS(orig.position), orig.name, now.name);
-    }
-  TWblockUpdate(..._)
-    {
-      console.log('');
-      console.log('WBU', _);
-      console.log('');
+      if (isSign(now) || isSign(orig)) T.add(this.sign(now));
+      orig.name === now.name || IGN(orig) & IGN(now) & 4 || console.log('BBU', POS(orig.position), orig.name, now.name);
     }
 
   //
   // Grief
   //
-  TBentityGone(x)
+  QBentityGone(x)
     {
       if (IGN(x) & 2) return;
       console.log('gone', ENTITY(x));
     }
-  TBentityDead(x)
+  QBentityDead(x)
     {
       if (IGN(x) & 1) return;
       console.log('dead', ENTITY(x));
     }
-  TBentityEatingGrass(x)
+  QBentityEatingGrass(x)
     {
       console.log('grass', ENTITY(x));
     }
-  TBhealth(..._)
+  QBhealth(..._)
     {
       console.log('health', _);
       if (B.food === 20)
@@ -1220,7 +1219,7 @@ class Run extends Enum('ADMIN', 'USER')
           console.error(x.e = e);
         }
     }
-  async TBwhisper(src, cmd)
+  async QBwhisper(src, cmd)
     {
       if (src === B.player.username) return;
       const c = cmd.split(' ').filter(_ => _);
@@ -1342,6 +1341,10 @@ class Run extends Enum('ADMIN', 'USER')
      state.autosleep = !c.length;
      yield `autosleep = ${state.autosleep}`;
     }
+  *Arun(c)
+    {
+      console.error(eval(c.join(' ')));
+    }
   // sleep	run to "sleep" sign and try to sleep in bed
   async *Bsleep()
     {
@@ -1442,24 +1445,38 @@ class Run extends Enum('ADMIN', 'USER')
     }
   async *Ceat(c)
     {
-      await this.get(c);
+      yield* this.get(c);
       try {
         await B.autoEat.eat();
       } catch (e) {
         yield `eating failed (food=${B.food}): ${e}`;
       }
     }
-  get(c)
+  Cget(c)
+    {
+      return this.get(c);
+    }
+  async *get(c)
     {
       if (!c.length)
         {
           c.push('cooked_chicken');
           c.push('bread');
         }
-      console.error('get not yet implemented', B.autoEat.foods);
+//      yield 'test 123';
+//      console.error('get not yet implemented', B.autoEat.foods);
+      for (const s of B.inventory.slots)
+        for (const x of c)
+          if (s.name === x || s.displayName === x)
+            return;
+      yield 'need food';
+      for (const x of c)
+        {
+//      yield `${s.slot}: ${s.count} ${s.name} ${s.displayName}`;
+        }
     }
 
-  //breath is too buggy! TBbreath(..._) { const x = inc('breath'); track('oxygenLevel', console.log, 'breath', x); }
+  //breath is too buggy! QBbreath(..._) { const x = inc('breath'); track('oxygenLevel', console.log, 'breath', x); }
   };
 
 run(Run);
