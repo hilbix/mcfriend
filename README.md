@@ -170,50 +170,15 @@ But for now this uses `npm`, so it is a bit dangerous as I am not able to verify
 
 - The bot is controlled by tells.
 - Main programming is done with signs.
-- And in future:
+- Possibly in future:
   - Books
-  - and possibly loadable Javascript modules
+  - Javascript modules
+  - Other scripts
 
-> Currently everything is hardcoded, in future this should become more customizable, but I cannot promise anything.
 
-There are types of access control to the bot:
+### Commands
 
-- A: admin  (Creative and bot Ops)
-- B: user   (Survival)
-- C: player (Adventure)
-- (future likely) D: guest  (Spectator)
-- (future perhaps) E: not authenticated (Spectator)
-- (future perhaps) F: Unknown (Spectator)
-
-> Currently only A to C are implemented, D to F are currently just C for tells
-> 
-> Currently there is also no access control to signs, so anybody who is able to place or change signs is able to control the bot via signs.
->
-> **Also most of the details below are not yet implmented!**
-
-Block naming:
-
-- Blocks and Items and entities are named by their `.name` and usually not by their `.displayName`
-- Some internal routines might work with the `.displayName`, too.
-  - But everything is case sensitive and probably language dependant then.
-- There is a special bot internal empty namespace (so the name starts with `:`)
-- If you leave the namespace away (no `:`), the bot first searches its internal namespace and then `minecraft:`
-- The internal namespace supports block lists
-  - These can have inclusions (name) and exclusions (!name)
-  - Parsing lists is done step by step, so the first match wins
-  - There is a hardcoded empty name (just `:`, nothing else) alias which matches anything (blocks, items, entities)
-
-Lists are managed mainly with the `add` and `del` commands, see below.
-
-	/tell bot add list NAME item..
-	/tell bot del list NAME item..
-	/tell bot set list NAME item..
-	/tell bot list list NAME ..
-
-To change the bots behavior you usually use the `set` command, see below.
-
-	/tell bot set set NAME [value..]
-	/tell bot list set [NAME..]
+Commands are sent via tells and are handled by scripts and JavaScript modules which are executed on demand, see COMMANDS.md
 
 
 ### Signs
@@ -236,253 +201,46 @@ There are also regional signs where two signs define the region (cube or plane) 
 To differentiate, use the same (optional) `tag` on both signs.
 
 
-### Available signs
+### Lists
 
-- `sleep`
-  - must be placed near/above the bed the bot shall use to sleep
-  - the bot does not know where to sleep if this sign is missing
-  - `autosleep` is currently enabled with `/tell bot autosleep`
-  - `autosleep` is currently disabled with `/tell bot autosleep TEXT`
+List management is implemented via Commands which use the API (see API.md) to mange the lists like this:
 
-#### Partially implemented
+	/tell bot add NAME item..
+	/tell bot del NAME item..
+	/tell bot set NAME item..
+	/tell bot list NAME ..
 
-- `tree`
-  - between sign and tree there must be 1 empty block (for vines etc.)
-  - this chops down and replants the tree (replant coming soon)
-  - this needs the timber datapack being installed for now, because the bot only breaks a single block
-  - you must give the bot a stone axe (in future it will fetch it from `get stone_axe` or `:axe` list)
+The first letter of `NAME` defines the type of lists:
 
-#### Unsure if I ever get this working
-
-- `door`
-  - the bot does not break walls
-  - must be placed above a door
-  - bot can open the door to go through it
-  - arg `closed`: tries to keep the door closed
-  - if the bot cannot walk to the destination, it recursively tries all doors with a probably very stupid algorithm!
-
-#### Planned (but not implemented)
-
-- `get`
-  - must be placed on a chest
-  - arg: the block to fetch from the chest
-- `empty`
-  - must be placed on a chest
-  - like `get`, but repeat until the chest is empty
-  - arg missing: fetch anything in it
-- `put`
-  - must be placed on a chest
-  - arg: block to put into the chest until chest is full
-  - if missing, put anything in it
-- `cache`
-  - must be placed on a chest
-  - same as `get` plus `put` together
+- `i` are item lists, so every entry is an item/block etc., see Naming below
+- `s` are settings which you can use to control the bot's behavior via certain values
+  - Often this is just some value not a real list
 
 
-### Tells
+### Naming
 
-Common keywords used below:
-
-- `PERM` can be `admin`, `user` or `player`
-- `WHAT` can be `set` or `list`
-- `LIST` can be `inv`, `op`, `set` or `sign`
-- `NAME` is a single word
-- `VAL` is a single word
-- `VAL..` is a space separated list of values
-- `TEXT` is a space separated list of words
-  - multiple spaces are ignored and act as a single space
-- `ENTITY` a minecraft entity `.name` or `.displayName`
+- Blocks and Items and entities are named by their `.name` and usually not by their `.displayName`
+- Some internal routines might work with the `.displayName`, too.
+  - But everything is case sensitive and probably language dependant then.
+- There is a special bot internal empty namespace (so the name starts with `:`)
+- If you leave the namespace away (no `:`), the bot first searches its internal namespace and then `minecraft:`
+- The internal namespace supports lists
+  - These can have inclusions (name) and exclusions (!name)
+  - Parsing lists is done step by step, so the first match wins
+  - There is a hardcoded empty name (just `:`, nothing else) alias which matches anything (blocks, items, entities)
 
 
-#### A: Admin commands
+### Books
 
-- `add WHAT NAME [VAL..]` append VAL to NAME
-  - NOT YET IMPLEMENTED
-  - it is an error if VAL is already in NAME
-- `del WHAT NAME [VAL..]` remove VAL from NAME
-  - NOT YET IMPLEMENTED
-  - it is an error if VAL is not in NAME
-  - errors have no negative effect usually (they are only shown in the output)
-- `ign MASK ENTITY`
-  - temporary command, expected to change or vanish in future
-  - ignore the given entity in certain aspects
-  - MASK is an bitmask in decimal and undocumented, because it will vanish!
-- `op PERM NAME`: set the op type of the given player NAME
-  - To list them use `list op`
-- `say TEXT`: let the bot speak something
-  - Can be used to run server commands when something starts with `/`
-- `set WHAT NAME [VAL..]`
-  - NOT YET IMPLEMENTED
-  - set (unconditionally change) a given parameter
-- `unset`:
-  - NOT YET IMPLEMENTED and may vanish
+> Books are not yet implemented
 
-
-#### B: User commands
-
-- `act` let the bot process all signs
-  - temporary command, expected to change or vanish in future
-- `come [LOC]` the bot moves near you or the given coordinates
-- `drop` drop the given items or all
-  - temporary command, expected to change or vanish in future
-- `list LIST` give a list of the given LIST
-  - if LIST is missing, possible values for LIST are output
-  - Note that you only see settings which are `set` (or nonempty)
-- `sleep` send the bot to sleep
-  - see `autosleep`
-  - if the bot cannot sleep, this sets the spawn point as usual
-  - sleeping on a bed works even if the bed is behind a wall! (This bug is a feature.)
-  - currently the bot does not find the way to the bed through doors
-
-
-#### C: Player commands
-
-- `eat ITEM` fetch food and eat
-  - It currently does not yet fetch food
-  - If ITEM is not given, it uses defaults
-  - The defaults are currently `cooked_chicken` and `bread` (both is easy to get)
-  - Currently you cannot `set` the default food items
-- `help TEXT` outputs possible commands
-  - if TEXT is missing, possible values for TEXT are output
-  - you only see commands you are allowed to use
-  - there is no further deeper help for commands yet
-  - many commands present a help if they are called without parameter
-  - `/tell bot help food` lists the food items sorted by value
-  - `/tell bot help food apple` prints the JSON of the apple from `minecraft-data`
-- `state` the bot tells its state
-
-
-## Future (perhaps)
-
-> **Better skip this part and fast forward to "Resources needed"**
-
-This here is an unorganized scratchpad for things I want to remember for the future.
-
-### Bot programming
-
-#### Books
-
-> (This is not yet implemented.)
-
-By giving the bot a book, the bot learns the given tasks.
-Each page is a single named task to process.
-
-- The first line is the task's name which can then be used like a command or tell.
-- Each other line then is a single command to process in sequence.
-- After learing the commands, the bot automatically runs the command named after its name
-
-There are following special tasks:
-
-- `start` is executed after the bot starts into the game
-  - for example after it was killed
-- `default` runs if the bot has no more other tasks queued
-
-Note that a task can only be queued once.
-If a task is run which is interrupted, then the task continues from where it was interrupted.
-
-Note that if you refer to a task or command, it is referenced in place.
-Such that you can reassign or change the command.
-
-
-#### Tells
-
-- `stop` stops (aborts) the bot from what it is doing
-- `halt` halts the bot, the bot then waits for the next command
-- `continue` continues from where it was halted
-- If the bot does not understand something it tells the status
-- `bug` or `err`
-  - the bot tells the last error encountered (usually sign failure)
-- `do` bot continues its default work if it has nothing more to do
-- `do command`
-  - bot interrupts the current task, does the command, and then continues the interrupted task
-- `stop`
-  - bot stops
-  - this also clears the command list
-- `tp` the bot teleports to the player
-- `tp pos` the bot teleports to the pos
-- `follow` the player
-  - bot walks to the position of the player and follows
-- `lead` the player
-  - the bot stops until the player comes near
-  - then continues doing work as long as the player is near
-- `then command`
-  - add something to the task list
-  - the previous task must be finished
-- `do command`
-  - interrupt the current task, do the command, then continue the task
-- `forget task` removes a given task
-
-
-#### Signs
-
-- `trapdoor`
-  - must be placed near the trapdoor
-  - bot can open the trapdoor to fall through it
-  - arg `closed`: tries to keep the trapdoor closed
-  - if the bot cannot walk to the destination, it recursively tries all trapdoors with a probably very stupid algorithm!
-- `fill`
-  - look for a hole and fill it
-  - give the block as option
-
-Regional commands, there must be at least 2 signs just above diametral opposite edges of a cube.
-
-- `place`
-  - place the given block in this area
-- `farm`
-  - harvest the given plants (and replant them if needed)
-  - this alternately places plants
-- `break`
-  - breaks all blocks in this area
-  - you can add a block to break or not to break
-
-#### Lists
-
-- Lists refer to multiple items.
-- Lists can refer to other lists, too.
-- You can +item or -item
-- Note that different bots can have different lists
-- Use a book to program the bot
+See BOOKS.md
 
 
 ### Privileges
 
 Not yet implemented.  In future this controls, which commands you can tell a robot.
 
-
-## Tasks
-
-> NOT YET IMPLEMETNED
-
-The Bot has an internal Task prority queue and a Task stack.
-
-- Tasks must be invoked trough the task system
-- Tasks are JavaScript generator functions (feathers)
-  - they can be synchronous or asynchronous
-- Tasks can have following properties:
-  - Recursive:  They do not interrupt themself.
-  - Interrupting:  They can interrupt other tasks (including itself)
-  - Interruptible:  These are not restarted when interrupted
-  - The default is nothing of this, so they are restarted when interrupted
-- Tasks can invoke other tasks
-  - They then wait for the return value of the other tasks
-  - They can cooperate and communicate with each other
-- Tasks can cooperate
-  - This is they can hand over 
-
-- f a task is invoked it adds itself to the Task queue.
-- Only a single Task can run at once
-
-When a task is started
-
-- Only a single task can run at the same time
-- Only a single Task runs at once, this is the topmost task
-- If the task stack is empty, the next task is taken from the task queue
-- Tasks have priorities
-  - Higher priority tasks 
-
-
-
-> **Continue reading from here**
 
 ## Resources needed
 
