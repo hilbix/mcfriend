@@ -9,11 +9,14 @@ const DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entityDead
 
 // CONFIG
 
-const NAME = process.argv[1].split('/').pop().split('.').shift();
+const FLW = [];
+const D = (..._) => { FLW.push(_); if (FLW.length>20) FLW.shift() };
+
+const NAME = process.argv[6] || process.argv[1].split('/').pop().split('.').shift();
 const WEBPORT = (process.argv[2]||0) || 8080;
 const PORT = (process.argv[3]|0) || 25565;
-const HOST = process.argv[4] ?? '127.0.0.1';
-const WEBHOST = process.argv[5] ?? '127.0.0.1';
+const HOST = process.argv[4] || '127.0.0.1';
+const WEBHOST = process.argv[5] || '127.0.0.1';
 
 // requires
 
@@ -22,6 +25,7 @@ const mineflayer = require('mineflayer');
 const mineflayerViewer = require('prismarine-viewer').mineflayer
 const v3 = require('vec3');
 const pathfinder = require('mineflayer-pathfinder');
+//const pvp = require('mineflayer-pvp');
 const DELAYED = Promise.all(['mineflayer-auto-eat'].map(_ => import(_)));	// require() does not work with those
 
 
@@ -73,6 +77,7 @@ const PO	= (..._) =>
     return r;
   };
 const Sleep	= _ => new Promise(o => setTimeout(o, _));
+const Relax	= _ => Sleep().then(_);
 const mkArr	= _ => Array.isArray(_) ? _ : [_];
 const mkMatch	= _ => _.length && Object.fromEntries(_.map(_ => [_,true]));
 const allKeys	= _ =>
@@ -101,7 +106,9 @@ const LogOnce	= name =>
         const s = mkArr(_[0]);
         if (was.has(s[0])) return _;
         was.add(s[0]);
-        console.log(name, s.join(' '), _.length-1);
+        const x = s.join(' ');
+        console.log(name, x, _.length-1);
+        D('Log', name, x);
         return _;
       }
   };
@@ -140,6 +147,7 @@ class RunQueue
   add(name, ..._)	{ return this._add(name, _) }
   _add(name, _)
     {
+      D('Qadd', name, _);
 //      console.log('A', name, _.length);
       this._.push([name, _]);
       this._signal();
@@ -162,19 +170,25 @@ class RunQueue
 //              console.log('Run', prefix, this._.length);
               this._p ??= PO();
 //              console.log('P', this._p);
+              D('Q', 'wait');
               await this._p.p;
+              D('Q', 'cont');
               continue;
             }
           const [t,a] = this._.shift();
 //          console.log('Run', prefix, this._.length, t, a.length);
+          D('Q', 'got', t, a);
           try {
             const f = `${prefix}${t}`;
-            const x = await r[f](...a);
+            const x = await Relax(() => r[f](...a));
+            D('Q', 'ran', t, a, x);
 //            console.log('RunOK', f, x);
           } catch (e) {
+            D('Q', 'err', t, a, e);
             l([`${t} ERR:`, `${e}`], ...a);
           }
         }
+      D('Q', 'bye', t, r);
 //      console.log('Run(end)');
     }
   };
@@ -225,8 +239,8 @@ Wrap(B, 'emit',  LogOnce('emit'));	// DEBUG to see what emit() are available
 // miniBotLib
 //
 
-const Chat = (...s) => { const _ = s.map(_ => `${_}`).join(' '); console.log('SAY:', _); return B.chat?.(_) };		// it may happen too early
-const ERR = _ => (...e) => { console.error(...e); Chat('E', _, ...e) }
+const Chat = (...s) => { D('chat', s); const _ = s.map(_ => `${_}`).join(' '); console.log('SAY:', _); return B.chat?.(_) };		// it may happen too early
+const ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
 
 const isBed	= _ => B.isABed(_);
 const isSign	= _ => _?.name.endsWith('_sign');
@@ -240,6 +254,7 @@ const p2v = _ => _ && a2v(_.split(','));
 
 const ENTITY = _ =>
   {
+    D('ENTITY', _);
     let item = '';
     if (_.displayName === 'Item')
       {
@@ -259,13 +274,14 @@ const DUMP = (_,d) =>
 // returns truish (goal) if moving else void 0
 const goNear = (_,max=3) =>
   {
+    D('goNear', _);
     if (B.entity.position.distanceTo(_) <= max) return;
     const goal = new pathfinder.goals.GoalNear(_.x, _.y, _.z, max);
     B.pathfinder.setGoal(goal, false);	// sync void 0
     return goal;
 //    return B.pathfinder.goto(goal);
   };
-const MOVE = goal => (goal ??= B.pathfinder.goal) && B.pathfinder.goto(goal);
+const MOVE = goal => { D('move', goal); return (goal ??= B.pathfinder.goal) && B.pathfinder.goto(goal) };
 
 const MESS = _ =>
   {
@@ -331,6 +347,7 @@ const MESS = _ =>
 // Try to convert a _.json Minecraft Object into some usable object
 const MJ = j =>
   {
+    D('MJ', j);
     if (!j?.json)
       throw `no Minecraft JSON object: ${toJ(j)}`;
 
@@ -437,7 +454,9 @@ DEBUG.split(' ').forEach(_ => B.on(_, (...a) => console.log('D', _, ...(a.map(_ 
 // Put up HTTP access (limited, but it works somehow)
 B.once('spawn', () =>
   {
+    D('spawn', 'start');
     B.loadPlugin(pathfinder.pathfinder);
+//    B.loadPlugin(pvp.plugin);
     DELAYED.then(_ =>
       {
         _.forEach(_ => B.loadPlugin(_.loader ?? _));
@@ -465,6 +484,7 @@ B.once('spawn', () =>
       , viewDistance: 20
 //      , firstPerson:true	// warning, this is permanent!
       });
+    D('spawn', 'end');
   });
 
 
@@ -472,7 +492,7 @@ B.once('spawn', () =>
 // Load and keep the state
 //
 
-B.once('end', () => { RUN?.stop(); State.save().finally(() => process.exit()) });
+B.once('end', () => { D('END'); RUN?.stop(); State.save().finally(() => process.exit()) });
 
 function Tracked(change, ...init)
 {
@@ -566,9 +586,12 @@ function run(klass)
 
       // Instantiate Bot's runtime for this connection
       const bot	= new klass();
+      const r = await bot.P;
+
+      console.error('FLW', FLW);
 
       // This instance probably was replaced by another connection
-      Chat('stop', bot.nr, await bot.P);
+      Chat('stop', bot.nr, r);
     });
 
   // from here everything runs asynchronously
@@ -666,7 +689,7 @@ class Run extends Enum('ADMIN', 'USER')
       if (this.chunksinit)
         for (const c of Object.keys(B.world.async.columns??{}))
           {
-	    this.chunksinit	= void 0;
+            this.chunksinit	= void 0;
             const [x,z] = c.split(',').map(_ => _|0);
             this.chunk_scan({x:x*16, z:z*16});
           }
@@ -675,6 +698,7 @@ class Run extends Enum('ADMIN', 'USER')
       const z = _.z|0;
 //      console.log('cc:', x,z);
 
+      D('chunkscan', x,z);
       for (let a=16; --a>=0; )
         this.chunks.add(x =>
           {
@@ -690,6 +714,7 @@ class Run extends Enum('ADMIN', 'USER')
                   }
               }
           }, x+a);
+      D('chunkscan(ok)', x,z);
     }
   // check if signs are still present or lost while offline
   checksigns(start)
@@ -717,15 +742,18 @@ class Run extends Enum('ADMIN', 'USER')
 //      Chat('sign', POS(d.position));
       const s = state.sign;
       const p = POS(d.position);
+      D('sign', p);
       const a = s[p];
       const del = () =>
         {
+          D('sign:del', p, a);
           if (!a) return;
           this.inc('sign', 'removed');
           delete s[p];
           state.sign = s;
           this.chat('-sign', p, a);
           this.signs[p] = 0;
+          D('sign:del(ok)');
          };
 
       if (!isSign(d)) return del();
@@ -749,6 +777,7 @@ class Run extends Enum('ADMIN', 'USER')
 
       this.signs[p] = [];
       this.signchange = true;
+      D('sign(ok)', p);
     }
   // n=0: last line of front (default)
   // n=1: first line of back
@@ -757,6 +786,7 @@ class Run extends Enum('ADMIN', 'USER')
     {
       //console.warn('setSign', p, x, n);
 
+      D('setSign', p);
       if (n<1 || n>4 || n !== n|0) n=0;
       const v = p2v(p);
       const b = B.blockAt(v);
@@ -953,6 +983,7 @@ class Run extends Enum('ADMIN', 'USER')
   get P()	{ return this._.p }
   chat(...s)
     {
+      D('chat', s);
       console.log('chat', s);
       Chat(...s);
       return this;
@@ -960,10 +991,29 @@ class Run extends Enum('ADMIN', 'USER')
 
   tick()
     {
+      D('tick');
       this.tick_autosleep();
+//      this.tick_autoattack();
     }
+  QBstartedAttacking() { this._attack = 1 }
+  QBstoppedAttacking() { this._attack = 0 }
+  QBattackedTarget()	{ console.log('attack', _) }
+//  async tick_autoattack()
+//    {
+//      D('tick aa');
+//      if ((state.autoattack|0)<1 || this._attack) return ++this._attack;
+//      console.log('AA');
+//      const e = bot.nearestEntity(_ => _.type==='hostile' && _.position.distanceTo(B.entity.position) <= state.autoattack);
+//      if (e)
+//        {
+//          B.pvp.attack(e);
+//          this._attack = -10;
+//          Chat('attacking', e.name);
+//        }
+//    }
   async tick_autosleep()
     {
+      D('tick as');
       const ok	= B.time.isDay && (B.thunderState < 1.0 || B.rainState < 1.0);
 //      console.log('time', ok, state.autosleep);
       if (ok)
@@ -974,6 +1024,7 @@ class Run extends Enum('ADMIN', 'USER')
     }
   async *doDigBlock(b)
     {
+      D('do dig');
 //      const b = B.blockAt(p);
 //      if (!b) return yield `location not loaded: ${p}`;
 
@@ -992,6 +1043,7 @@ class Run extends Enum('ADMIN', 'USER')
 
   async *doSleep()
     {
+      D('do sleep');
       if (this._sleep) return;
       this._sleep = 1;
       for (const bed of this.iter_signs('sleep'))
@@ -1021,6 +1073,7 @@ class Run extends Enum('ADMIN', 'USER')
   //
   Qtask(task, ...a)
     {
+      D('q task', a);
       this.chat(`${task}`, this.nr);
       const t = this.tasks[task]	??= [];
       t.push({});
@@ -1070,11 +1123,13 @@ class Run extends Enum('ADMIN', 'USER')
   //
   QBentityGone(x)
     {
+      D('QB ent gone');
       if (IGN(x) & 2) return;
       console.log('gone', ENTITY(x));
     }
   QBentityDead(x)
     {
+      D('QB ent dead');
       if (IGN(x) & 1) return;
       console.log('dead', ENTITY(x));
     }
@@ -1336,10 +1391,16 @@ class Run extends Enum('ADMIN', 'USER')
     {
     }
   // will be removed when Aset() works
+  *Aautoattack(c)
+    {
+      if (c.length)
+        state.autoattack = c[0]|0;
+      yield `autoattack = ${state.autoattack}`;
+    }
   *Aautosleep(c)
     {
-     state.autosleep = !c.length;
-     yield `autosleep = ${state.autosleep}`;
+      state.autosleep = !c.length;
+      yield `autosleep = ${state.autosleep}`;
     }
   *Arun(c)
     {
