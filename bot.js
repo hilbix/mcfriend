@@ -25,8 +25,10 @@ const mineflayer = require('mineflayer');
 const mineflayerViewer = require('prismarine-viewer').mineflayer
 const v3 = require('vec3');
 const pathfinder = require('mineflayer-pathfinder');
+//const autoeat = require('mineflayer-auto-eat');
 //const pvp = require('mineflayer-pvp');
 const DELAYED = Promise.all(['mineflayer-auto-eat'].map(_ => import(_)));	// require() does not work with those
+//const DELAYED = void 0;
 
 
 //
@@ -188,7 +190,7 @@ class RunQueue
             l([`${t} ERR:`, `${e}`], ...a);
           }
         }
-      D('Q', 'bye', t, r);
+      D('Q', 'bye');
 //      console.log('Run(end)');
     }
   };
@@ -210,7 +212,7 @@ class AsyncQueue
           this._a();
         }
       this.cnt++;
-      const p = this._ = this._.then(() => new Promise(_ => setTimeout(_))).then(() => fn(...a));
+      const p = this._ = this._.then(() => new Promise(_ => setTimeout(_, (250/this.cnt)|0))).then(() => fn(...a));
       p.finally(() => { if (!(--this.cnt % 1000)) console.log(this.cnt, this._ === p); if (this._ === p) { this._ = void 0; this._b() } });
       return this;
     }
@@ -456,7 +458,9 @@ B.once('spawn', () =>
   {
     D('spawn', 'start');
     B.loadPlugin(pathfinder.pathfinder);
+//    B.loadPlugin(autoeat.plugin);
 //    B.loadPlugin(pvp.plugin);
+    DELAYED &&
     DELAYED.then(_ =>
       {
         _.forEach(_ => B.loadPlugin(_.loader ?? _));
@@ -687,12 +691,14 @@ class Run extends Enum('ADMIN', 'USER')
   chunk_scan(_)
     {
       if (this.chunksinit)
-        for (const c of Object.keys(B.world.async.columns??{}))
-          {
-            this.chunksinit	= void 0;
-            const [x,z] = c.split(',').map(_ => _|0);
-            this.chunk_scan({x:x*16, z:z*16});
-          }
+        {
+          this.chunksinit	= void 0;
+          for (const c of Object.keys(B.world.async.columns??{}))
+            {
+              const [x,z] = c.split(',').map(_ => _|0);
+              this.chunk_scan({x:x*16, z:z*16});
+            }
+        }
       const x = _.x|0;
       // y probably 0
       const z = _.z|0;
@@ -702,6 +708,7 @@ class Run extends Enum('ADMIN', 'USER')
       for (let a=16; --a>=0; )
         this.chunks.add(x =>
           {
+            console.log('CS', x,z);
             for (let b=16; --b>=0; )
               {
                 const l = z+b;
@@ -1109,7 +1116,7 @@ class Run extends Enum('ADMIN', 'USER')
   QBmessagestr(str, who, data)	{ console.log('CHAT:', toJ(who), str); data?.json && this.runwant(data.json.translate, () => MJ(data)) }
   QBweatherUpdate(..._)		{ T.add(this.tick()); track('weather', 'rainState thunderState') }
   QBtime(..._)			{ T.add(this.tick()) }
-  QBchunkColumnLoad(_)		{ T.add(this.chunk_scan(_)) }
+  QBchunkColumnLoad(_)		{ console.log('CL', _); T.add(this.chunk_scan(_)) }
   QBblockPlaced(orig, now)	{ IGN(orig) & IGN(now) & 8 || console.log('BBP', POS(now.position), now.name) }
   QWblockUpdate(..._)		{ console.log('WBU', _) }
   QBblockUpdate(orig, now)
