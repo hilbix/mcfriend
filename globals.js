@@ -13,9 +13,11 @@ globalThis.DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entit
 
 // CONFIG
 
+//globalThis.CHAT = (..._) => console.error('CHAT', _);
 globalThis.FLW = [];
 globalThis.D = (..._) => { FLW.push(_); if (FLW.length>40) FLW.shift() };
 globalThis.DD = (..._) => { console.log(_); D(..._) }
+globalThis.ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
 
 module.exports =
   { NAME	: process.argv[6] || process.argv[1].split('/').pop().split('.').shift()
@@ -74,7 +76,7 @@ globalThis.PO	= (..._) =>
   };
 globalThis.Sleep	= _ => new Promise(o => setTimeout(o, _));
 globalThis.Relax	= _ => Sleep().then(_);
-globalThis.mkArr	= _ => Array.isArray(_) ? _ : [_];
+globalThis.mkArr	= _ => [].concat(_);
 globalThis.mkMatch	= _ => _.length && Object.fromEntries(_.map(_ => [_,true]));
 globalThis.allKeys	= _ =>
   {

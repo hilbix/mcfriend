@@ -3,21 +3,88 @@
 // This Works is placed under the terms of the Copyright Less License,
 // see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
-const PARM = require('./globals.js');
+const _PARM_ = require('./globals.js');
 //const State = require('./State.js');
 
 // 'chat message messagestr'	// last ist best
-const DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entityDead blockUpdate itemDrop'
+const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entityEquip' //entityMoved' //'blockUpdate' //blockUpdate itemDrop'
 'login spawn end kicked error whisper'
 
-const mineflayer = require('mineflayer');
-const mineflayerViewer = require('prismarine-viewer').mineflayer
-const v3 = require('vec3');
-const pathfinder = require('mineflayer-pathfinder');
+const mineflayer	= require('mineflayer');
+const mineflayerViewer	= require('prismarine-viewer').mineflayer
+const v3		= require('vec3');
+//const pathfinder = require('mineflayer-pathfinder');
 //const pvp = require('mineflayer-pvp');
 //const autoeat = require('mineflayer-auto-eat');
-const DELAYED = Promise.all(['mineflayer-auto-eat'].map(_ => import(_)));	// require() does not work with those
-//const DELAYED = void 0;
+const IMPORTS = Promise.all(Object.entries(
+  { 'mineflayer-pathfinder': ['pathfinder', (B,_) =>
+    {
+      _ = _.default ?? _;
+      B.PATHFINDER	= _;
+      const m		= new _.Movements(B, B.mcData);
+      m.canDig		= false;
+      m.allow1by1towers	= false;
+      m.allowFreeMotion	= true;
+      m.canOpenDoors	= true;
+      B.pathfinder.setMovements(m);
+    }]
+  , 'mineflayer-auto-eat': ['loader', (B,_) =>
+    {
+      // forbid low quality and possibly poisonous food
+      const bannedFood = Object
+        .values(B.registry.foods)
+        .filter(_ => _.effectiveQuality < 10.0 || ['gold', 'suspicious'].some(x => _.name.includes(x)))
+        .map(_ => _.name);
+      B.autoEat.setOpts(
+        { minHunger: 19
+        , offhand: true
+        , bannedFood
+        });
+    }]
+  }).map(([k,v]) => import(k).then(_ => { console.log(`loaded: ${k}`); return [_,v,k] }))
+  );
+//const IMPORTS = void 0;
+
+// currently only supports '*', not '?' or similar
+const patternMatch = m =>
+  {
+    m	= m.split('*');
+
+    const f = m[0];
+
+    if (m.length === 1) return _ => _ === f;
+
+    const e = m[m.length-1];
+
+    if (m.length === 2)
+      if (f === '')
+        return e === '' ? () => true : _ => _.endsWith(e);
+      else if (e === '')
+        return _ => _.startsWith(f);
+
+    // f and e are nonempty
+
+    m.shift();
+    m.pop();
+
+    return _ =>
+      {
+        // check the start
+        if (!_.startsWith(f)) return false;
+        _ = _.substr(f.length);
+
+        // check the middle
+        for (const x of m)
+          {
+            const i = indexOf(_, x);
+            if (i < 0) return false;
+            _	= _.substr(i + x.length);
+          }
+
+        // check the end
+        return _.endsWith(e);
+      };
+  };
 
 /*
 //
@@ -26,26 +93,6 @@ const DELAYED = Promise.all(['mineflayer-auto-eat'].map(_ => import(_)));	// req
 
 const ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
 
-const BOO = _ => _===true ? 'Y' : _===false ? 'N' : `${_}`;
-
-const DUMP = (_,d) =>
-  d <= 0 ? '...' :
-  Array.isArray(_) ? `[${_.map(_ => DUMP(_,d-1)).join(',')}]` :
-  _ && 'object' === typeof _ ? `{${Object.keys(_).map(k => `${toJ(k)}:${DUMP(_[k],d-1)}`).join(',')}}` :
-  toJ(_);
-
-// this starts moving without blocking
-// returns truish (goal) if moving else void 0
-const goNear = (_,max=3) =>
-  {
-    D('goNear', _);
-    if (B.entity.position.distanceTo(_) <= max) return;
-    const goal = new pathfinder.goals.GoalNear(_.x, _.y, _.z, max);
-    B.pathfinder.setGoal(goal, false);	// sync void 0
-    return goal;
-//    return B.pathfinder.goto(goal);
-  };
-const MOVE = goal => { D('move', goal); return (goal ??= B.pathfinder.goal) && B.pathfinder.goto(goal) };
 
 const MESS = _ =>
   {
@@ -108,123 +155,6 @@ const MESS = _ =>
         }
 *//*
 
-// Try to convert a _.json Minecraft Object into some usable object
-const MJ = j =>
-  {
-    D('MJ', j);
-    if (!j?.json)
-      throw `no Minecraft JSON object: ${toJ(j)}`;
-
-    const arr = _ =>
-      {
-        if (!isArray(_))
-          throw `Minecraft JSON object bug, not array: ${toJ(_)}`;
-        return _.filter(_ => !('' in _)).map(parse);
-      };
-    const obj = _ =>
-      {
-        if (!isArray(_))
-          throw `Minecraft JSON object bug, not object: ${toJ(_)}`;
-        //console.log('OBJ+', _.length);
-        const o = {};	// or OB() ?
-        for (const x of _)
-          {
-            //console.warn('OBJ', x);
-            if (('' in x) && Object.keys(x).join('')==='' && x['']==='}' && x === _[_.length-1]) continue;
-            if (x.text !== '')
-              throw `Minecraft JSON object bug, nonempty text: ${toJ(x)}`;
-            if (!isArray(x.extra))
-              throw `Minecraft JSON object bug, no array extra: ${toJ(x.extra)}`;
-            if (!( x.extra.length === 4 || (x.extra.length === 6 && x.extra[4]?.[''] === ',' && x.extra[5]?.[''] === ' ') )
-                || x.extra[1]?.[''] !== ':'
-                || x.extra[2]?.[''] !== ' '
-               )
-              throw `Minecraft JSON object bug, invalid extra ${x.extra.length}: ${toJ(x.extra)}`;
-            const k = parse(x.extra[0]);
-            const v = parse(x.extra[3]);
-            o[k] = v;
-          }
-        //console.log('OBJ-', _.length);
-        return o;
-      };
-    const str = _ =>
-      {
-        if (!isArray(_))
-          throw `Minecraft JSON object bug, not string: ${toJ(_)}`;
-        const s = [];
-        for (const x of _)
-          {
-            if (('' in x) && Object.keys(x).join('')==='' && x['']==='"' && x === _[_.length-1]) continue;
-            s.push(x.text);
-            if (x.extra)
-              s.push(str(x.extra))
-          }
-        return s.join('');
-      };
-    const val = (s,_) =>	// values are also returned as string, as MC uses somthing like 0.0d for numbers
-      {
-        //console.warn('VAL', s, _);
-        if (_ === void 0) return s;
-        if (!isArray(_)) 
-          throw `Minecraft JSON object bug, not val: ${toJ(_)}`;
-        const r = [s];
-        for (const x of _)
-          {
-            const p = parse(x);
-            if (!isString(p))
-              throw `Minecraft JSON object bug, not vals: ${toJ(x)}`;
-            r.push(p);
-          }
-        return r.join('');
-      };
-    const parse = _ =>
-      {
-        if (_ === void 0) throw `cannot parse Minecraft JSON object: ${toJ(j)}`;
-        //console.warn('parse', _);
-        if (isString(_))
-          return _;
-        if (isArray(_))
-          return _.map(parse);
-        if (('' in _) && Object.keys(_).join('')==='')
-          switch (_[''])
-            {
-            case 'null': return null;	// I do not know if this exists
-            case '{}':	return {};
-            case '[]':	return [];	// I do not know if this exists
-            default:	return _[''];
-            }
-        if (_.json)
-          return parse(_.json);
-        if (_.translate)
-          return [_.translate].concat(parse(_.with ?? []));
-        if (_.text === '[')
-          return arr(_.extra);
-        if (_.text === '{')
-          return obj(_.extra);
-        if (_.text === '"')
-          return str(_.extra);
-        if (_.text === '' && _.extra)
-          return parse(_.extra);
-        return val(_.text, _.extra);
-      };
-    return parse(j.json);
-  };
-
-//
-// Initialize Bot
-//
-// Put up HTTP access (limited, but it works somehow)
-
-//
-// Load and keep the state
-//
-
-
-//
-// Runtime Helpers
-//
-
-
 //
 // Implementation
 //
@@ -257,15 +187,8 @@ class Run extends Enum('ADMIN', 'USER')
   // Constructor
   constructor()
     {
-      super();
-      this.stat = OB();
-      this.digs	= OB();
-      this.want = OB();
-      RUN?.stop();
-      RUN	= this;
-
       // https://github.com/PrismarineJS/node-minecraft-data/blob/master/doc/api.md
-      console.warn('V', B.version);
+              console.warn('V', B.version);
 
 //      this.data	= require('minecraft-data')(B.version);
       //console.warn('DATA', DUMP(this.data,1));
@@ -315,33 +238,6 @@ class Run extends Enum('ADMIN', 'USER')
       if (!this.signchange) return;
       this.signchange	= void 0;
       this.act();
-    }
-  // yields "pos", state.sign, signblock, 4th line (which is for bot)
-  get known_signs()
-    {
-      const self = this;
-      return function*(...type)
-        {
-          const test = mkMatch(type);
-          for (const [k,s] of Object.entries(state.sign))
-            {
-              if (!s) continue;		// deleted
-              if (test && !test[s[2]]) continue;
-
-              const x = self.signs[k];
-
-              const v = p2v(k);
-              const b = B.blockAt(v);
-
-              let ok=false;
-              if (isSign(b))
-                {
-                  const t = b.signText.split('\n');
-                  ok = t[0] === s[1] && t[1] === s[2] && t[2] === s[3];
-                }
-              yield { id:k, text:s, stat:x, valid:ok, pos:v, block:b }
-            }
-        }
     }
   get iter_signs()
     {
@@ -501,19 +397,6 @@ class Run extends Enum('ADMIN', 'USER')
   QBstartedAttacking() { this._attack = 1 }
   QBstoppedAttacking() { this._attack = 0 }
   QBattackedTarget()	{ console.log('attack', _) }
-//  async tick_autoattack()
-//    {
-//      D('tick aa');
-//      if ((state.autoattack|0)<1 || this._attack) return ++this._attack;
-//      console.log('AA');
-//      const e = bot.nearestEntity(_ => _.type==='hostile' && _.position.distanceTo(B.entity.position) <= state.autoattack);
-//      if (e)
-//        {
-//          B.pvp.attack(e);
-//          this._attack = -10;
-//          Chat('attacking', e.name);
-//        }
-//    }
   async tick_autosleep()
     {
       D('tick as');
@@ -609,7 +492,6 @@ class Run extends Enum('ADMIN', 'USER')
 
   // chat message
   // apparently "str" is truncated and missing the last character
-  QBmessagestr(str, who, data)	{ console.log('CHAT:', toJ(who), str); data?.json && this.runwant(data.json.translate, () => MJ(data)) }
   QBweatherUpdate(..._)		{ T.add(this.tick()) }
   QBtime(..._)			{ T.add(this.tick()) }
   QBchunkColumnLoad(_)		{ T.add(this.chunk_scan(_)) }
@@ -623,18 +505,6 @@ class Run extends Enum('ADMIN', 'USER')
   //
   // Grief
   //
-  QBentityGone(x)
-    {
-      D('QB ent gone');
-      if (IGN(x) & 2) return;
-      console.log('gone', ENTITY(x));
-    }
-  QBentityDead(x)
-    {
-      D('QB ent dead');
-      if (IGN(x) & 1) return;
-      console.log('dead', ENTITY(x));
-    }
   QBentityEatingGrass(x)
     {
       console.log('grass', ENTITY(x));
@@ -648,191 +518,6 @@ class Run extends Enum('ADMIN', 'USER')
         B.autoEat.enableAuto();
     }
 
-  //
-  // Listing
-  //
-  async *Blist(c)
-    {
-      if (!c.length)
-        {
-          for (const k of allKeys(this))
-            if (k.startsWith('L'))
-              yield `list ${k.substr(1)}`;
-          return;
-        }
-      const l = c.shift();
-      const f = `L${l}`;
-      if (!(f in this))
-        return yield `unknown list: ${l}`;
-      try {
-        let n = 0;
-        for await (const r of this[f](c))
-          {
-            n++;
-            yield r;
-          }
-        yield `(${n} ${l})`;
-      } catch (e) {
-        yield `list ${l} error: ${e}`;
-        console.error(e);
-      }
-    }
-  *Lset(c)
-    {
-      function* dump(_,n)
-        {
-          if (isObject(_))
-            {
-              if (n >= c.length)
-                for (const k in _)
-                  yield k;
-              else if (c[n] in _)
-                yield* dump(_[c[n]], n+1);
-              return;
-            }
-          //if (isArray(_))
-            return yield toJ(_);;
-        }
-      yield* dump(state,0);
-    }
-  *Lop()
-    {
-      for (const [k,v] of Object.entries(state.op))
-        yield `${v}: ${k}`;
-    }
-  *Lsign(c)
-    {
-      const test =
-        { '?': _ => !_.ok
-        , '!': _ => _.ok
-        , '*': _ => true
-        }[c[0]];
-      if (test)
-        {
-          c.shift();
-          const n = c.length ? 3 : 2;
-          const list = {};
-          for (const _ of this.known_signs(...c))
-            if (test(_))
-              list[_.text[n]] = 1+(list[_.text[n]]|0);
-          for (const _ of Object.keys(list).sort())
-            yield `${_} (${list[_]})`;
-          return;
-        }
-      for (const {id,text,ok} of this.known_signs(...c))
-        yield `${ok?'ok':'??'} ${text.join(',')} ${id}`;
-    }
-  *Linv(c)
-    {
-      for (const s of B.inventory.slots)
-        if (s)
-          yield `${s.slot}: ${s.count} ${s.name} ${s.displayName}`;
-    }
-
-  //
-  // Commands (via whisper)
-  //
-  data(match, ...data)	// Minecraft /data command with response via this.want[match[0]]
-    {
-      Chat('/data', ...data);
-      if (!match?.length) return;
-
-      return this.addwant(10000, match[0], _ => match.filter((m,i) => _[i] !== m).length).p;
-    }
-  addwant(timeout, match, fn, ...args)
-    {
-      const p = PO();
-      const s = this.want[match] ??= new Set();
-      const r = { f:_ => fn(...args, _) || p.o(_) };	// it seems to be undocumented what return value p.o() has.  It seems to be void 0, which is what I need here!
-      s.add(r);
-      const t = setTimeout(p.k, 10000, `timeout: ${match}`);
-      p.p.catch(console.error).finally(() => { console.warn('addwant finally'); s.delete(r); clearTimeout(t) });
-      return p;
-    }
-  async runwant(match, get)
-    {
-      const _ = this.want[match];	// this is a Set()
-      if (!_?.size) return;
-
-      const arg = get(match, _);
-
-      //console.warn(data.json.translate, _, arg);
-      //console.warn('ARGS:', arg);
-      for (const x of _)
-        try {
-          await x.f.call(_, arg);	// must remove itself when done
-        } catch (e) {
-          set.delete(x);		// something failed
-          console.error(x.e = e);
-        }
-    }
-  async QBwhisper(src, cmd)
-    {
-      if (src === B.player.username) return;
-      const c = cmd.split(' ').filter(_ => _);
-      if (c[0] === '') return;
-      c[0] = c[0].toLowerCase();
-      const u = this.op(src);
-      console.warn('TELL:', src, ...c, u);
-      const a = u.server ? Chat : (_ => B.whisper(src, _));
-      const self = this;
-      const c0 = c[0];
-      const r = async (p) =>
-        {
-          const f = `${p}${c0}`;
-          if (!(f in this)) return;
-          for await (const x of this[f](c.slice(1), src, a))
-            if (x !== void 0)
-              a(x);
-          return true;
-        };
-      try {
-        const x = (u.admin  && await r('A'))
-               || (u.user   && await r('B'))
-               || (u.player && await r('C'))
-               || `command ${c[0]} not understood`;
-        if (x !== true)
-          a(x);
-      } catch (e) {
-        console.error(e);
-        a(`fail ${src} ${c}: ${e}`);
-      }
-    }
-  *Asay(c)
-    {
-      console.warn('SAY:', c);
-      Chat(...c);
-    }
-  // list op	to list ops
-  // op		show usage
-  // op admin name..	set names to admins
-  // op user name..	set names to users
-  // op other name..	set names to default (for now)
-  *Aop(c)
-    {
-      let x;
-      switch (c.shift())
-        {
-        default: return yield 'usage: op admin|user|other user..';
-        case 'admin':	x = Run.ADMIN; break;
-        case 'user':	x = Run.USER; break;
-        case 'other':	x = 0; break;
-        }
-      const op = state.op;
-      console.warn('op', x, c);
-      for (const _ of c)
-        {
-          const was	= op[_];
-          if (was === x)
-            {
-              yield `${_} unchanged`;
-              continue;
-            }
-          op[_] = x;
-          state.op = op;
-          yield `${_} added`;
-        }
-    }
   // ign	list all igns
   // ign N	list all igns with N
   // ign N a b	set "a b" to N
@@ -882,13 +567,6 @@ class Run extends Enum('ADMIN', 'USER')
   *Aunset(c)
     {
     }
-  // will be removed when Aset() works
-  *Aautoattack(c)
-    {
-      if (c.length)
-        state.autoattack = c[0]|0;
-      yield `autoattack = ${state.autoattack}`;
-    }
   *Aautosleep(c)
     {
       state.autosleep = !c.length;
@@ -904,106 +582,12 @@ class Run extends Enum('ADMIN', 'USER')
       if (this._sleep) return yield 'already sleeping';
       yield* this.doSleep()
     }
-  // drop		drop all (default)
-  // drop name..	drop all of the given names or displayName
-  // This does never drop anything which is ign 128
-  async *Bdrop(c)
-    {
-      const test = mkMatch(c);
-      for (const i of B.inventory.items())
-        {
-          if (IGN(i) & 128) continue;
-          if (test && !test[i.name] && !test[i.displayName]) continue;
-          yield `dropping ${i.count} ${i.name} ${i.displayName}`;
-          await B.tossStack(i);
-        }
-    }
   *Bstop(c)
     {
       if (c.length)
         B.pathfinder.setGoal(null);
       else
         B.pathfinder.stop();
-    }
-  // come		run to player
-  // come x y z		run to x y z
-  // TODO:
-  // come a		run to sign type a
-  // come a b		run to sign type a with option b
-  *Bcome(c,t,a)
-    {
-      const move = (_,c) =>
-        {
-          if (!_)
-            return a(`I do not understand how to move to ${c}`);
-          goNear(_);
-          a(`moving to ${POS(_)}`);
-        }
-      if (c.length)
-        return move(a2v(c), c);
-
-       const p = B.players[t];
-       const x = p?.entity?.position;
-       if (x)
-         return move(x, t);
-
-        yield `I cannot see you ${t}`;
-
-        this.data(['commands.data.entity.query', t], 'get entity', t, 'Pos')
-        .then(_ => { const p = _[2].map(_ => parseInt(_)); move(v3(...p), p) });	// why does .map(parseInt) not work?
-    }
-  // help	shows all help keywords
-  // help kw	shows all known works according to keyword
-  // help cmd	all allowed tells, can be restricted to admin|user|player
-  // help sign	lists all known sign processors
-  async *Chelp(c,t)
-    {
-      const u = this.op(t);
-      const r = new Set();
-      const cmd = _ => (...a) =>
-        {
-          if (!c.length)
-            a.forEach(_ => r.add(`help ${_}`));
-          return c.filter(_ => a.includes(_)).length ? _ : NOP;
-        }
-      const dump = cmd(_ =>
-        {
-          for (const x of allKeys(this))
-            if (x.startsWith(_))
-              r.add(x.substr(_.length));
-        });
-     const list = cmd(_ => (c.length<2 ? _().map(([k,v,s]) => s)
-                                       : _().filter(([k]) => c.includes(k)).map(([k,v])=>toJ(v))
-                           ).forEach(_ => r.add(_)));
-
-     if (u.admin)  dump('cmd','admin') ('A');
-     if (u.user)   dump('cmd','user')  ('B');
-     if (u.player) dump('cmd','player')('C');
-     if (u.player) dump('sign')        ('S');
-
-     list('food')(() => Object.values(B.registry.foods).map(_ => [_.name, _, `${(_.effectiveQuality * 10) | 0}: ${_.name}`]));
-
-     const _ = Array.from(r).sort((a,b) => { const x=parseInt(a), y=parseInt(b); return isNaN(x) || isNaN(y) || x === y ? a<b ? -1 : a===b ? 0 : 1 : x-y });
-     //console.warn('help', u, r);
-     for (const x of _)
-       yield x;
-    }
-  async *Cstate(c,t)
-    {
-      const f = B.pathfinder;
-      yield `path move:${BOO(f.isMoving())} mine:${BOO(f.isMining())} build:${BOO(f.isBuilding())}`;
-      yield `path think:${f.thinkTimeout} tick:${f.tickTimeout} search:${f.searchRadius}`;
-      yield `food:${B.food|0} sat:${B.foodSaturation|0} oxy:${B.oxygenLevel|0} eat:${BOO(B.autoEat.enabled)}`;
-      yield `pos: ${POS(B.entity.position)} health:${B.health}`;
-    }
-  async *Ceat(c)
-    {
-      yield* this.get(c);
-      try {
-        await B.autoEat.eat();
-      } catch (e) {
-        yield `eating failed (food=${B.food}): ${e}`;
-      }
     }
   Cget(c)
     {
@@ -1049,6 +633,14 @@ const	POS	= _ => _ && `${_.x|0},${_.y|0},${_.z|0}`;
 const	a2v	= _ => _?.length === 3 && v3(...(_.map(parseFloat)));
 const	p2v	= _ => _ && a2v(_.split(','));
 
+const	BOO	= _ => _===true ? 'Y' : _===false ? 'N' : `${_}`;
+
+const	DUMP	= (_,d) =>
+  d <= 0 ? '...' :
+  Array.isArray(_) ? `[${_.map(_ => DUMP(_,d-1)).join(',')}]` :
+  _ && 'object' === typeof _ ? `{${Object.keys(_).map(k => `${toJ(k)}:${DUMP(_[k],d-1)}`).join(',')}}` :
+  toJ(_);
+
 class Q
   {
   constructor(_,...a)	{ this._ = _; this.q = []; this.a = a; this.c = 0 }
@@ -1059,18 +651,20 @@ class Q
       this.c	= 0;
       return this.q.length;
     }
+
   get length()		{ return this.q.length }
   get trace()		{ this.dump = true; return this }
   get name()		{ return this._ }
   get args()		{ return this.a }
   set args(a)		{ this.a = [].concat(a) }
+
   next()		{ return this.q.shift() }
   wait()		{ return this._w ??= this._wait().finally(() => this._w = void 0) }
   async _wait()		{ while (!this.q.length) await (this.w ??= PO()).p }
-  signal()		{ const w = this.w; this.w = void 0; w?.o() }
-  add(..._)		{ this.dump && X(`${this.name}${this.q.length} `); this.q.push(this.a.concat(_)); this.signal() //; console.log(this._, _)
+  signal()		{ const w = this.w; this.w = void 0; w?.o(); return this }
+  add(..._)		{ this.dump && X(`${this.name}${this.q.length} `); this.q.push(this.a.concat(_)); return this.signal() //; console.log(this._, _)
                         }
-  addX(..._)		{ console.log(_); return this.add(..._) }
+  addX(..._)		{ console.error('addX', this._, _); return this.add(..._) }
   };
 
 const isBed	= _ => B.isABed(_);
@@ -1078,7 +672,121 @@ const isSign	= _ => _?.name.endsWith('_sign');
 const isTree	= _ => _?.name.endsWith('_log');
 const isDirt	= _ => _?.name.endsWith('dirt');
 
-const OpLevel = Enum('ADMIN', 'USER');
+const VAL	= _ =>
+  {
+    switch (_[0])
+      {
+      case '+':
+      case '-':
+      case '=':
+        return [_[0], _.slice(1)]
+      }
+    return ['+',_]
+  };
+
+// Try to convert a _.json Minecraft Object into some usable object
+const MJ = j =>
+  {
+    D('MJ', j);
+    if (!j?.json)
+      throw `no Minecraft JSON object: ${toJ(j)}`;
+
+    const arr = _ =>
+      {
+        if (!isArray(_))
+          throw `Minecraft JSON object bug, not array: ${toJ(_)}`;
+        return _.filter(_ => !('' in _)).map(parse);
+      };
+    const obj = _ =>
+      {
+        if (!isArray(_))
+          throw `Minecraft JSON object bug, not object: ${toJ(_)}`;
+        //console.log('OBJ+', _.length);
+        const o = {};	// or OB() ?
+        for (const x of _)
+          {
+            //console.warn('OBJ', x);
+            if (('' in x) && Object.keys(x).join('')==='' && x['']==='}' && x === _[_.length-1]) continue;
+            if (x.text !== '')
+              throw `Minecraft JSON object bug, nonempty text: ${toJ(x)}`;
+            if (!isArray(x.extra))
+              throw `Minecraft JSON object bug, no array extra: ${toJ(x.extra)}`;
+            if (!( x.extra.length === 4 || (x.extra.length === 6 && x.extra[4]?.[''] === ',' && x.extra[5]?.[''] === ' ') )
+                || x.extra[1]?.[''] !== ':'
+                || x.extra[2]?.[''] !== ' '
+               )
+              throw `Minecraft JSON object bug, invalid extra ${x.extra.length}: ${toJ(x.extra)}`;
+            const k = parse(x.extra[0]);
+            const v = parse(x.extra[3]);
+            o[k] = v;
+          }
+        //console.log('OBJ-', _.length);
+        return o;
+      };
+    const str = _ =>
+      {
+        if (!isArray(_))
+          throw `Minecraft JSON object bug, not string: ${toJ(_)}`;
+        const s = [];
+        for (const x of _)
+          {
+            if (('' in x) && Object.keys(x).join('')==='' && x['']==='"' && x === _[_.length-1]) continue;
+            s.push(x.text);
+            if (x.extra)
+              s.push(str(x.extra))
+          }
+        return s.join('');
+      };
+    const val = (s,_) =>	// values are also returned as string, as MC uses somthing like 0.0d for numbers
+      {
+        //console.warn('VAL', s, _);
+        if (_ === void 0) return s;
+        if (!isArray(_)) 
+          throw `Minecraft JSON object bug, not val: ${toJ(_)}`;
+        const r = [s];
+        for (const x of _)
+          {
+            const p = parse(x);
+            if (!isString(p))
+              throw `Minecraft JSON object bug, not vals: ${toJ(x)}`;
+            r.push(p);
+          }
+        return r.join('');
+      };
+    const parse = _ =>
+      {
+        if (_ === void 0) throw `cannot parse Minecraft JSON object: ${toJ(j)}`;
+        //console.warn('parse', _);
+        if (isString(_))
+          return _;
+        if (isArray(_))
+          return _.map(parse);
+        if (('' in _) && Object.keys(_).join('')==='')
+          switch (_[''])
+            {
+            case 'null': return null;	// I do not know if this exists
+            case '{}':	return {};
+            case '[]':	return [];	// I do not know if this exists
+            default:	return _[''];
+            }
+        if (_.json)
+          return parse(_.json);
+        if (_.translate)
+          return [_.translate].concat(parse(_.with ?? []));
+        if (_.text === '[')
+          return arr(_.extra);
+        if (_.text === '{')
+          return obj(_.extra);
+        if (_.text === '"')
+          return str(_.extra);
+        if (_.text === '' && _.extra)
+          return parse(_.extra);
+        return val(_.text, _.extra);
+      };
+    return parse(j.json);
+  };
+
+//const OpLevel	= Enum('ADMIN', 'USER');
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -1090,16 +798,100 @@ class Abi	// per spawn instance for bot
     {
       this._		= _;
       this.signs	= OB();
+      //this.stat		= OB();
+      //this.digs		= OB();
+      this.want		= OB();
+      this._valid	= 0;
+      this.autos();
+    }
+  async autos()
+    {
     }
   get state()	{ return this._.state }
   get chat()	{ return (..._) => this._.Chat(..._) }
+  get valid()	{ const v = ++this._valid; return () => this._valid === v && this === this._.abi }
 
+  async *Move(..._)
+    {
+      const d = this._.B.entity.position.distanceTo(_[0]);
+      if (!this._.goNear(..._))
+        {
+          console.error(`${POS(_[0])} vs. ${POS(d)}`);
+          return _[2] ?? (yield `Already there!`);
+        }
+      if (d>5)
+        yield `moving to ${POS(_[0])} ${_[2]||''}`;
+      try {
+        const x = await this._.MOVE();
+        if (d>5)
+          yield `arrived at ${POS(_[0])} ${_[2]||''}: ${x} ${POS(this._.B.entity.position)}`;
+      } catch (e) {
+        console.error(e);
+        this._.B.chat(`/tp ${_[0].x} ${_[0].y} ${_[0].z}`);
+        yield `teleported to ${POS(_[0])} ${_[2]||''}`;
+      }
+    }
+
+  // list:	array or value
+  // val:	value (key) to search for in list
+  inList(list, val)
+    {
+      const h	= new Set();
+      const l	= mkArr(list);
+      h.add(val);		// do not descend into self
+      do
+        {
+          const n = l.shift();		// get first element
+          if (n === void 0) continue;	// void elements do not count
+          if (n === val) return true;	// FOUND!
+          if (h.has(n)) continue;	// already visited, so ignore
+          h.add(n);			// mark visited
+          const x	= this.state.set?.list[n];
+          if (x)
+            l.push(...Object.keys(x));	// expand the list values
+        } while (l.length);
+    }
+
+  chunk_init()		// Should be separate task!
+    {
+      if (this.chunks) return;
+      for (const c of Object.keys(this._.B.world.async.columns??{}))
+        {
+          if (!this.chunks) console.log('DID');
+          this.chunks	= true;
+          this._.chunk.add(...c.split(',').map(_ => (_*16)|0));
+        }
+      if (this.chunks) console.log('DONE');
+    }
+  async chunks(x,z)
+    {
+      if (!this.chunks)
+        {
+          this.chunk ??= OB();
+          this._.out.addX(Abi.prototype.chunk_init);
+        }
+      for (let a=16; --a>=0; )
+        this._.scan.add(this.chunk_scan, x+a, z);
+    }
+  async chunk_scan(x,z)
+    {
+      for (let b=16; --b>=0; )
+        {
+          await Sleep();
+          const l = z+b;
+          for (let c=320; --c>=-64; )
+            {
+              const d = this._.B.blockAt(v3(x, c, l));
+              if (d?.name.endsWith('_sign')) this._.in.add(this.Sign, d);
+            }
+        }
+    }
   // register or deregister a sign
   // should be only called for blocks which are signs or previously were signs
   // (see isSign())
   Sign(d)
     {
-    //    Chat('sign', POS(d.position));
+//      Chat('sign', POS(d.position));
       const s = this.state.sign;
       const p = POS(d.position);
       D('sign', p);
@@ -1108,9 +900,9 @@ class Abi	// per spawn instance for bot
         {
           D('sign:del', p, a);
           if (!a) return;
-    //      this.inc('sign', 'removed');
+//          this.inc('sign', 'removed');
           delete s[p];
-          this.state.sign = s;
+          this.state.sign = s;		// not redundant: save state
           this.chat('-sign', p, a);
           this.signs[p] = 0;
           D('sign:del(ok)');
@@ -1120,37 +912,498 @@ class Abi	// per spawn instance for bot
 
       const t = d.signText.split('\n');
       const n = t[0].split(' ');
-      if (n.shift() !== PARM.NAME) return del();
+
+      if (!this.inList(n.shift(), this._.PARM.NAME)) return del();
 
       const b = [n.join(' '), t[0], t[1], t[2]];
       if (toJ(a) !== toJ(b))
         {
-    //      this.inc('sign', b ? 'changed' : 'new');
+//          this.inc('sign', b ? 'changed' : 'new');
           s[p]	= b;
-          state.sign = s;	// save state
+          this.state.sign = s;	// save state
           this.chat('+sign', p, b, ...(a ? [a] : []));
         }
-    //  else if (this.signs[p]?.length) this.inc('sign', 'done'); else this.inc('sign', 'known');
+//      else if (this.signs[p]?.length) this.inc('sign', 'done'); else this.inc('sign', 'known');
 
       this.signs[p] = [];
       this.signchange = true;
       D('sign(ok)', p);
     }
+
+  cmd(c, src)
+    {
+      const c0	= c[0];
+      const f	= `C${c0}`;
+      if (!(f in this)) return src.tell(`unknown command ${c0}`);
+
+      if (false === src.perm('cmd', c0))
+        return src.tell(`not authorized to use command ${c0}`);
+
+      //console.warn('TELL:', src.name, ...c, u);
+
+      return this._.yielder(src, () => this[f](c.slice(1), src));
+    }
+  *Csay(c)
+    {
+      console.warn('SAY:', c);
+      this.chat(...c);
+    }
+  // set list[:sublist] [+-=]value
+  *Cset(c)
+    {
+      let d	= this.state;
+      let m	= 'set';
+      const p	= [];
+      if (c.length)
+        {
+          const n	= c.shift().split(':');
+          do
+            {
+              if (!(m in d))
+                return yield `missing entry ${p.join(':')}`;
+              d		= d[m];
+              m		= n.shift();
+              p.push(m);
+            } while (n.length);
+          if (c.length)
+            {
+              const v	= d[m] ?? {};
+              const o	= toJ(v);
+              do {
+                const [m,x]	= VAL(c.shift());
+                switch (m)
+                  {
+                  case '-':	delete v[x];	break;
+                  case '=':	v = {[x]:{}};	break;
+                  case '+':	v[x] ??= {};	break;
+                  }
+              } while (c.length);
+              if (toJ(v) === o)
+                return yield `${n} unchanged`;
+              d[m]		= v;
+              this.state.set	= this.state.set;	// save state change
+              return yield `${n} updated`;
+            }
+        }
+      const x = p.join(':');
+      if (!(m in d))
+        return yield `missing entry ${x}`;
+      return yield `${x}: ${Object.keys(d[m]).sort().join(' ')}`;
+    }
+
+  // yields:
+  // .id	this.state.sign[.id] (id is stringified position)
+  // .text	texts (lines) of sign
+  // .stat	sign status
+  // .valid	sign loaded and correct
+  // .pos	position of sign
+  // .block	block of sign
+  get known_signs()
+    {
+      const self = this;
+      return function*(...type)
+        {
+          const match = this.match(type);
+          for (const [k,s] of Object.entries(this.state.sign))
+            {
+              if (!s) continue;		// deleted
+              if (!match(s[2])) continue;
+
+              const x = self.signs[k];
+
+              const v = p2v(k);
+              const b = this._.B.blockAt(v);
+
+              let ok=false;
+              if (isSign(b))
+                {
+                  const t = b.signText.split('\n');
+                  ok = t[0] === s[1] && t[1] === s[2] && t[2] === s[3];
+                }
+              yield { id:k, text:s, stat:x, valid:ok, pos:v, block:b }
+            }
+        }
+    }
+  // find sign with given type and optional match type
+  // returns:
+  // .id	this.state.sign[.id] (id is stringified position)
+  // .text	texts (lines) of sign
+  // .stat	sign status
+  // .valid	sign loaded and correct
+  // .pos	position of sign
+  // .block	block of sign
+  // .dist	distance to bot
+  // .match	return of match() function or true
+  find_sign(type, match)
+    {
+      const r = [];
+      for (const s of this.known_signs(type))
+        {
+          const d	= s.dist = this._.B.entity.position.distanceTo(s.pos);
+          if ((s.match = match ? match(s, d) : true) !== void 0)
+            r.push(s);
+        }
+      return r.sort((a,b) => a.dist<b.dist);
+    }
+
+  async *Cstop()
+    {
+      this._valid++;
+      return yield 'stopping';
+    }
+  // attack [enemy..]	attack enemies
+  async *Cattack(c, src)
+    {
+      this._.runner(src, () => this._attack(c));
+    }
+  async *_attack(c)
+    {
+      const nearestEntity = type =>
+        {
+          let best = null;
+          let bestDistance = null;
+          for (const id in this._.B.entities)
+            {
+              const entity = this._.B.entities[id];
+              if (type && entity.type !== type) continue;
+              if (entity === this._.B.entity) continue;
+              const dist = this._.B.entity.position.distanceTo(entity.position);
+              if (!best || dist < bestDistance)
+                {
+                  best = entity;
+                  bestDistance = dist;
+                }
+            }
+          return best;
+        }
+
+      const ok = this.valid;
+      const v = this._valid;
+      console.error('_ATTACK: start', v, c, this._.run.length, this._.run.active);
+
+      let last;
+      while (ok())
+        {
+          const e	= await nearestEntity('hostile');
+          if (!e)
+            return yield `no enemy found`;
+
+          if (!this._.isWeapon(this._.B.itemInHand))
+            {
+              const w = this._.B.inventory.items().filter(_ => this._.isWeapon(_)).sort((a,b) => a.maxDurability < b.maxDurability);
+              if (!w.length) return yield `I have no weapon`;
+              await this._.B.equip(w[0], 'hand');
+            }
+
+          const p = e.position;
+          yield* this.Move(p, 1, `enemy ${e.name}`);
+          if (!ok()) break;
+          if (this._.B.entity.position.distanceTo(p) > 2)
+            this._.B.chat(`/tp ${p.x} ${p.y} ${p.z}`);
+          if (last !== e)
+            yield `attacking enemy ${e.name} at ${POS(e.position)}`;
+          last = e;
+          this._.B.attack(e);
+          await Sleep(700);
+        }
+      console.error('_ATTACK: end', v, c);
+    }
+
+  // drop		drop all (default)
+  // drop name..	drop all of the given names or displayName
+  // This does never drop anything which is IGN.keep
+  async *Cdrop(c)
+    {
+      const test = this.match(c);
+      for (const i of this._.B.inventory.items())
+        {
+          if (this._.search('IGN', i.name,        'keep')) continue;
+          if (this._.search('IGN', i.displayName, 'keep')) continue;
+          console.error(i);
+          if (!test(i.name) && !test(i.displayName)) continue;
+          yield `dropping ${i.count} ${i.name} ${i.displayName}`;
+          await this._.B.tossStack(i);
+        }
+    }
+  match(..._)
+    {
+      _ = _.flat();
+      if (!_.length) return () => true;
+      const m = OB();
+      while (_.length)
+        {
+          const a = _.shift();
+          if (a.includes('*'))
+            {
+              this._.match(a).forEach(b => _.push(b));
+              constinue;
+            }
+          m[a] = true;
+          if (!a.includes(':'))
+            {
+              m[`minecraft:${a}`] = true;
+              m[`:${a}`] = true;
+            }
+        }
+      return _ => m[_];
+    }
+
+  data(match, ...data)	// Minecraft /data command with response via this.want[match[0]]
+    {
+      data.unshift('/data');
+      this._.B.chat('');
+      this._.B.chat(data.join(' '));
+      if (!match?.length) return;
+
+      return this.addwant(10000, match[0], _ => match.filter((m,i) => _[i] !== m).length).p;
+    }
+  addwant(timeout, match, fn, ...args)
+    {
+      const p = PO();
+      const s = this.want[match] ??= new Set();
+      const r = { f:_ => fn(...args, _) || p.o(_) };	// it seems to be undocumented what return value p.o() has.  It seems to be void 0, which is what I need here!
+      s.add(r);
+      const t = setTimeout(p.k, 10000, `timeout: ${match}`);
+      p.p.catch(console.error).finally(() => { console.warn('addwant finally'); s.delete(r); clearTimeout(t) });
+      return p;
+    }
+  async runwant(match, get)
+    {
+      const _ = this.want[match];	// this is a Set()
+      if (!_?.size) return;
+
+      const arg = get(match, _);
+
+      //console.warn(data.json.translate, _, arg);
+      //console.warn('ARGS:', arg);
+      for (const x of _)
+        try {
+          await x.f.call(_, arg);	// must remove itself when done
+        } catch (e) {
+          set.delete(x);		// something failed
+          console.error(x.e = e);
+        }
+    }
+  // come		run to player
+  // come x y z		run to x y z
+  // TODO:
+  // come a		run to sign type a
+  // come a b		run to sign type a with option b
+  async *Ccome(c,t)
+    {
+      let x;
+      if (c.length)
+        {
+          x	= a2v(c);
+          t	= c;
+        }
+      else
+        {
+          const p = this._.B.players[t._];
+          x	= p?.entity?.position;
+          if (!x)
+            {
+              yield `I cannot see you ${t._}`;
+
+              const d	= await this.data(['commands.data.entity.query', t._], 'get entity', t._, 'Pos');
+              t	= d[2].map(_ => parseInt(_));	// why does .map(parseInt) not work?
+              x	= v3(...t);
+            }
+        }
+      if (!x)
+        return yield `I do not understand how to move to ${t}`;
+
+      yield* this.Move(x);
+    }
+  // help	shows all help keywords
+  // help kw	shows all known works according to keyword
+  // help cmd	all allowed tells, can be restricted to admin|user|player
+  // help sign	lists all known sign processors
+  async *Chelp(c,t)
+    {
+      const u	= this._.src(t);
+      const r	= new Set();
+      const cmd	= _ => (...a) =>
+        {
+          if (!c.length)
+            a.forEach(_ => r.add(`help ${_}`));
+          return c.filter(_ => a.includes(_)).length ? _ : NOP;
+        }
+      const dump = cmd(_ =>
+        {
+          for (const x of allKeys(this))
+            if (x.startsWith(_))
+              r.add(x.substr(_.length));
+        });
+     const list = cmd(_ => (c.length<2 ? _().map(([k,v,s]) => s)
+                                       : _().filter(([k]) => c.includes(k)).map(([k,v])=>toJ(v))
+                           ).forEach(_ => r.add(_)));
+       dump('cmd')('C');
+       dump('sign')('S');
+
+//     if (u.admin)  dump('cmd','admin') ('A');
+//     if (u.user)   dump('cmd','user')  ('B');
+//     if (u.player) dump('cmd','player')('C');
+//     if (u.player) dump('sign')        ('S');
+
+     list('food')(() => Object.values(B.registry.foods).map(_ => [_.name, _, `${(_.effectiveQuality * 10) | 0}: ${_.name}`]));
+
+     const _ = Array.from(r).sort((a,b) => { const x=parseInt(a), y=parseInt(b); return isNaN(x) || isNaN(y) || x === y ? a<b ? -1 : a===b ? 0 : 1 : x-y });
+     //console.warn('help', u, r);
+     for (const x of _)
+       yield x;
+    }
+  async *Cstate(c,t)
+    {
+      const f = B.pathfinder;
+      yield `path move:${BOO(f.isMoving())} mine:${BOO(f.isMining())} build:${BOO(f.isBuilding())}`;
+      yield `path think:${f.thinkTimeout} tick:${f.tickTimeout} search:${f.searchRadius}`;
+      yield `food:${B.food|0} sat:${B.foodSaturation|0} oxy:${B.oxygenLevel|0} eat:${BOO(B.autoEat.enabled)}`;
+      yield `pos: ${POS(B.entity.position)} health:${B.health}`;
+    }
+  async *Ceat(c)
+    {
+      yield* this.get(c);
+      try {
+        await B.autoEat.eat();
+      } catch (e) {
+        yield `eating failed (food=${B.food}): ${e}`;
+      }
+    }
+  async *Cget(c, src)
+    {
+      // future: autoget
+      if (!c.length) c=Object.keys(this.state.get||{});
+      if (!c.length) return yield `please state what to get`;
+
+      const match = ({text,pos}, d) =>
+        {
+          const t = text[3];
+          for (const x of c)
+            if (t.includes(x))
+              return t;
+        }
+
+      const signs = this.find_sign('get', match);
+      // .id	this.state.sign[.id] (id is stringified position)
+      // .text	texts (lines) of sign
+      // .stat	sign status
+      // .valid	sign loaded and correct
+      // .pos	position of sign
+      // .block	block of sign
+      // .dist	distance to bot
+      // .match	return of match() function or true
+
+      if (!signs.length) return yield `no sign found for ${c}`;
+
+      for (const s of signs)
+        {
+          yield `found ${POS(s.pos)}: ${s.text.join(' ')} for ${s.match}`;
+          await this._.runner(src, () => this._get(s));
+        }
+    }
+  async *_get(sign)
+    {
+      console.error('GGGGGEEEEETTTT', sign);
+      const x = sign.pos;
+      yield *this.Move(x, 0);
+    }
+
+  //
+  // Listing
+  //
+  async *Clist(c)
+    {
+      if (!c.length)
+        {
+          for (const k of allKeys(this))
+            if (k.startsWith('L'))
+              yield `list ${k.substr(1)}`;
+          return;
+        }
+      const l = c.shift();
+      const f = `L${l}`;
+      if (!(f in this))
+        return yield `unknown list: ${l}`;
+      try {
+        let n = 0;
+        for await (const r of this[f](c))
+          {
+            n++;
+            yield r;
+          }
+        yield `(${n} ${l})`;
+      } catch (e) {
+        yield `list ${l} error: ${e}`;
+        console.error(e);
+      }
+    }
+  *Lset(c)
+    {
+      function* dump(_,n)
+        {
+          if (isObject(_))
+            {
+              if (n >= c.length)
+                for (const k in _)
+                  yield k;
+              else if (c[n] in _)
+                yield* dump(_[c[n]], n+1);
+              return;
+            }
+          //if (isArray(_))
+            return yield toJ(_);;
+        }
+      yield* dump(this.state,0);
+    }
+  *Lsign(c)
+    {
+      const test =
+        { '?': _ => !_.valid
+        , '!': _ => _.valid
+        , '*': _ => true
+        }[c[0]];
+      if (test)
+        {
+          c.shift();
+          const n = c.length ? 3 : 2;
+          const list = {};
+          for (const _ of this.known_signs(...c))
+            if (test(_))
+              list[_.text[n]] = 1+(list[_.text[n]]|0);
+          for (const _ of Object.keys(list).sort())
+            yield `${_} (${list[_]})`;
+          return;
+        }
+      for (const {id,text,valid} of this.known_signs(...c))
+        yield `${valid?'ok':'??'} ${text.join(',')} ${id}`;
+    }
+  *Linv(c)
+    {
+      for (const s of this._.B.inventory.slots)
+        if (s)
+          yield `${s.slot}: ${s.count} ${s.name} ${s.displayName}`;
+    }
+
   };
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
 
+//const CURRENT = {};
+
 class Bot	// global instance for bot
   {
-  IGN(_)	{ this.state.IGNORE[_.name] | this.state.IGNORE[_.displayName] }
+  #match;
+
+  IGN(_)	{ return false; this.state.IGNORE[_.name] | this.state.IGNORE[_.displayName] }
   Chat(...s)
     {
-      DD('chat', s);
+//      DD('chat', s);
       const _ = s.map(_ => `${_}`).join(' ');
       console.log('SAY:', _);
-      this.out.addX(() => this.B.chat(_));
+      this.say.add(_);
     }
   ENTITY(_)
     {
@@ -1163,43 +1416,91 @@ class Bot	// global instance for bot
       return `${POS(_.position)} ${_.entityType} ${toJ(_.displayName)}${item}`;
     }
 
+  // this starts moving without blocking
+  // returns truish (goal) if moving else void 0
+  goNear(_,max=3)
+    {
+      D('goNear', _);
+      if (this.B.entity.position.distanceTo(_) <= max) return;
+      const goal = new this.B.PATHFINDER.goals.GoalNear(_.x, _.y, _.z, max);
+      this.B.pathfinder.setGoal(goal, false);	// sync void 0
+      return goal;
+  //    return this.B.pathfinder.goto(goal);
+    };
+  MOVE(goal)
+    {
+      D('move', goal);
+      if (!goal)
+        goal = this.B.pathfinder.goal;
+      if (goal)
+        {
+          const r = this.B.pathfinder.goto(goal);
+//          console.error('MOVE', r);
+          return r;
+        }
+    };
+
+
+  isWeapon(item)
+    {
+//      const d = item?.nbt?.value?.Damage; if (!d) return;
+      if (!item?.name?.endsWith('sword')) return;
+//      console.error('Weapon', item.name, item);
+      return true;
+    }
+
+  // wildcard matching of items etc. the bot knows of
+  match(m, ...what)
+    {
+      if (!this.mcData)	return [];
+      if (!what.length)	what	= ['item','block'];
+      return this.#match[`${toJ(m)} ${toJ(what)}`] ??= (pattern =>
+        {
+          const o = OB();
+          for (const _ of what)
+            for (const a in Object.keys(mcData[`${_}sByName`]))
+              if (pattern(a)) o[a] = true;
+          return Object.freeze(Object.keys(o).sort());
+        })(patternMatch(m));
+    }
+
   constructor(PARM)
     {
-      this.nr	= 0;
+      this.PARM		= PARM;
+      this.nr		= 0;
+      this.#match	= new Map();
 
+      // Setup Bot (=us)
       const B = this.B = mineflayer.createBot({ host:PARM.HOST || '127.0.0.1', port:PARM.PORT || 25565, username:PARM.NAME ?? 'Bot', hideErrors:false });
+
+      // DEBUG
       Wrap(B, 'emit',  LogOnce('emit'));		// DEBUG to see what emit() are available
       //B.settings.enableServerListing = false;		// does not work
-
       DEBUG.split(' ').forEach(_ => B.on(_, (...a) => console.log('D', _, ...(a.map(_ => DUMP(_, 2))))));
 
-      // initialize the bot as soon as it is online the first time
+      //CURRENT.chat	= (..._) => this.Chat(..._);
+
+      // keep (load) the state
+      const State = require('./State.js');
+      this._save = () => State.save();
+
+      // initialize Bot as soon as it is online the first time
       B.once('spawn', () =>
         {
           DD('firstspawn', 'start');
-          B.loadPlugin(pathfinder.pathfinder);
-//          B.loadPlugin(autoeat.plugin);
+//          B.loadPlugin(pathfinder.pathfinder);
 //          B.loadPlugin(pvp.plugin);
-          DELAYED &&
-          DELAYED.then(_ =>
+          IMPORTS &&
+          IMPORTS
+          .then(_ => _.map(async ([_,p,k]) =>
             {
-              _.forEach(_ => B.loadPlugin(_.loader ?? _));
-              // forbid low quality and possibly poisonous food
-              const bannedFood = Object.values(B.registry.foods).filter(_ => _.effectiveQuality < 10.0 || ['gold', 'suspicious'].some(x => _.name.includes(x))).map(_ => _.name);
-              B.autoEat.setOpts(
-                { minHunger: 19
-                , offhand: true
-                , bannedFood
-                });
-              console.log('asynchronous plugins loaded');
-            });
+              B.loadPlugin(p[0] ? _[p[0]] : _);	// HACK
+              p[1] && await (p[1](B, _));
+              console.log(`initialized: ${k}`);
+            }))
+          .then(_ => console.log(`${_.length} asynchronous plugin(s)`));
 
           B.mcData	= require('minecraft-data')(B.version);
-          const m = new pathfinder.Movements(B, B.mcData);
-          m.canDig = false;
-          m.allow1by1towers = false;
-          m.allowFreeMotion = true;
-          B.pathfinder.setMovements(m);
 
           this.Chat(`Web on http://${PARM.WEBHOST}:${PARM.WEBPORT}/`);
           mineflayerViewer(B,
@@ -1211,74 +1512,100 @@ class Bot	// global instance for bot
           DD('firstspawn', 'end');
         });
 
-      // keep the state
-      const State = require('./State.js');
-      this._save = () => State.save();
-
+      // save state when Bot ends
       B.once('end', () => { DD('END'); this.stop(); State.save().finally(() => process.exit()) });
 
+      // Initialize queues, processed by ._start()
+      // - Queues run in parallel
+      // - Only one (the top) entry of the queue runs asynchronously
+      // in (the first queue) has priority:
+      // - other queue DO NOT starts new entries while an entry of .in executes
+      // - executing entries are run in parallel until they finish
       this.in	= new Q('I');
-      this.chunk= new Q('C', (..._) => this.chunks(..._));
+      this.chunk= new Q('C', Abi.prototype.chunks);
+      this.say	= new Q('T', _ => this.B.chat(_));
       this.out	= new Q('O');
       this.scan	= new Q('S');
+      this.run	= new Q('R');
 
       this.state	= State(PARM.NAME);		// No load state on spawn, the last write might be delayed
 
-      // Register all Bot events in Run
+      // Register all events on Bot and World
+      // Run the functions immediately and asynchronously, so nothing piles up
+      // World (W_) does not work yet, dunno why
       for (const k of allKeys(Object.getPrototypeOf(this)))
         {
           if (!k?.startsWith) continue;
+
           const on = k.startsWith('M_') ? B : k.startsWith('W_') ? B.world : void 0;	// Luckily we are not in PHP.
           if (!on) continue;
 //          on.on(k.substring(2), this[k].bind(this));
+          // Register event
           on.on(k.substring(2), (..._) => { D(k, _); this[k](..._) });
         }
     }
-
-  getop(_)
+  search(...name)
     {
-      if (_ === 'Server' || _ === void 0) return {server:true, admin:true, user:true, player:true};
-      switch (this.state.op[_])
+      let k = this.state.set;
+      for (const _ of name.join(':').split(':'))
         {
-        case OpLevel.ADMIN: return {admin:true, user:true, player:true}
-        case OpLevel.USER:  return {user:true, player:true}
-        default: return {player:true}
+//          console.error('SEARCH', name, k);
+          k	= k[_];
+          if (!k) return;
         }
+      return k;
     }
-  chunk_init(_)		// Should be separate task!
+  search_ns(what, sel, ...names)
     {
-      if (_.chunks) return;
-      for (const c of Object.keys(this.B.world.async.columns??{}))
+      const v = [];
+      for (const x of names)
         {
-          if (!_.chunks) console.log('DID');
-          _.chunks	= true;
-          this.chunk.add(...c.split(',').map(_ => (_*16)|0));
-        }
-      if (_.chunks) console.log('DONE');
-    }
-  async chunks(_,x,z)
-    {
-      if (!_.chunks)
-        {
-          this.chunk ??= OB();
-          this.out.addX(() => this.chunk_init(_));
-        }
-      for (let a=16; --a>=0; )
-        this.scan.add(x => this.chunk_scan(_, x, z), x+a);
-    }
-  async chunk_scan(_,x,z)
-    {
-      for (let b=16; --b>=0; )
-        {
-          await Sleep();
-          const l = z+b;
-          for (let c=320; --c>=-64; )
+          v.push(x);
+          if (!x.includes(':'))
             {
-              const d = this.B.blockAt(v3(x, c, l));
-              if (d?.name.endsWith('_sign')) this.in.add(_ => _.Sign(d));
+              v.push(`:${x}`);
+              v.push(`minecraft:${x}`);
             }
         }
+      for (const x of v)
+        {
+          const r = this.search(what, x, ...sel);
+          if (r) return r;
+        }
     }
+  search_e(entity, ...sel)	{ return this.search_ns('entity', sel, entity.name, entity.displayName) }
+  search_i(item,   ...sel)	{ return this.search_ns('item',   sel,   item.name,   item.displayName) }
+
+  // stoppable iterator run queue
+  runner(src, fn)
+    {
+      let x;
+      return new Promise(o => this.run.add(
+        () =>
+          {	// start function
+            const r = x ?? this.yielder(src, fn, _ => x=_);
+            console.error('RUNNER start', r);
+            r.then(_ => console.error('RUNNER stop', _));
+            o(r);
+            return r;
+          },
+        () => x = x?.throw() || false)			// stop function	WTF TODO XXX
+        );
+    }
+  async yielder(src, fn, _)
+    {
+      try {
+        const f = fn(src);
+        _?.(f, src);	// callback to populate iterator
+        for await (const x of f)
+          if (x !== void 0)
+            src.tell(x);
+      } catch (e) {
+        console.error(e);
+        src.tell(`fail: ${e}`);
+      }
+    }
+
   // n=0: last line of front (default)
   // n=1: first line of back
   // n=4: last line of back
@@ -1312,13 +1639,38 @@ class Bot	// global instance for bot
       this.sign(b);
     }
 
+  M_path_reset(...a)
+    {
+      const g = this.B.pathfinder.goal;
+      switch (a[0])
+        {
+        case 'stuck':
+          this.B.pathfinder.setGoal(null);
+          console.error(`teleporting to ${POS(g)}`);
+          this.Chat(`/tp ${POS(g)}`);
+          return;
+        }
+      console.error('PATH', a)
+    }
+  M_soundEffectHeard(n,p,v,s)	{ console.log('ESND', n,p,v,s) }
+  M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ 0 && console.log('HSND', i,c,p,v,s) }
   M_time()			{ D('time') }				// each second
   M_physicsTick()		{ D('tick') }				// each tick (20 per second)
   M_blockPlaced(orig, now)	{                           this.IGN(orig) & this.IGN(now) & BITS.PLACE  || console.log('P', orig.name, now.name) }
   M_blockUpdate(orig, now)	{ orig.name === now.name || this.IGN(orig) & this.IGN(now) & BITS.UPDATE || console.log('U', orig.name, now.name) }
-  M_entityGone(x)		{ this.IGN(x) & BITS.GONE || console.log('G', this.ENTITY(x)) }
-  M_entityDead(x)		{ this.IGN(x) & BITS.DEAD || console.log('D', this.ENTITY(x)) }
+//  M_entityGone(x)		{ this.IGN(x) & BITS.GONE || console.log('G', this.ENTITY(x)) }
+//  M_entityDead(x)		{ this.IGN(x) & BITS.DEAD || console.log('D', this.ENTITY(x)) }
+  M_entitySpawn(x)
+    {
+      if (x.type !== 'hostile') return;
+      if (this.run.length) return;
+      if (this.run.active) return;
+      const a = this.search_e(x, 'auto:attack') ?? this.search('auto:attack');
+      if (!a) return;
+      this.runner(this.src(), () => this.abi._attack(Object.keys(a)));
+    }
   M_chunkColumnLoad(_)		{ this.chunk.add(_.x|0, _.z|0) }
+  M_messagestr(str, who, data)	{ console.log('CHAT:', toJ(who), str); data?.json && this.abi.runwant(data.json.translate, () => MJ(data)) }
   M_whisper(src, cmd)
     {
       console.error('WHISPER', src, cmd);
@@ -1326,36 +1678,33 @@ class Bot	// global instance for bot
       const c = cmd.split(' ').filter(_ => _);
       if (c[0] === '') return;
       c[0] = c[0].toLowerCase();
-      this.out.add(() => this.cmd(c, src));
+      this.out.add(Abi.prototype.cmd, c, this.src(src));
     }
-  async cmd(_, c, src)
+  // get a qualified src object
+  // XXX TODO XXX caching
+  src(_)
     {
-      const u = this.getop(src);
-      //console.warn('TELL:', src, ...c, u);
-      const a = u.server ? (_ => this.Chat(_)) : (_ => this.B.whisper(src, _));
-      const c0 = c[0];
-      const r = async (_) =>
-        {
-          const f = `${_}${c0}`;
-          if (!(f in this)) return;
-          for await (const x of this[f](c.slice(1), src, a))
-            if (x !== void 0)
-              a(x);
-          return true;
-        };
+      _ ??= 'Server';
+      const server	= _ === 'Server';
+      const perm	= Object.keys(this.state.user?.[_] ?? {});
+      return (
+        { _
+        , server
+        // false:	disallowed
+        // null:	unknown (dest)
+        // void 0:	unknown (default)
+        , perm:	server ? () => true : (what,dest) =>
+          {
+            const p	= Object.keys(this.state[what]?.[dest] ?? {});
+            if (!p.length)	return null;	// dest has no perm
+            if (!perm.length)	return false;	// not allowed (dest has perm)
 
-      try {
-        const x = (u.admin  && await r('A'))
-               || (u.user   && await r('B'))
-               || (u.player && await r('C'))
-               || `command ${c[0]} not understood`;
-        if (x !== true)
-          a(x);
-      } catch (e) {
-        console.error(e);
-        a(`fail ${src} ${c}: ${e}`);
-      }
+            return this.perm(p,perm);
+          }
+        , tell:	server ? this.B.chat : m => this.out.add(() => this.B.whisper(_, m))
+        });
     }
+
 /*
       const r = async (p) =>
         {
@@ -1379,12 +1728,14 @@ class Bot	// global instance for bot
 
       // wait for current state to stabilize
       const state	= this.state	= await this.state;
+
+      // Init State
       if (!state.sign)	state.sign	= {};
-      if (!state._)	state._ 	= {};
+//      if (!state._)	state._ 	= {};
 
       await this._save();
 
-      await DELAYED;	// make sure all plugins are loaded
+      await IMPORTS;	// make sure all plugins are loaded
 
       // Instantiate Bot's runtime for this connection
       const r = await this.start();
@@ -1405,29 +1756,40 @@ class Bot	// global instance for bot
     {
       let	o;
 
-      const api	= this.api	= new Abi(this);
+      const abi	= this.abi	= new Abi(this);
 
-      const r	= [this.in, this.out, this.chunk, this.scan];
+      // XXX TODO XXX: Queues should be autodetected
+      const r	= [this.in, this.run, this.say, this.out, this.chunk, this.scan];
       const x	= [], y = [];
       let p = 65;
+      // XXX TODO XXX: Priorities shall be implicite
       do
         {
+          // stop the current this.run if another shows up
+          while (r[1].length>1) r.next()[1]();
+          if (r[1].length && x[1]) x[1][1]();
+
           const a = r.map((_,i) =>
             {
-              if (x[i]) return y[i];
-              if (i && x[0]) return;	// process nothing else if incoming queue is active
+              if (x[i]) return y[i];	// something still running in this queue
+              if (i && x[0]) return;	// start nothing else while .in queue is active
               const o = x[i] = _.next();
-              if (!o) return _.wait();	// wait for something to happen on the queue
-              return y[i] = Promise.resolve(api).then(_ => o[0](_, ...o.slice(1))).catch(THROW).finally(() => { x[i]=y[i]=void 0 });
+              if (!o) return _.wait();	// wait for new entries to arrive in queue
+              r[i].active = true;
+              return y[i] = Promise.resolve(abi)
+                .then(_ => { const r = o[0].apply(_, o.slice(1)); if (i===1) console.error('RUN', o[0], r); return r })
+                .catch(THROW)
+                .then(_ => { if (i===1) console.error('RETURN', _); return _ })
+                .finally(() => { if (i===1) console.error('RUN inactive', o[0]); r[i].active=false;x[i]=y[i]=void 0 });
             });
-          //console.warn('RUN', x);
+//          console.warn('RUN', x);
 
           X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
           await Promise.any(a);
           p	= 162 - p;
-        } while (this.api === api);
+        } while (this.abi === abi);
     }
   };
 
-new Bot(PARM).start();
+new Bot(_PARM_).start();
 
