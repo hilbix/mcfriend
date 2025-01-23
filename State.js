@@ -46,9 +46,6 @@ async function State(name)
       }
     State.saves.push(save);
     const _	= await Read(dat).then(fromJ).catch(_ => ERR`read ${dat}`(_)) || (fromJ(dirt='{}'));
-    for (const x of ['IGNORE','op'])
-      if (!(x in _))
-        _[x] = {};
     await save();
 
     return Tracked(_ => retry(dirt=toJ(_)), _);
