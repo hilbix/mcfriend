@@ -1,0 +1,32 @@
+0a1,4
+> #!/usr/bin/diff node_modules/prismarine-viewer/lib/mineflayer.js
+> // DO NOT EDIT! AUTOMATCIALLY PATCHED VERSION!
+> 'use strict';
+> 
+2c6
+< const { WorldView } = require('../viewer')
+---
+> const { WorldView } = require('prismarine-viewer/viewer');
+4c8
+< module.exports = (bot, { viewDistance = 6, firstPerson = false, port = 3000, prefix = '' }) => {
+---
+> module.exports = (bot, { viewDistance = 6, firstPerson = false, host = '*', port = 3000, prefix = '' }) => new Promise((ok,ko) => {
+12c16
+<   const { setupRoutes } = require('./common')
+---
+>   const { setupRoutes } = require('prismarine-viewer/lib/common')
+81,82c85,93
+<   http.listen(port, () => {
+<     console.log(`Prismarine viewer web server running on *:${port}`)
+---
+>   http.on('error', _ =>
+>     {
+>       bot.viewer.close();
+>       ko(_);
+>     });
+> 
+>   http.listen(port, ...(host && host!=='*' ? [host] : []), () => {
+>     console.log(`Prismarine viewer web server running on ${host}:${port}`)
+>     ok(`${host}:${port}`);
+91a103
+> )
