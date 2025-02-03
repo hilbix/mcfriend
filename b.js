@@ -4,6 +4,7 @@
 // see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
 const _PARM_ = require('./globals.js');
+const CON = (..._) => { console.error(..._); console.error(..._); console.error(..._) }
 
 // 'chat message messagestr'	// last ist best
 const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entityEquip' //entityMoved' //'blockUpdate' //blockUpdate itemDrop'
@@ -584,10 +585,6 @@ class Run extends Enum('ADMIN', 'USER')
       else
         B.pathfinder.stop();
     }
-  Cget(c)
-    {
-      return this.get(c);
-    }
   async *get(c)
     {
       if (!c.length)
@@ -653,6 +650,7 @@ class Q
   set args(a)		{ this.a = [].concat(a) }
 
   next()		{ return this.q.shift() }
+  peek()		{ return this.q[0] }
   wait()		{ return this._w ??= this._wait().finally(() => this._w = void 0) }
   async _wait()		{ while (!this.q.length) await (this.w ??= PO()).p }
   signal()		{ const w = this.w; this.w = void 0; w?.o(); return this }
@@ -803,8 +801,9 @@ class Pos
   {
   get id()		{ return this._ ? POS(this._) : '(unknown)' }
   toString()		{ return `Pos ${POS(this._)}` }
-  constructor(x,y,z)	{ this._ = x instanceof v3.Vec3 ? x : a2v([x,y,z]) }
+  constructor(x,y,z)	{ this._ = x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)]) }
   *locate()		{ return this }
+  vec(x,y,z)		{ return this._.offset(x|0,y|0,z|0) }
   };
 
 class Entity
@@ -812,26 +811,26 @@ class Entity
   get id()		{ return this._?.id }
   toString()		{ return this._ ? `Entity ${this._.displayName ?? this._.name}` : '(no entity)' }
   constructor(entity)	{ this._ = entity; }
-  *locate()		{ return this.pos ??= new Pos(this._.position) }
+  *locate()		{ return this._pos ??= new Pos(this._.position) }
   get hostile()		{ return this._?.type==='hostile' }
   };
 
 class Player
   {
   get id()		{ return this._?.id }
-  toString()		{ return `Player ${this._} ${this.pos ?? ''}` }
+  toString()		{ return `Player ${this._} ${this._pos ?? ''}` }
   constructor(name)	{ this._ = name }	// player can be out of sight
   async *locate(abi)
     {
-      if (this.pos) return this.pos;
+      if (this._pos) return this._pos;
 
       const pos	= abi.B.players[this._]?.entity?.position;
-      if (pos) return this.pos = new Pos(pos);
+      if (pos) return this._pos = new Pos(pos);
 
       yield `cannot see ${this._}`;
 
       const d	= await abi.data(['commands.data.entity.query', this._], ['No','entity','was','found'], 'get entity', this._, 'Pos');
-      return this.pos = new Pos(d[2]);
+      return this._pos = new Pos(...d[2]);
 
 //      t	= d[2].map(_ => parseInt(_));	// why does .map(parseInt) not work?
     }
@@ -839,21 +838,77 @@ class Player
 
 class Item
   {
-  get id()		{ return this._?.id }
+  get id()		{ return this._?.name }
   toString()		{ return this._ ? `Item ${this._.displayName}` : '(no item)' }
   constructor(item)	{ this._ = item }
+  get type()		{ return this._?.type }
+  get meta()		{ return this._?.metadata }
+  get count()		{ return this._?.count }
+
   // following must be improved:
   get weapon()		{ return this._ && this._?.name.endsWith('_sword') }
   get axe()		{ return this._ && this._?.name.endsWith('_axe') }
  }
 
+class Block
+  {
+  get id()		{ return this._?.name }
+  toString()		{ return this._ ? `Block ${this._.name}` : `(no block)` }
+  constructor(block)	{ this._ = block }
+  *locate()		{ return this._pos ??= new Pos(this._.position) }
+  pos(x,y,z)		{ return new Pos(this._.position.offset(x,y,z)) }
+ }
+
 class Sign
   {
-  get id()		{ return this._?.id }
+  get id()		{ return this._?.name }
   toString()		{ return this._ ? `Sign ${this._.text.slice(2,4).join(':')}` : '(no sign)' }
   constructor(sign)	{ this._ = sign }
-  *locate()		{ return this.pos ??= new Pos(this._.pos) }
+  *locate()		{ return this._pos ??= new Pos(this._.pos) }
+  get valid()		{ return this._?.valid }
+  }
+
+class Container
+  {
+  get id()		{ return this._?.name }
+  toString()		{ return this._ ? `Container ${this._.name}` : `(no container)` }
+  constructor(block)	{ this._ = block }
+  *locate()		{ return this._pos ??= new Pos(this._.position) }
+  items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
+  take(i,n)		{ return this._.withdraw(i.type, i.meta, n||null) }
+  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
+  close()		{ return this._.close() }
  }
+
+class Survey
+  {
+  #id; #a; #d; #e; #r; #s;
+  static #gid = 0;
+  static #ln = OB();
+  static *dump()
+    {
+      const n = Date.now();
+      yield Survey.#gid;
+      for (const [k,v] of Object.entries(this.#ln))
+        {
+          console.log(k,v);
+          const d = v.data;
+          yield `${k} ${d.id} ${n-d.d} ${d.s}: ${d.a} = ${d.r} (${d.e})`;
+        }
+    }
+  get data() { return {id:this.#id, d:this.#d, a:this.#a, e:this.#e, r:this.#r, s:this.#s} }
+
+  constructor(...a)
+    {
+      this.#id	= ++Survey.#gid;
+      this.#a	= a;
+      Survey.#ln[this.#id] = this;
+      this.#s	= 'new';
+      this.#d	= Date.now();
+    }
+  err(...a)	{ this.#e = a; this.#s = 'err' }
+  end(...a)	{ this.#r = a; this.#s = 'end'; delete Survey.#ln[this.#id] }
+  }
 
 ///////////////////////////////////////////////////////////////////////
 ///////////////////////////////////////////////////////////////////////
@@ -870,6 +925,7 @@ class Abi	// per spawn instance for bot
       //this.stat		= OB();
       //this.digs		= OB();
       this.want		= OB();
+
       this.autostart('init');
     }
   autostart(c)
@@ -1001,6 +1057,31 @@ class Abi	// per spawn instance for bot
       D('sign(ok)', p);
     }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   runcmd(c, src)
     {
       const abort = new AbortController();
@@ -1017,13 +1098,18 @@ class Abi	// per spawn instance for bot
 
   async run(c, src, abort)
     {
+      const inf = {c,src,abort};
+      const id = new Survey('run', inf);
       try {
-        return await this.yielder(src, await this.cmdload(src, c), abort?.signal|0);
+        const r = await this.yielder(inf, await this.cmdload(src, c));
       } catch (e) {
+        id.err(e);
         if (e.code !== 'ENOENT')
           src.tell(`error: ${e}`);
         else
           src.tell(`unknown command: ${c[0]}`);
+      } finally {
+        id.end();
       }
     }
   async cmdload(src, c)
@@ -1049,11 +1135,12 @@ class Abi	// per spawn instance for bot
       it.filename	= filename;
       return it;
     }
-  async yielder(src, iter, abort)
+
+  async yielder(inf, iter)
     {
-//      TRACE('YIELDER', src._, iter);
+      const abort = inf.abort;
       let _, v, err;
-      for (const iters = [iter]; iters.length; )
+      for (const iters = inf.iters = [iter]; iters.length; )
         {
           if (iters.length > 20) throw 'stack overflow';
           const iter= iters[0];
@@ -1091,7 +1178,7 @@ class Abi	// per spawn instance for bot
 
             if (isString(v))						// talk to the originator
               {
-                src.tell(v);
+                inf.src.tell(v);
                 v	= void 0;					// no reply
                 continue;
               }
@@ -1107,7 +1194,7 @@ class Abi	// per spawn instance for bot
             const f	= `C${c0}`;
             if (f in this)
               {
-                iters.unshift(this[f](c.slice(1), src));		// push execution of local function
+                iters.unshift(this[f](c.slice(1), inf.src));		// push execution of local function
 //                console.log('DO:', iters.length, f, c, v, _, err);
                 continue;
               }
@@ -1117,7 +1204,7 @@ class Abi	// per spawn instance for bot
                   // TODO XXX TODO: Perhaps this is wrong.
                   // Perhaps we want to run the other script in OUR context, not in ITS context
                   // but leave this to the future
-                  iters.unshift(await this.cmdload(src, c));		// push execution of subcommand
+                  iters.unshift(await this.cmdload(inf.src, c))		// push execution of subcommand
                   continue;
                 } catch (cause) {					// cmdload failed
                   if (cause.code !== 'ENOENT')
@@ -1143,6 +1230,26 @@ class Abi	// per spawn instance for bot
         throw v;							// propagate the error: usually bad/unknown command
       return v;								// propagate the result (can this be something else than void 0?)
     }
+  _conf(c)
+    {
+      let d	= this.state;
+      for (const _ of c)
+        for (const i of mkArr(_ ?? []).flat().join(':').split(':'))
+          {
+            if (i === void 0 || i === '') continue;
+            if (!(i in d)) return;
+            d	= d[i];
+          }
+      return d;
+    }
+  conf_n(a,n,b)	{ return (n|0) || n==='0' ? n|0 : this.confn(a,n,b) }
+  confn(...c)
+    {
+      const _ = this._conf(c);
+      if (!_) return;
+      for (const x of Object.keys(_))
+        if (x|0 || x==='0') return x|0;
+    }
 
   // commands for processing via yielder, all must be iterators and can be async if needed
   *Cact(c,src)
@@ -1153,15 +1260,26 @@ class Abi	// per spawn instance for bot
       this.actcache.push(t);
       src.tell(t);
     }
+  *Cstop(c,src)
+    {
+      this._.run.add(() =>
+        {
+          CON('stop');
+          while (this._.late.lenght)
+            this._.late.next();
+        });
+      return this._.late.length;
+    }
   *Cautostart(c,src)	{ this.autostart(c.join(' ')) }
   *Crun(c,src)		{ this._.run.add(...this.runcmd(c, src)) }
+  *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(n, c, src); else return `no ${_}: ${c.join(' ')}` }
   *Csay(c)		{ this.chat(...c) }
   *Cequip([d,i])	{ return i ? this.B.equip(i._,d) : this.B.unequip(d) }
   *Cattack(c)		{ return this.B.attack(c[0]._) }
 
   *Cwho(c,src)		{ return new Player(src._) }
   *Cplayer(c,src)	{ return new Player(c[0] ?? src._) }
-  *Cpos(c,src)		{ return new Pos(...c) }
+  *Cpos(c,src)		{ return new Pos(...(c.length ? c : [this.B.entity.position])) }
   async *Clocate(c,src)	{ return yield* c[0].locate(this) }
   *Ctp(c)		{ const p = (yield* c[0].locate())._; return this.B.chat(`/tp ${p.x|0} ${p.y|0} ${p.z|0}`) }
   *Cdist(c,src)		{ return this.B.entity.position.distanceTo((yield* c[0].locate())._) }
@@ -1207,7 +1325,7 @@ class Abi	// per spawn instance for bot
               return t;
         }
 
-      const signs = this.find_sign(type, match);
+      const signs = this.find_sign(type, c.length && match);
       // .id	this.state.sign[.id] (id is stringified position)
       // .text	texts (lines) of sign
       // .stat	sign status
@@ -1220,6 +1338,41 @@ class Abi	// per spawn instance for bot
       if (!signs.length) return;
       return signs.map(_ => new Sign(_));
     }
+  // Get the block at a given position
+  // Options are the 2nd argument:
+  // 6:		get the 6 adjancent blocks around the given block
+  // 7:		as 6 but with block
+  // 18:	get all surrounding blocks without the diagonals
+  // 19:	as 18 but with the block
+  // 26:	get all surrounding blocks
+  // 27:	get the full cube
+  async *Cblock(c)
+    {
+      const p = yield* c[0].locate();
+//      console.error('Block', p, c[0].toString());
+      if (c.length === 1) return new Block(this.B.blockAt(p.vec()));
+
+      const delta = (...d) => d.map(_ => new Block(this.B.blockAt(p.vec(_.x, _.y, _.z))));
+      switch (c[1])
+        {
+        default: throw `Block ${c}???`;
+        case 6:	return delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+        case 7:	return delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+        case 27: return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
+        }
+    }
+  async *Copen(c)	{ return new Container(await this.B.openContainer(c[0]._)) }
+  async *Cclose(c)	{ return await c[0].close() }
+  *Chave(c)		{ return this.B.inventory.count(c[0].type, c[0].meta) }
+  async *Ctake([w,i,n])	{ return await w.take(i, n) }
+  async *Cput([w,i,n])	{ return await w.put(i, n) }
+  async *Cplace([i,p])
+    {
+      const l = (yield* (p ?? new Pos(this.B.entity.position)).locate()).vec(0,-1,0);
+      const b = this.B.blockAt(l);
+      return await this.B.placeBlock(b, v3(0,1,0));
+    }
+
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // Assorted helpers, may vanish
@@ -1573,7 +1726,7 @@ class Abi	// per spawn instance for bot
     }
   *Linv(c)
     {
-      for (const s of this.B.inventory.slots)
+      for (const s of (this.B.currentWindow || this.B.inventory).slots)
         if (s)
           yield `${s.slot}: ${s.count} ${s.name} ${s.displayName}`;
     }
@@ -1747,6 +1900,7 @@ class Bot	// global instance for bot
       this.out	= new Q('O');
       this.scan	= new Q('S');
       this.run	= new Q('R');
+      this.late	= new Q('L');
 
       // Register all events on Bot and World
       // Run the functions immediately and asynchronously, so nothing piles up
@@ -1824,38 +1978,6 @@ class Bot	// global instance for bot
   search_e(entity, ...sel)	{ return this.search_ns('entity', sel, entity.name, entity.displayName) }
   search_i(item,   ...sel)	{ return this.search_ns('item',   sel,   item.name,   item.displayName) }
 
-  // XXX TODO XXX GET RID OF THESE:
-  // stoppable iterator run queue
-  runner(src, fn)
-    {
-      let x;
-//      TRACE('RUNNER', src._, fn);
-      return new Promise(o => this.run.add(
-        () =>
-          {	// start function
-            const r = x ?? this.abi.yielder(src, fn, _ => x=_);
-            console.error('RUNNER start', r);
-            r.then(_ => console.error('RUNNER stop', _));
-            o(r);
-            return r;
-          },
-        () => x = x?.throw() || false)			// stop function	WTF TODO XXX
-        );
-    }
-  async yielder(src, fn, _)
-    {
-      try {
-        const f = fn(src);
-        _?.(f, src);	// callback to populate iterator
-        for await (const x of f)
-          if (x !== void 0)
-            src.tell(x);
-      } catch (e) {
-        console.error(e);
-        src.tell(`fail: ${e}`);
-      }
-    }
-
   // XXX TODO XXX refactor into cmd/
 
   // n=0: last line of front (default)
@@ -1918,7 +2040,11 @@ class Bot	// global instance for bot
   M_time()			{ D('time') }				// each second
   M_physicsTick()		{ D('tick') }				// each tick (20 per second)
   M_blockPlaced(orig, now)	{                           this.IGN(orig) & this.IGN(now) & BITS.PLACE  || console.log('P', orig.name, now.name) }
-  M_blockUpdate(orig, now)	{ orig.name === now.name || this.IGN(orig) & this.IGN(now) & BITS.UPDATE || console.log('U', orig.name, now.name) }
+  M_blockUpdate(orig, now)
+    {
+      if (isSign(now)) this.abi.Sign(now);
+      if (orig.name !== now.name) console.log('U', orig.name, now.name);
+    }
 //  M_entityGone(x)		{ this.IGN(x) & BITS.GONE || console.log('G', this.ENTITY(x)) }
 //  M_entityDead(x)		{ this.IGN(x) & BITS.DEAD || console.log('D', this.ENTITY(x)) }
 
@@ -1955,9 +2081,16 @@ class Bot	// global instance for bot
       const c = cmd.split(' ').filter(_ => _);
       if (c[0] === '') return;
 
-      c[0] = c[0].toLowerCase();
-
       src = this.src(src);
+
+      if (c[0][0] === '!')
+        {
+          for (const _ of Survey.dump())
+            src.tell(`${_}`);
+          return;
+        }
+
+      c[0] = c[0].toLowerCase();
       if (/[^a-z]/.test(c[0])) return src.tell(`invalid command: ${c[0]}`);
       this.run.add(...this.abi.runcmd(c, src));
     }
@@ -1978,7 +2111,7 @@ class Bot	// global instance for bot
 
       // Init State
       if (!state.sign)	state.sign	= {};
-//      if (!state._)	state._ 	= {};
+      if (!state.set)	state.set	= {};
 
       await this._save();
 
@@ -2002,8 +2135,7 @@ class Bot	// global instance for bot
   async _start()
     {
       let	o;
-
-      const abi	= this.abi	= new Abi(this);
+const abi	= this.abi	= new Abi(this);
 
       // XXX TODO XXX: Queues should be autodetected
       const r	= [this.in, this.run, this.say, this.out, this.chunk, this.scan];	// .in must be first, followed by .run
@@ -2012,12 +2144,27 @@ class Bot	// global instance for bot
       // XXX TODO XXX: Priorities shall be implicite
       do
         {
-          // stop the current this.run if another shows up
-          while (r[1].length>1) r[1].next()[1]();
-          if (r[1].length && x[1])
+          while (this.run.length>1) this.run.next()[1](); // ignore all this.run but the last queued one
+          if (this.run.length)
+            x[1] && x[1][1]();				// stop current this.run if anotherone waits
+          else if (!this.run.active)
             {
-//              console.error('runstop', x[1], x[1][0], x[1][1]);
-              x[1][1]();
+              const _ = this.late.peek();
+              if (_)
+                {
+                  const n = _[0];
+                  if (!n)
+                    {
+                      this.late.next();
+                      CON('LATE', _[1]);
+                      this.abi.Crun(_[1], _[2]).next();
+                    }
+                  else if (n !== (_[0]=true))
+                    {
+                      CON('LATE:', n, _[1]);
+                      setTimeout(() => _[0]=0, n);
+                    }
+                }
             }
 
           const a = r.map((_,i) =>
