@@ -15,13 +15,13 @@ const e = void 0
 if (!e)
   {
     const t = yield ['set auto:attack:again'];
+    const w = (t|0)+backoff;
     if (t !== '')
       {
-        const b = yield ['set auto:attack:backoff'];
-        yield yield ['in', (t|0)+backoff, 'attack'];
-        backoff += b|0;
+        yield yield ['in', w, 'attack'];
+        backoff += (yield ['set auto:attack:backoff'])|0;
       }
-    return ['act no enemy found'];
+    return ['act no enemy found', `(${w/1000})`];
   }
 if (!e.hostile) return ['act WTF? not hostile', e.id, e];
 backoff = 0;
