@@ -32,7 +32,11 @@ for (const c of a)
     for (const i of r.items())
       {
         if (!i.id) continue;
-        if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
+// solved with:
+//	/execute as @a run attribute @s minecraft:generic.luck base set 666
+//	/execute as @a if     data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"}]
+//	/execute as @a unless data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"},"=",{"entity":"@s","nbt":"Attributes[{Name:'minecraft:generic.luck'}].Base"}]
+//        if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
         try {
           yield yield ['take', r, i, i.count];
         } catch (e) {
