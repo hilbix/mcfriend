@@ -481,6 +481,7 @@ B.once('spawn', () =>
     m.allowFreeMotion = true;
     B.pathfinder.setMovements(m);
 
+/*
     Chat(`Web on http://${WEBHOST}:${WEBPORT}/`);
     mineflayerViewer(B,
       { port:WEBPORT
@@ -488,6 +489,7 @@ B.once('spawn', () =>
       , viewDistance: 20
 //      , firstPerson:true	// warning, this is permanent!
       });
+*/
     D('spawn', 'end');
   });
 
