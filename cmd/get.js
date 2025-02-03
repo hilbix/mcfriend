@@ -5,7 +5,7 @@
 const i = Array.from(yield ['invs']);
 
 const l = _.length
-  ? _.map(_ => _.split('=',1))		// arg: item=n
+  ? _.map(_ => _.split('=',2))		// arg: item=n
   : Object
     .entries({} || (yield ['get list get']) || {})
     .filter(([k,v]) =>
@@ -20,14 +20,13 @@ if (!Object.keys(l).length) return [`act please state what to get`];
 
 for (const [k,v] of l)
   {
-    const [g,l] = k.split('=');
-    const signs = yield ['sign', 'get', g];
+    const signs = [].concat(yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _.valid);
     if (!signs?.length)
       {
         yield ['act no sign found for', _];
         continue;
       }
-    let n = (v|0)||1;
+    const n = (v|0)||1;
     for (const s of signs)
       {
 //        yield ['act', s];
@@ -44,20 +43,24 @@ for (const [k,v] of l)
         const r = yield ['open', c];
 
         // locate the needed item
-        const v = r.items().filter(_ => _.id === g);
+        const v = r.items().filter(_ => _.id === k);
         if (!v.length) 
           {
-            yield ['act nothing in chest', c]
+            yield ['act nothing in', c]
+            yield ['close', r];
             continue;
           }
 
         // take the item and close
-        yield ['take', r, v[0], l];
+        try {
+          yield ['take', r, v[0], n];
+        } catch (e) {
+        }
         yield ['close', r];
 
         // check that I have enough from this item
         const h = yield ['have', v[0]];
-        if (h > (l|0))
+        if ((h|0) > n)
           return ['act got', h, v[0]];
       }
   }
