@@ -24,5 +24,5 @@ if (t<=1+(_[1]|0))
 
 yield act('act distance', ((t*10)|0)/10, 'teleporting to', _);
 yield ['tp', _];
-await sleep(100);
+await sleep(500);
 
