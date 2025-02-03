@@ -10,14 +10,7 @@ yield ['act AUTOSTART', _];
 //
 // The right thing is a list of creatures to automatically attack with priority.
 // Then register the list and trigger autoattack in case such a creature shows up.
-const t = yield ['set auto:attack'];
-yield `got ${t}`;
-if (t > 1)
-  {
-    yield `auto:attack ${t}`;
-    await sleep(t);
-    yield ['run attack'];
-  }
+yield ['in auto:attack:enabled attack'];
 
 return 'AUTO ended';
 
