@@ -17,7 +17,7 @@ globalThis.DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entit
 globalThis.FLW = [];
 globalThis.D = (..._) => { FLW.push(_); if (FLW.length>40) FLW.shift() };
 globalThis.DD = (..._) => { console.log(_); D(..._) }
-globalThis.ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
+globalThis.ERR = _ => (...e) => { D('ERR', e); console.error(...e) }
 
 module.exports =
   { NAME	: process.argv[6] || process.argv[1].split('/').pop().split('.').shift()
