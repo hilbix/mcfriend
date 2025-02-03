@@ -2,5 +2,6 @@
 
 // nothing to do
 
+yield ['stop'];
 return 'stopped';
 
