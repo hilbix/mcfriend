@@ -1,1 +1,1 @@
-return [put,_]
+return ['PUT',_]
