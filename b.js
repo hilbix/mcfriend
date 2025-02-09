@@ -4,7 +4,19 @@
 // see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
 const _PARM_ = require('./globals.js');
-const CON = (..._) => { console.error(..._); console.error(..._); console.error(..._) }
+const CON = (..._) => { console.error(..._); console.error(..._); console.error(..._) };
+const CCON = (..._) => { CON(..._); return _[_.length-1] };
+
+// return the first match which does not return void 0
+const first = (arr,match,...a) =>
+  {
+    for (const _ of arr)
+      {
+        const r = match(_);
+        if (r !== void 0) return r;
+      }
+  };
+const notEmpty = a => a.length ? a : void 0;
 
 // 'chat message messagestr'	// last ist best
 const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entityEquip' //entityMoved' //'blockUpdate' //blockUpdate itemDrop'
@@ -50,22 +62,22 @@ const patternMatch = m =>
   {
     m	= m.split('*');
 
-    const f = m[0];
+    // XXX TODO XXX allow ** to match *
 
-    if (m.length === 1) return _ => _ === f;
+    const f = m.shift();
 
-    const e = m[m.length-1];
+    if (!m.length) return _ => _ === f;	// no *
 
-    if (m.length === 2)
+    const e = m.pop();
+
+    if (!m.length)			// a single *
       if (f === '')
         return e === '' ? () => true : _ => _.endsWith(e);
       else if (e === '')
         return _ => _.startsWith(f);
 
-    // f and e are nonempty
-
-    m.shift();
-    m.pop();
+    // either f and e are nonempty
+    // or there is something in the middle
 
     return _ =>
       {
@@ -76,23 +88,20 @@ const patternMatch = m =>
         // check the middle
         for (const x of m)
           {
-            const i = indexOf(_, x);
+            const i = _.indexOf(x);
             if (i < 0) return false;
             _	= _.substr(i + x.length);
           }
 
         // check the end
+        // we could check in advance, but then '*e*e' would match 'e'
         return _.endsWith(e);
       };
   };
 
 /*
-//
-// miniBotLib
-//
 
 const ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
-
 
 const MESS = _ =>
   {
@@ -126,7 +135,6 @@ const MESS = _ =>
     return r.join('');
   }
 
-/*
       const extract = (a,_) =>	// yes, this is a bit weird
         {
           if (_ === void 0) return a;
@@ -153,22 +161,7 @@ const MESS = _ =>
             }
           return a;
         }
-*//*
 
-//
-// Implementation
-//
-
-const SETS =
-  { sleep: 1
-  };
-
-// If these return a Promise (thenable), the next function will not be called until the Promise resolves or throws:
-// T	tasks
-// QB	bot callbacks
-// QW	world callbacks
-// globals:
-// state	then current state (Proxy object automatically keeping state)
 class Run extends Enum('ADMIN', 'USER')
   {
   static runcount = 0;
@@ -184,136 +177,6 @@ class Run extends Enum('ADMIN', 'USER')
       return this;
     }
 
-  // Constructor
-  constructor()
-    {
-      // https://github.com/PrismarineJS/node-minecraft-data/blob/master/doc/api.md
-              console.warn('V', B.version);
-
-      //console.warn('DATA', DUMP(this.data,1));
-      this._	= PO(this);
-      this.nr	= ++Run.runcount;
-      this.tasks= {};
-
-//      for (const s of B.inventory.slots) if (s) console.log(s.slot, s.count, s.name);
-
-
-  //
-  // signs
-  //
-
-  // register chunk to scan and scan it asynchronously
-  chunk_scan(_)
-    {
-      if (this.chunksinit)
-        for (const c of Object.keys(B.world.async.columns??{}))
-          {
-            this.chunksinit	= void 0;
-            const [x,z] = c.split(',').map(_ => _|0);
-            this.chunk_scan({x:x*16, z:z*16});
-          }
-      const x = _.x|0;
-      // y probably 0
-      const z = _.z|0;
-//      console.log('cc:', x,z);
-
-      D('chunkscan', x,z);
-      D('chunkscan(ok)', x,z);
-    }
-  // check if signs are still present or lost while offline
-  checksigns(start)
-    {
-      if (start) return Chat('chunk scan started');
-      Chat('chunk scan ended');
-      for (const p of Object.keys(state.sign))
-        {
-          if (p in this.signs) continue;	// sign found
-          const d = B.blockAt(p2v(p));
-          if (d)
-            this.sign(d);
-          else
-            console.log('not loaded', p);
-        }
-      if (!this.signchange) return;
-      this.signchange	= void 0;
-      this.act();
-    }
-  get iter_signs()
-    {
-      const self = this;
-      return function*(...type)
-        {
-          const test = mkMatch(type);
-          for (const [k,x] of Object.entries(self.signs))
-            {
-              //console.warn('?', k, x, state.sign[k]);
-              if (!x) continue;		// ignore: disabled
-              const s = state.sign[k];
-              if (!s) continue;		// ignore: not usable
-
-              const v = p2v(k);
-              const b = B.blockAt(v);
-              if (!b) continue;		// ignore: chunk not loaded
-
-              if (!isSign(b))
-                {
-                  console.log('sign missing', k);
-                  self.signs[k] = false;	// disable missing sign
-                  continue;
-                }
-
-              // verify sign text
-              const t = b.signText.split('\n');
-              //console.warn(t, s);
-              if (t[0] !== s[1] || t[1] !== s[2] || t[2] !== s[3]) continue;
-              if (test && !test[s[2]]) continue;
-              yield [k,s,b, x.length ? x[0] : t[3]];
-            }
-        }
-    }
-  *Bact()
-    {
-      yield this.act();
-    }
-  act()
-    {
-      if (this._acting) return 'already acting';
-      this._acting = this._act().finally(() => this._acting = void 0);
-    }
-  async _act()
-    {
-      Chat('start acting');
-      for (const [p,s,b,l] of this.iter_signs())
-        {
-          if (!this.signs[p]) continue;
-          const x = s[2];
-          const c = `S${x}`;
-          const f = this[c];
-          if (f === void 0)
-            Chat('unknown sign', x);
-          else if (!f)
-            continue;
-          else
-            try {
-             Chat('running sign', x);
-             const v = p2v(p);
-             for await (const m of this[c](p,s,b,l))
-               Chat(m);
-             continue;
-            } catch (e) {
-              Chat('sign',p,x,'failed:', `${e}`);
-            }
-          this.signs[p] = false;
-        }
-      Chat('end acting');
-    }
-  Ssleep = false;
-  Snote = false;
-  Sget = false;
-  async *Ssort(p,s)
-    {
-      yield `sort ${p} ${s}`;
-    }
   // tree	chop down the tree near sign
   // for now only jungle trees are supported and this also needs datapack timber
   // TODO incomplete
@@ -370,21 +233,6 @@ class Run extends Enum('ADMIN', 'USER')
       r.sort((a,b) => b[0]-a[0]);
       if (r.length)
         return n ? r.slice(0,n) : r;
-    }
-
-  //
-  // Operations
-  //
-
-  stop()	{ if (RUN === this) RUN = void 0; this._.o('stopped'); return this }
-  OK()		{ return RUN === this }
-  get P()	{ return this._.p }
-  chat(...s)
-    {
-      D('chat', s);
-      console.log('chat', s);
-      Chat(...s);
-      return this;
     }
 
   tick()
@@ -450,17 +298,6 @@ class Run extends Enum('ADMIN', 'USER')
       yield 'no bed found';
     }
 
-  //
-  // Tasks and Events
-  //
-  Qtask(task, ...a)
-    {
-      D('q task', a);
-      this.chat(`${task}`, this.nr);
-      const t = this.tasks[task]	??= [];
-      t.push({});
-    }
-
   QBdiggingCompleted(_)	{ this.digok('o', _) }
   QBdiggingAborted(_)	{ this.digok('k', _) }
   digok(fn, block)
@@ -514,9 +351,6 @@ class Run extends Enum('ADMIN', 'USER')
         B.autoEat.enableAuto();
     }
 
-  // ign	list all igns
-  // ign N	list all igns with N
-  // ign N a b	set "a b" to N
   *Aign(c)
     {
       const s = state.IGNORE;
@@ -546,33 +380,6 @@ class Run extends Enum('ADMIN', 'USER')
       state.IGNORE = s;
       yield `${i} now ${n ?? '(deleted)'} was ${o ?? '(unknown)'}`;
     }
-  // NOT YET IMPLEMENTED
-  *Aset(c)
-    {
-      while (c.length)
-        {
-          const x = c.shift();
-          if (!(c in SETS))
-            {
-              yield `unknown ${c}`;
-              continue;
-            }
-        }
-    }
-  // NOT YET IMPLEMENTED
-  *Aunset(c)
-    {
-    }
-  *Aautosleep(c)
-    {
-      state.autosleep = !c.length;
-      yield `autosleep = ${state.autosleep}`;
-    }
-  *Arun(c)
-    {
-      console.error(eval(c.join(' ')));
-    }
-  // sleep	run to "sleep" sign and try to sleep in bed
   async *Bsleep()
     {
       if (this._sleep) return yield 'already sleeping';
@@ -607,19 +414,9 @@ class Run extends Enum('ADMIN', 'USER')
 
   //breath is too buggy! QBbreath(..._) { const x = inc('breath'); track('oxygenLevel', console.log, 'breath', x); }
   };
-
-//async function bot1()
-//{
-//  const plankRecipe = bot.recipesFor(mcData.itemsByName.oak_planks.id ?? mcData.itemsByName.planks.id)[0]
-//  await bot.craft(plankRecipe, 1, null)
-//  const stickRecipe = bot.recipesFor(mcData.itemsByName.sticks.id)[0]
-//  await bot.craft(stickRecipe, 1, null)
-//  bot.chat('Crafting Sticks finished')
-//}
 */
 
 const	X	= _ => process.stdout.write(_);
-const	BITS	= Object.fromEntries('DEAD GONE UPDATE PLACE 4 5 6 DROP 8 9 10 11 12 13 14 15'.split(' ').map((_,i) => [_, 1<<i]));
 const	POS	= _ => _ && `${_.x|0},${_.y|0},${_.z|0}`;
 const	a2v	= _ => _?.length === 3 && v3(...(_.map(parseFloat)));
 const	p2v	= _ => _ && a2v(_.split(','));
@@ -663,6 +460,41 @@ const isBed	= _ => B.isABed(_);
 const isSign	= _ => _?.name.endsWith('_sign');
 const isTree	= _ => _?.name.endsWith('_log');
 const isDirt	= _ => _?.name.endsWith('dirt');
+
+const isChesty	= _ => ChestType[_?.name];
+const isChestyFn= _ => { const c = isChesty(_); return !c || isString(c) ? () => c : c };
+const ChestType =
+  { chest: _ =>
+    {
+      switch (_.getProperties().type)
+        {
+        case 'single':	return 'S';	// single chest type
+        case 'left':	return 'D';	// double chest type
+        }
+    }
+  , trapped_chest: _ =>
+    {
+      switch (_.getProperties().type)
+        {
+        case 'single':	return 'St';	// single chest type
+        case 'left':	return 'Dt';	// double chest type
+        }
+    }
+  , barrel:		'B'
+  , brewing_stand:	'b'
+  , ender_chest:	'e'
+  , dispenser:		'di'
+  , dropper:		'dr'
+  , furnace:		'f'
+  , blast_furnace:	'fb'
+  , smoker:		'fs'
+  , hopper:		'h'
+  , minecart:		'm'
+  , chest_minecart:	'mc'
+  , furnace_minecart:	'mf'
+  , hopper_minecart:	'mh'
+  , tnt_minecart:	'mt'
+  };
 
 const VAL	= _ =>
   {
@@ -794,32 +626,35 @@ class CTX
       this.#filename	= filename;
       this.console	= console;			// output vm's console to our console here
       this.sleep	= Sleep;
+      this.toJ		= toJ;
     }
   }
 
-class Pos
+class My { constructor(_) { this._ = _ } };
+class Pos extends My
   {
   get id()		{ return this._ ? POS(this._) : '(unknown)' }
   toString()		{ return `Pos ${POS(this._)}` }
-  constructor(x,y,z)	{ this._ = x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)]) }
+  constructor(x,y,z)	{ super(x instanceof v3.Vec3 ? x : x instanceof Pos ? x._ : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
+  dist(p)		{ return this._.distanceTo(p.locate()) }
   vec(x,y,z)		{ return this._.offset(x|0,y|0,z|0) }
   };
 
-class Entity
+const HOSTILE = { hostile:true, mob:true };
+class Entity extends My
   {
   get id()		{ return this._?.id }
   toString()		{ return this._ ? `Entity ${this._.displayName ?? this._.name}` : '(no entity)' }
-  constructor(entity)	{ this._ = entity; }
   *locate()		{ return this._pos ??= new Pos(this._.position) }
-  get hostile()		{ return this._?.type==='hostile' }
+  get hostile()		{ return HOSTILE[this._?.type] }
+  get name()		{ return this._?.name }
   };
 
-class Player
+class Player extends My		// player can be out of sight, so it is initalized by name
   {
   get id()		{ return this._?.id }
   toString()		{ return `Player ${this._} ${this._pos ?? ''}` }
-  constructor(name)	{ this._ = name }	// player can be out of sight
   async *locate(abi)
     {
       if (this._pos) return this._pos;
@@ -836,11 +671,10 @@ class Player
     }
   };
 
-class Item
+class Item extends My
   {
   get id()		{ return this._?.name }
   toString()		{ return this._ ? `Item ${this._.displayName}` : '(no item)' }
-  constructor(item)	{ this._ = item }
   get type()		{ return this._?.type }
   get meta()		{ return this._?.metadata }
   get count()		{ return this._?.count }
@@ -850,30 +684,30 @@ class Item
   get axe()		{ return this._ && this._?.name.endsWith('_axe') }
  }
 
-class Block
+const CONTAINER = { chest:true, hopper:true, dropper:true, dispenser:true, furnace:2};
+class Block extends My
   {
   get id()		{ return this._?.name }
   toString()		{ return this._ ? `Block ${this._.name}` : `(no block)` }
-  constructor(block)	{ this._ = block }
   *locate()		{ return this._pos ??= new Pos(this._.position) }
   pos(x,y,z)		{ return new Pos(this._.position.offset(x,y,z)) }
+  get container()	{ return CONTAINER[this.id] }
  }
 
-class Sign
+class Sign extends My
   {
   get id()		{ return this._?.name }
-  toString()		{ return this._ ? `Sign ${this._.text.slice(2,4).join(':')}` : '(no sign)' }
-  constructor(sign)	{ this._ = sign }
+  toString()		{ return this._ ? `Sign ${this._.text.slice(2,4).join(':')} ${POS(this._.pos)}` : '(no sign)' }
   *locate()		{ return this._pos ??= new Pos(this._.pos) }
   get valid()		{ return this._?.valid }
   }
 
-class Container
+class Container extends My
   {
   get id()		{ return this._?.name }
   toString()		{ return this._ ? `Container ${this._.name}` : `(no container)` }
-  constructor(block)	{ this._ = block }
   *locate()		{ return this._pos ??= new Pos(this._.position) }
+  out()			{ const x = CONTAINER[this._.name]; return this.items().filter((_,i) => x === true || x.includes(i)) }
   items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
   take(i,n)		{ return this._.withdraw(i.type, i.meta, n||null) }
   put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
@@ -891,9 +725,9 @@ class Survey
       yield Survey.#gid;
       for (const [k,v] of Object.entries(this.#ln))
         {
-          console.log(k,v);
           const d = v.data;
-          yield `${k} ${d.id} ${n-d.d} ${d.s}: ${d.a} = ${d.r} (${d.e})`;
+          console.log('dump', k, toJ(d));
+          yield `${k} ${d.id} ${n-d.d} ${d.s}: ${toJ(d.a)} = ${d.r} (${d.e})`;
         }
     }
   get data() { return {id:this.#id, d:this.#d, a:this.#a, e:this.#e, r:this.#r, s:this.#s} }
@@ -920,7 +754,8 @@ class Abi	// per spawn instance for bot
     {
       this._		= _;
       this.vmctx	= OB();
-      this.signs	= OB();
+      this.rem		= { sign:OB(), chest:OB() };
+      this.chg		= {};
       this.actcache	= [];
       //this.stat		= OB();
       //this.digs		= OB();
@@ -979,40 +814,91 @@ class Abi	// per spawn instance for bot
         } while (l.length);
     }
 
-  chunk_init()		// Should be separate task!
+  chunk_init()		// Should be a separate task!
     {
-      if (this.chunks) return;
+      if (this.got_chunks) return;
       for (const c of Object.keys(this.B.world.async.columns??{}))
         {
-          if (!this.chunks) console.log('DID');
-          this.chunks	= true;
+          this.got_chunks	= true;
           this._.chunk.add(...c.split(',').map(_ => (_*16)|0));
         }
-      if (this.chunks) console.log('DONE');
     }
   async chunks(x,z)
     {
-      if (!this.chunks)
+      if (!this.got_chunks)
         {
           this.chunk ??= OB();
-          this._.out.addX(Abi.prototype.chunk_init);
+          this._.out.add(this.chunk_init);
         }
       for (let a=16; --a>=0; )
         this._.scan.add(this.chunk_scan, x+a, z);
     }
   async chunk_scan(x,z)
     {
-      for (let b=16; --b>=0; )
+      for (let b=16; --b>=0; await Sleep())
         {
-          await Sleep();
           const l = z+b;
           for (let c=320; --c>=-64; )
             {
               const d = this.B.blockAt(v3(x, c, l));
-              if (d?.name.endsWith('_sign')) this._.in.add(this.Sign, d);
+              if (isSign(d))   this._.in.add(this.Sign,  d);
+              if (isChesty(d)) this._.in.add(this.Chest, d);
             }
         }
     }
+  // register or deregister something we want to track
+  remember(d, type, check)
+    {
+      if (!check) return;
+      const s = this.state[type];
+      const p = POS(d.position);
+      D(type, p);
+      const a = s[p];
+      const del = () =>
+        {
+          D(`${type}:del`, p, a);
+          if (!a) return;
+//          this.inc(type, 'removed');
+          delete s[p];
+          this.state[type] = s;		// not redundant: save state
+          this.chat(`-${type}`, p, a);
+          this.rem[type][p] = 0;
+          D(`${type}:del(ok)`);
+         };
+
+      const b = check(d);
+      if (!b) return del();
+
+      if (toJ(a) !== toJ(b))
+        {
+//          this.inc('sign', b ? 'changed' : 'new');
+          s[p]	= b;
+          this.state[type] = s;	// save state
+          this.chat(`+${type}`, p, b, ...(a ? [a] : []));
+        }
+//      else if (this.rem.sign[p]?.length) this.inc(type, 'done'); else this.inc(type, 'known');
+
+      this.rem[type][p] = [];
+      this.chg[type] = true;
+      D(`${type}(ok)`, p);
+    }
+
+  Chest(d) { this.remember(d, 'chest', isChestyFn(d)) }
+  Sign(d)
+    {
+      this.remember(d, 'sign', d =>
+        {
+          if (!isSign(d)) return;
+
+          const t = d.signText.split('\n');
+          const n = t[0].split(' ');
+
+          if (this.inList(n.shift(), this._.botname))
+            return [n.join(' '), t[0], t[1], t[2]];
+        });
+    }
+
+/*
   // register or deregister a sign
   // should be only called for blocks which are signs or previously were signs
   // (see isSign())
@@ -1031,7 +917,7 @@ class Abi	// per spawn instance for bot
           delete s[p];
           this.state.sign = s;		// not redundant: save state
           this.chat('-sign', p, a);
-          this.signs[p] = 0;
+          this.rem.sign[p] = 0;
           D('sign:del(ok)');
          };
 
@@ -1050,13 +936,13 @@ class Abi	// per spawn instance for bot
           this.state.sign = s;	// save state
           this.chat('+sign', p, b, ...(a ? [a] : []));
         }
-//      else if (this.signs[p]?.length) this.inc('sign', 'done'); else this.inc('sign', 'known');
+//      else if (this.rem.sign[p]?.length) this.inc('sign', 'done'); else this.inc('sign', 'known');
 
-      this.signs[p] = [];
+      this.rem.sign[p] = [];
       this.signchange = true;
       D('sign(ok)', p);
     }
-
+*/
 
 
 
@@ -1130,23 +1016,31 @@ class Abi	// per spawn instance for bot
 
       const vm	= require('vm');
       const ctx	= this.vmctx[filename] ??= vm.createContext(new CTX(this, filename));
-      const fn	= vm.runInContext(`(async function*(src,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1});
-      const it	= fn.call(ctx, src, cmd, a);		// this returns the iterator, but does not start it yet
-      it.filename	= filename;
-      return it;
+      try {
+        const fn	= vm.runInContext(`(async function*(src,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1,displayErrors:true});
+        const it	= fn.call(ctx, src, cmd, a);		// this returns the iterator, but does not start it yet
+        it.filename	= filename;
+        return it;
+      } catch (e) {
+        console.error(e);
+        throw e;
+      }
     }
 
   async yielder(inf, iter)
     {
       const abort = inf.abort;
       let _, v, err;
-      for (const iters = inf.iters = [iter]; iters.length; )
+      for (const iters = inf.iters = [iter]; iters.length; await Sleep(1))
         {
           if (iters.length > 20) throw 'stack overflow';
           const iter= iters[0];
 
           if (this !== this._.abi || abort.aborted) err = 1;
           try {
+            iter.state	= 'yield';
+            iter.err	= err;
+            iter.v	= v;
 //            if (iters.length>1) console.warn('DOa', iters.length, err, v);
 //console.error('ITER', iter);
             _		= await (err ? iter.throw(v ?? (abort.aborted && abort.reason || new Error('abort'))) : iter.next(v));	// get the next command (or error)
@@ -1158,6 +1052,9 @@ class Abi	// per spawn instance for bot
             console.error('FAIL:', iters.length, iter.filename, cause);
             console.warn('----------------------', iter.filename);
 
+            iter.state	= 'err';
+            iter.err	= true;
+            iter.v	= v;
             v		= cause;
             err	= true;
             iters.shift();
@@ -1165,7 +1062,11 @@ class Abi	// per spawn instance for bot
           }
 
           try {
+            iter.state	= 'wait';
+            iter._	= _;
             _		= await _;
+            iter.state	= 'run';
+            iter._	= _;
 
             v		= _.value;
             if (_.done)
@@ -1182,12 +1083,18 @@ class Abi	// per spawn instance for bot
                 v	= void 0;					// no reply
                 continue;
               }
+            if (!isArray(v))
+              {
+                inf.src.tell(toJ(v));
+                v	= void 0;
+                continue;
+              }
 
             // split the command into arguments
             const c	= v.map(_ => isString(_) ? _.split(' ').filter(_ => _!='') : _).flat();
             v		= void 0;					// default no reply
 
-            console.log('DO', iters.length, toJ(c.map(_ => `${_}`)));
+            console.log('DO', iters.length, toJ(c.map(_ => (_ instanceof My) ? `${_}` : _)));
 
             // try to locate a local function here
             const c0	= c[0];
@@ -1262,6 +1169,7 @@ class Abi	// per spawn instance for bot
     }
   *Cstop(c,src)
     {
+      B.pathfinder.stop();
       this._.run.add(() =>
         {
           CON('stop');
@@ -1270,6 +1178,7 @@ class Abi	// per spawn instance for bot
         });
       return this._.late.length;
     }
+  async *Cwait(c)	{ await this.B.waitForTicks((c[0]|0)||1) }
   *Cautostart(c,src)	{ this.autostart(c.join(' ')) }
   *Crun(c,src)		{ this._.run.add(...this.runcmd(c, src)) }
   *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(n, c, src); else return `no ${_}: ${c.join(' ')}` }
@@ -1302,30 +1211,49 @@ class Abi	// per spawn instance for bot
       //console.error('NEAREST', c);
       return new Entity(this.B.nearestEntity(this.matcher(c)));
     }
-  *Centities(c)		// list all entities of a given match (like 'type','hostile')
+  *Centities(c)		// list all entities of a given match (like: {type:'hostile'})
     {
-      const me	= B.entity;
-      const match = this.matcher(c, _ => _ !== me);
+      const me	= this.B.entity;
+      const match = this.matcher(c) // , _ => _.type !== 'player');
 
-      return (function*(B)
-        {
-          for (const _ of Object.values(B.entities))
-            if (match(_))
-              yield new Entity(_);
-        })(this.B);
+      const r = [];
+      for (const [k,v] of Object.entries(this.B.entities))
+        if (match(v))
+          {
+            if (!v) console.error('entities?', k,v);
+            r.push(v);
+          }
+      return r.map(_ => new Entity(_));
+    }
+  *Cchest(c)
+    {
+      const type = c[0];
+      const r = [];
+      for (const [id,v] of Object.entries(this.state.chest))
+        { console.error('chest', {id,v}, type, v===type);
+        if (v === type)
+          {
+            const pos	= p2v(id);
+            const block	= this.B.blockAt(pos);
+            if (v !== isChestyFn(block)(block)) continue;
+            r.push({block,dist:this.B.entity.position.distanceTo(pos)});
+        }
+        }
+      console.error(r);
+      return r.sort((a,b) => a.dist < b.dist).map(_ => new Block(_.block));
     }
   *Csign(c)
     {
       const type = c.shift();
-      const match = ({text,pos}, d) =>
-        {
-          const t = text[3];
-          for (const x of c)
-            if (t.includes(x))
-              return t;
-        }
+      const find = _ => this.find_sign(type, (({text,pos}, d) => { if (text[3]===_) return text[3] }));
+      const signs = !c.length ?  this.find_sign(type) :
+        first(c, _ =>
+          {
+            const t = find(_);
+            if (t.length) return t;
+            return notEmpty(this._.match(_).map(find).flat());
+          });
 
-      const signs = this.find_sign(type, c.length && match);
       // .id	this.state.sign[.id] (id is stringified position)
       // .text	texts (lines) of sign
       // .stat	sign status
@@ -1335,8 +1263,8 @@ class Abi	// per spawn instance for bot
       // .dist	distance to bot
       // .match	return of match() function or true
 
-      if (!signs.length) return;
-      return signs.map(_ => new Sign(_));
+      if (signs?.length)
+        return signs.map(_ => new Sign(_));
     }
   // Get the block at a given position
   // Options are the 2nd argument:
@@ -1361,10 +1289,20 @@ class Abi	// per spawn instance for bot
         case 27: return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
         }
     }
-  async *Copen(c)	{ return new Container(await this.B.openContainer(c[0]._)) }
+//  async *Copenchest(c)	{ return new Container(await this.B.openChest(c[0]._)) }
+//  async *Copenfurnace(c)	{ return new Container(await this.B.openFurnace(c[0]._)) }
+//  async *Copen(c)	{ return new Container(await this.B.openContainer(c[0]._)) }
+  async *Copen(c)	{ return new Container(await this.B.openBlock(c[0]._)) }
+  async *Copene(c)	{ return new Container(await this.B.openEntity(c[0]._)) }
   async *Cclose(c)	{ return await c[0].close() }
-  *Chave(c)		{ return this.B.inventory.count(c[0].type, c[0].meta) }
-  async *Ctake([w,i,n])	{ return await w.take(i, n) }
+  async *Cj(c)		{ return toJ(c) }
+  *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+this.B.inventory.count(i.type, i.meta), 0) }
+  *Citem(c)		{ return c.map(_ => Array.from(this.items(_))).flat() }
+  // take slot
+  // take container item count
+  *Ctake(a)		{ const x = a.shift(); return a.length ? x.take(...a) : this.B.putAway(x) }
+  // slot slot: get Item in slot (or void 0 if none)
+  *Cslot(c)		{ return (this.B.currentWindow || this.B.inventory).slots[c[0]] }
   async *Cput([w,i,n])	{ return await w.put(i, n) }
   async *Cplace([i,p])
     {
@@ -1378,19 +1316,40 @@ class Abi	// per spawn instance for bot
   // Assorted helpers, may vanish
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
+  *items(i, count)
+    {
+      if (i instanceof Item) return yield i;
+      const get = _ => { const i = new this.B.ITEM(_, count|0); const r = new Item(i); return r }
+      if (i|0) return get(i|0);
+      if (!isString(i)) throw `unknown item spec: ${i}`;
+      const have = {};
+      for (const _ of this._.match(i, 'items'))
+        {
+          const id = this.B.mcData.itemsByName[_].id;
+          if (have[id]) continue;
+          have[id] = true;
+          yield get(id);
+        }
+      if (!Object.keys(have).length)
+        throw `unknown item: ${i}`;
+    }
+
   matcher(c, fn)
     {
       const m = [];
       if (fn)
         m.push(fn);
-      for (let neg; c.length; )
+      const sic = f => m.push(f);
+      const not = f => m.push(_ => !f(_));
+      for (let neg = sic; c.length; )
         {
           const x = c.shift();
           // note that x has a NULL prototype, as it is from another context
-          if ('object' === typeof x)		Object.entries(x).forEach(([k,v]) => m.push(neg ? _ => _[k] !== v : _ => _[k] === v));
-          else if (isFunction(x))	m.push(neg ? _ => !x(_) : _ => x(_));
-          else if (isString(x))		m.push(neg ? _ => !_[x] : _ => _[x]);
-          else neg = !x;		// true or false, following must be true or false, default true
+          if (isArray(x))			this._.match(...x).forEach(n => neg(_ => _.name === n));
+          else if ('object' === typeof x)	Object.entries(x).forEach(([k,v]) => neg(_ => _[k] === v));
+          else if (isFunction(x))		neg(x)
+          else if (isString(x))			neg(_ => _[x]);
+          else neg = x ? sic : not;		// true or false, following must be true or false, default true
         }
       return x => m.every(_ => _(x));
     }
@@ -1400,7 +1359,7 @@ class Abi	// per spawn instance for bot
   // with wildcards '*' it creates a list of matching Minecraft blocks and items
   match(..._)
     {
-      _ = _.flat();
+      _ = _.flat().filter(_ => _ !== void 0);	// .filter() is a hack to filter out void arguments
       if (!_.length) return () => true;
       const m = OB();
       while (_.length)
@@ -1409,7 +1368,7 @@ class Abi	// per spawn instance for bot
           if (a.includes('*'))
             {
               this._.match(a).forEach(b => _.push(b));
-              constinue;
+              continue;
             }
           m[a] = true;
           if (!a.includes(':'))
@@ -1478,7 +1437,7 @@ class Abi	// per spawn instance for bot
         {
           if (this._.search('IGN', i.name,        'keep')) continue;
           if (this._.search('IGN', i.displayName, 'keep')) continue;
-          console.error(i);
+//          CON(i);
           if (!test(i.name) && !test(i.displayName)) continue;
           yield `dropping ${i.count} ${i.name} ${i.displayName}`;
           await this.B.tossStack(i);
@@ -1525,7 +1484,7 @@ class Abi	// per spawn instance for bot
               if (!s) continue;		// deleted
               if (!match(s[2])) continue;
 
-              const x = self.signs[k];
+              const x = self.rem.sign[k];
 
               const v = p2v(k);
               const b = this.B.blockAt(v);
@@ -1754,7 +1713,7 @@ async function StartWeb(_)
     { host
     , port
     , viewDistance: 20
-      , firstPerson:true	// warning, this is permanent!
+    , firstPerson:true	// warning, this is permanent!
     })
     .then(_ => `WEB at ${_}`, e => { console.error(e); return `WEB failed: ${e}` })
     .then(chat);
@@ -1823,13 +1782,14 @@ class Bot	// global instance for bot
   // wildcard matching of items etc. the bot knows of
   match(m, ...what)
     {
-      if (!this.mcData)	return [];
-      if (!what.length)	what	= ['item','block'];
+      const mcData = this.B.mcData;
+      if (!mcData)	return [];
+      if (!what.length)	what	= ['items','blocks'];
       return this.#match[`${toJ(m)} ${toJ(what)}`] ??= (pattern =>
         {
           const o = OB();
           for (const _ of what)
-            for (const a in Object.keys(mcData[`${_}sByName`]))
+            for (const a of Object.keys(mcData[`${_}ByName`]))
               if (pattern(a)) o[a] = true;
           return Object.freeze(Object.keys(o).sort());
         })(patternMatch(m));
@@ -1880,6 +1840,7 @@ class Bot	// global instance for bot
           .then(_ => console.log(`${_.length} asynchronous plugin(s)`));
 
           B.mcData	= require('minecraft-data')(B.version);
+          B.ITEM	= require('prismarine-item')(B.version);
 
           StartWeb(this);
           DD('firstspawn', 'end');
@@ -2002,8 +1963,8 @@ class Bot	// global instance for bot
               const j = toJ({text:x});
 //              this.data([], 'modify block', ...p.split(','), `${n?'back':'front'}_text.messages[`, (n || 4)-1, '] set value', toJ(j));
               this.Chat(`/data modify block ${p.split(',').join(' ')} ${n?'back':'front'}_text.messages[${(n || 4)-1}] set value ${toJ(j)}`);
-              if (!isArray(this.signs[p])) this.signs[p] = [];
-              this.signs[p][n] = x;
+              if (!isArray(this.rem.sign[p])) this.rem.sign[p] = [];
+              this.rem.sign[p][n] = x;
 //              console.log(p, b.signText);	Sign text is not updated yet!
               return this;
             }
@@ -2039,14 +2000,15 @@ class Bot	// global instance for bot
   M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ 0 && console.log('HSND', i,c,p,v,s) }
   M_time()			{ D('time') }				// each second
   M_physicsTick()		{ D('tick') }				// each tick (20 per second)
-  M_blockPlaced(orig, now)	{                           this.IGN(orig) & this.IGN(now) & BITS.PLACE  || console.log('P', orig.name, now.name) }
+  M_blockPlaced(orig, now)	{ console.log('P', orig.name, now.name) }
   M_blockUpdate(orig, now)
     {
-      if (isSign(now)) this.abi.Sign(now);
+      if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
+      if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
       if (orig.name !== now.name) console.log('U', orig.name, now.name);
     }
-//  M_entityGone(x)		{ this.IGN(x) & BITS.GONE || console.log('G', this.ENTITY(x)) }
-//  M_entityDead(x)		{ this.IGN(x) & BITS.DEAD || console.log('D', this.ENTITY(x)) }
+//  M_entityGone(x)		{ console.log('G', this.ENTITY(x)) }
+//  M_entityDead(x)		{ console.log('D', this.ENTITY(x)) }
 
   ////////////////////////////////////////////////////
   // Signals which are specially processed
@@ -2060,8 +2022,6 @@ class Bot	// global instance for bot
 //      if (this.run.active) return;
 //      const a = this.search_e(x, 'auto:attack') ?? this.search('auto:attack');
 //      if (!a) return;
-//      console.error('HERE');
-//      console.error('HERE');
 //      console.error('HERE');
 //      console.error('HERE');
 //      this.runner(this.src(), () => this.abi._attack(Object.keys(a)));
@@ -2111,6 +2071,7 @@ class Bot	// global instance for bot
 
       // Init State
       if (!state.sign)	state.sign	= {};
+      if (!state.chest)	state.chest	= {};
       if (!state.set)	state.set	= {};
 
       await this._save();
@@ -2156,12 +2117,12 @@ const abi	= this.abi	= new Abi(this);
                   if (!n)
                     {
                       this.late.next();
-                      CON('LATE', _[1]);
+//                      CON('LATE', _[1]);
                       this.abi.Crun(_[1], _[2]).next();
                     }
                   else if (n !== (_[0]=true))
                     {
-                      CON('LATE:', n, _[1]);
+//                      CON('LATE:', n, _[1]);
                       setTimeout(() => _[0]=0, n);
                     }
                 }
@@ -2184,7 +2145,8 @@ const abi	= this.abi	= new Abi(this);
             });
 //          console.warn('RUN', x);
 
-          X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
+          if (this.state.set?.conf?.verbose)
+            X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
           await Promise.any(a);
           p	= 162 - p;
         } while (this.abi === abi);
