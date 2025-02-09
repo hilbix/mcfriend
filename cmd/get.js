@@ -20,7 +20,7 @@ if (!Object.keys(l).length) return [`act please state what to get`];
 
 for (const [k,v] of l)
   {
-    const signs = [].concat(yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _.valid);
+    const signs = [].concat(yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
         yield ['act no sign found for', _];
@@ -36,7 +36,8 @@ for (const [k,v] of l)
         if (d.length !== 1) return ['act invalid sign', s, d.length];
 
         // move to the chest
-        yield yield ['Move', s];
+        //yield yield ['Move', s];
+        yield yield ['TP', s];
 
         // open the chest
         const c = d[0];
@@ -60,10 +61,14 @@ for (const [k,v] of l)
 
         // check that I have enough from this item
         const h = yield ['have', v[0]];
-        if ((h|0) > n)
-          return ['act got', h, v[0]];
+        if ((h|0) >= n)
+          {
+            yield ['act got', h, v[0]];
+            break;
+          }
       }
   }
+
 
 //console.error('GET', signs);
 
