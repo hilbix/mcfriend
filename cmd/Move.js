@@ -1,6 +1,11 @@
 // x,y,z delta: move to location
 // TODO: implement a working pathfinder (mineflayer-pathfinder has issues)
 
+return ['TP', _];
+
+
+// Er hängt im arrive anscheinend (so genau bin ich mir da nicht sicher)
+
 const act = (...a) => _[2] === null ? void 0 : a;
 
 const d = yield ['dist', _];
