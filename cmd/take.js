@@ -1,55 +1,71 @@
 //	fill chests marked 'put' with inventory items
 
-function* put(item, where)
-{
-  const c = yield ['CHEST', 'put', where];
-  if (!c?.length) return;
+this.track ??= {};
 
-  yield ['act',c,c.id];
-
-  yield yield ['Move', c, 1];
-  const r = yield ['open', c];
-
-  const h = yield ['have', item];
-  try {
-    yield ['put', r, item, h];
-  } catch (e) {
-  }
-  yield ['close', r];
-  return true;
-}
-
+yield ['CACHE clear'];
 yield ['PUT'];
 
+//const a = yield ['chest', 'D'];
 const a = yield ['CHEST', 'take'];
-if (!a?.length) return yield 'nothing to take?';
+if (!a?.length) return yield 'no signs with "take"?';
 
+/*
+yield 'TAKE START';
 for (const c of a)
   {
-    yield yield ['Move', c, 1];
-    const r = yield ['open', c];
-    let ok = 1;
-    for (const i of r.items())
-      {
-        if (!i.id) continue;
-// solved with:
-//	/execute as @a run attribute @s minecraft:generic.luck base set 666
-//	/execute as @a if     data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"}]
-//	/execute as @a unless data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"},"=",{"entity":"@s","nbt":"Attributes[{Name:'minecraft:generic.luck'}].Base"}]
-//        if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
-        try {
-          yield yield ['take', r, i, i.count];
-        } catch (e) {
-          yield yield ['close', r];
-          yield yield ['act ERROR', e];
-          yield yield ['PUT'];
-          ok = 0;
-          break;
+    yield yield ['TP', c];
+    try {
+    const x = yield ['open', c];
+    const i = x.items();
+    console.log(x, i);
+    yield yield ['close', x];
+    } catch (e) {
+      yield ['act error:', e];
+    }
+  }
+yield 'TAKE END';
+
+return;
+*/
+
+for (const [c,s] of a)
+  {
+    const t = c.container;
+    if (!t) continue;
+
+//    yield yield ['Move', c, 1];
+    yield yield ['TP', s];
+    const r = yield ['OPEN', c];
+    if (!r) continue;
+
+    const i = r.items();
+    let ok	= 'PUT';
+    try {
+      if (t === true)
+        for (const e of i)
+          {
+            if (!e.id) continue;
+            // /execute as @a run attribute @s minecraft:generic.luck base set 666
+            // /execute as @a if     data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"}]
+            // /execute as @a unless data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"},"=",{"entity":"@s","nbt":"Attributes[{Name:'minecraft:generic.luck'}].Base"}]
+            // make following hack no more needed:
+            //if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
+            yield yield ['take', r, e, e.count];
+          }
+      else
+        {
+//          ok	= 'drop';
+          if (yield ['slot', t])	// filled slot?
+            yield yield ['take', t];	// take out
         }
-      }
-    if (ok)
-      yield ['close', r];
+    } catch (e) {
+      console.error('TAKE', e);
+      yield yield ['act ERROR', e];
+    }
+    yield yield ['wait', 10];
+    yield yield ['OPEN'];	// close r
+    yield yield [ok];
   }
 
-yield ['act TAKE done'];
+yield yield ['act TAKE done'];
 
