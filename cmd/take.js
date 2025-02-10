@@ -9,25 +9,6 @@ yield ['PUT'];
 const a = yield ['CHEST', 'take'];
 if (!a?.length) return yield 'no signs with "take"?';
 
-/*
-yield 'TAKE START';
-for (const c of a)
-  {
-    yield yield ['TP', c];
-    try {
-    const x = yield ['open', c];
-    const i = x.items();
-    console.log(x, i);
-    yield yield ['close', x];
-    } catch (e) {
-      yield ['act error:', e];
-    }
-  }
-yield 'TAKE END';
-
-return;
-*/
-
 for (const [c,s] of a)
   {
     const t = c.container;
@@ -51,6 +32,7 @@ for (const [c,s] of a)
             // make following hack no more needed:
             //if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
             yield yield ['take', r, e, e.count];
+            // For unknown reason this crashes outside this sandbox
           }
       else
         {
@@ -66,6 +48,9 @@ for (const [c,s] of a)
     yield yield ['OPEN'];	// close r
     yield yield [ok];
   }
+
+const t = yield ['set auto:take:again'];
+if (t) yield ['in', t, 'take'];
 
 yield yield ['act TAKE done'];
 
