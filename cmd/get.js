@@ -41,7 +41,7 @@ for (const [k,v] of l)
 
         // open the chest
         const c = d[0];
-        const r = yield ['open', c];
+        const r = yield ['OPEN', c];
 
         // locate the needed item
         const v = r.items().filter(_ => _.id === k);
@@ -57,7 +57,7 @@ for (const [k,v] of l)
           yield ['take', r, v[0], n];
         } catch (e) {
         }
-        yield ['close', r];
+        yield ['OPEN'];
 
         // check that I have enough from this item
         const h = yield ['have', v[0]];
