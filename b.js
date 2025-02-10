@@ -709,9 +709,19 @@ class Container extends My
   *locate()		{ return this._pos ??= new Pos(this._.position) }
   out()			{ const x = CONTAINER[this._.name]; return this.items().filter((_,i) => x === true || x.includes(i)) }
   items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
-  take(i,n)		{ return this._.withdraw(i.type, i.meta, n||null) }
   put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
   close()		{ return this._.close() }
+  take(i,n)
+    {
+      try {
+//        console.warn('withdraw', i, n);
+        const r = this._.withdraw(i.type, i.meta, n||null)
+//        console.warn('withdraw', i, n, r);
+        return r;
+      } catch (e) {
+        console.error('WITHDRAW', e);
+      }
+    }
  }
 
 class Survey
@@ -760,6 +770,7 @@ class Abi	// per spawn instance for bot
       //this.stat		= OB();
       //this.digs		= OB();
       this.want		= OB();
+      this.listcache	= OB();
 
       this.autostart('init');
     }
@@ -794,18 +805,21 @@ class Abi	// per spawn instance for bot
       }
     }
 
+  // search entry in list
+  findList(val)		{ return this.listcache[val] ??= Object.keys(this.state.set.list).filter(_ => this.inList(_,val)) }
   // list:	array or value
   // val:	value (key) to search for in list
-  inList(list, val)
+  inList(list, val)	{ for (const _ of this.theList(list)) if (_ === val) return true }
+  // expand the list
+  *theList(list)
     {
-      const h	= new Set();
       const l	= mkArr(list);
-      h.add(val);		// do not descend into self
+      const h	= new Set();
       do
         {
-          const n = l.shift();		// get first element
+          const n	= l.shift();	// get first element
           if (n === void 0) continue;	// void elements do not count
-          if (n === val) return true;	// FOUND!
+          yield n;			// return element
           if (h.has(n)) continue;	// already visited, so ignore
           h.add(n);			// mark visited
           const x	= this.state.set?.list[n];
@@ -1178,6 +1192,12 @@ class Abi	// per spawn instance for bot
         });
       return this._.late.length;
     }
+  *Ctp(c)
+    {
+      const p = (yield* c[0].locate())._;
+//      this.B.entity.position = p;		// funktioniert nicht!
+      return this.B.chat(`/tp ${p.x|0} ${p.y|0} ${p.z|0}`)
+    }
   async *Cwait(c)	{ await this.B.waitForTicks((c[0]|0)||1) }
   *Cautostart(c,src)	{ this.autostart(c.join(' ')) }
   *Crun(c,src)		{ this._.run.add(...this.runcmd(c, src)) }
@@ -1190,7 +1210,6 @@ class Abi	// per spawn instance for bot
   *Cplayer(c,src)	{ return new Player(c[0] ?? src._) }
   *Cpos(c,src)		{ return new Pos(...(c.length ? c : [this.B.entity.position])) }
   async *Clocate(c,src)	{ return yield* c[0].locate(this) }
-  *Ctp(c)		{ const p = (yield* c[0].locate())._; return this.B.chat(`/tp ${p.x|0} ${p.y|0} ${p.z|0}`) }
   *Cdist(c,src)		{ return this.B.entity.position.distanceTo((yield* c[0].locate())._) }
   *Cbot()		{ return new Player(this._.botname) }
   *Chand()		{ return new Item(this.B.itemInHand) }
@@ -1246,12 +1265,12 @@ class Abi	// per spawn instance for bot
     {
       const type = c.shift();
       const find = _ => this.find_sign(type, (({text,pos}, d) => { if (text[3]===_) return text[3] }));
-      const signs = !c.length ?  this.find_sign(type) :
+      const findMatch = _ => { const t = find(_); return t.length ? t : notEmpty(this._.match(_).map(find).flat()) };
+      const signs = !c.length ? this.find_sign(type) :
         first(c, _ =>
           {
-            const t = find(_);
-            if (t.length) return t;
-            return notEmpty(this._.match(_).map(find).flat());
+            const t = findMatch(_);
+            return t ?? notEmpty(this.findList(_).map(findMatch).flat());
           });
 
       // .id	this.state.sign[.id] (id is stringified position)
@@ -1296,6 +1315,7 @@ class Abi	// per spawn instance for bot
   async *Copene(c)	{ return new Container(await this.B.openEntity(c[0]._)) }
   async *Cclose(c)	{ return await c[0].close() }
   async *Cj(c)		{ return toJ(c) }
+  // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
   *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+this.B.inventory.count(i.type, i.meta), 0) }
   *Citem(c)		{ return c.map(_ => Array.from(this.items(_))).flat() }
   // take slot
@@ -1320,7 +1340,7 @@ class Abi	// per spawn instance for bot
     {
       if (i instanceof Item) return yield i;
       const get = _ => { const i = new this.B.ITEM(_, count|0); const r = new Item(i); return r }
-      if (i|0) return get(i|0);
+      if (i|0) return yield get(i|0);
       if (!isString(i)) throw `unknown item spec: ${i}`;
       const have = {};
       for (const _ of this._.match(i, 'items'))
@@ -1387,6 +1407,7 @@ class Abi	// per spawn instance for bot
   // set list[:sublist] [+-=]value
   *Cset(c)
     {
+      this.listcache = OB();	// clear cache
       let d	= this.state;
       let m	= 'set';
       const p	= [];
@@ -1643,6 +1664,14 @@ class Abi	// per spawn instance for bot
         console.error(e);
       }
     }
+  *Llist(c)
+    {
+      if (c.length)
+        for (const _ of c)
+          yield toJ(Array.from(this.theList(_)));
+      else
+        yield toJ(Object.keys(this.state.set.list));
+    }
   *Lset(c)
     {
       function* dump(_,n)
@@ -1699,7 +1728,7 @@ class Abi	// per spawn instance for bot
 async function StartWeb(_)
 {
   const chat = _.chat;
-  const state = (await _.state).set?.conf?.web;
+  const state = (await _.state).set.conf?.web;
   if (!state || !state.enabled) return chat('no WEB: conf:web not enabled');
 
   const key	= _ => _ ? Object.keys(_)[0] : void 0;
@@ -1724,13 +1753,14 @@ class Bot	// global instance for bot
   // XXX TODO XXX GET RID OF THESE:
   #match;
 
+  log(..._)	{ if (!this.state.set?.conf?.quiet) console.log(..._) }
   IGN(_)	{ return false; this.state.IGNORE[_.name] | this.state.IGNORE[_.displayName] }
   get chat()	{ return (...a) => this.Chat(...a) }
   Chat(...s)
     {
 //      DD('chat', s);
       const _ = s.map(_ => `${_}`).join(' ');
-      console.log('SAY:', _);
+      this.log('SAY:', _);
       this.say.add(_);
     }
   ENTITY(_)
@@ -1811,9 +1841,9 @@ class Bot	// global instance for bot
       const B = this.B = mineflayer.createBot({ host, port, username, hideErrors:false });
 
       // DEBUG
-      Wrap(B, 'emit',  LogOnce('emit'));		// DEBUG to see what emit() are available
+      Wrap(B, 'emit', LogOnce('emit'));		// DEBUG to see what emit() are available
       //B.settings.enableServerListing = false;		// does not work
-      DEBUG.split(' ').forEach(_ => B.on(_, (...a) => console.log('D', _, ...(a.map(_ => DUMP(_, 2))))));
+      DEBUG.split(' ').forEach(_ => B.on(_, (...a) => this.log('D', _, ...(a.map(_ => DUMP(_, 2))))));
 
       //CURRENT.chat	= (..._) => this.Chat(..._);
 
@@ -1965,7 +1995,7 @@ class Bot	// global instance for bot
               this.Chat(`/data modify block ${p.split(',').join(' ')} ${n?'back':'front'}_text.messages[${(n || 4)-1}] set value ${toJ(j)}`);
               if (!isArray(this.rem.sign[p])) this.rem.sign[p] = [];
               this.rem.sign[p][n] = x;
-//              console.log(p, b.signText);	Sign text is not updated yet!
+//              this.log(p, b.signText);	Sign text is not updated yet!
               return this;
             }
         }
@@ -1977,7 +2007,7 @@ class Bot	// global instance for bot
 /* No more needed:
   M_startedAttacking() { this._attack = 1 }
   M_stoppedAttacking() { this._attack = 0 }
-  M_attackedTarget()	{ console.log('attack', _) }
+  M_attackedTarget()	{ this.log('attack', _) }
 */
 
   // XXX TODO XXX Get rid of pathfinder in future, perhaps
@@ -1996,19 +2026,19 @@ class Bot	// global instance for bot
     }
 
   // XXX TODO XXX are these still needed?
-  M_soundEffectHeard(n,p,v,s)	{ console.log('ESND', n,p,v,s) }
-  M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ 0 && console.log('HSND', i,c,p,v,s) }
+  M_soundEffectHeard(n,p,v,s)	{ this.log('ESND', n,p,v,s) }
+  M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ this.log('HSND', i,c,p,v,s) }
   M_time()			{ D('time') }				// each second
   M_physicsTick()		{ D('tick') }				// each tick (20 per second)
-  M_blockPlaced(orig, now)	{ console.log('P', orig.name, now.name) }
+  M_blockPlaced(orig, now)	{ this.log('P', orig.name, now.name) }
   M_blockUpdate(orig, now)
     {
       if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
       if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
-      if (orig.name !== now.name) console.log('U', orig.name, now.name);
+      if (orig.name !== now.name) this.log('U', orig.name, now.name);
     }
-//  M_entityGone(x)		{ console.log('G', this.ENTITY(x)) }
-//  M_entityDead(x)		{ console.log('D', this.ENTITY(x)) }
+//  M_entityGone(x)		{ this.log('G', this.ENTITY(x)) }
+    M_entityDead(x)		{ this.log('D', this.ENTITY(x)) }
 
   ////////////////////////////////////////////////////
   // Signals which are specially processed
@@ -2029,7 +2059,7 @@ class Bot	// global instance for bot
   // XXX TODO XXX make this generic to subscribe to certain messages with a timeout
   M_messagestr(str, who, data)
     {
-      console.log('CHAT:', toJ(who), str);
+      this.log('CHAT:', toJ(who), str);
       data?.json && this.abi.runwant(data.json.translate, () => MJ(data))
     }
 
@@ -2045,8 +2075,9 @@ class Bot	// global instance for bot
 
       if (c[0][0] === '!')
         {
+          src.tell(`A ${this.late.length} ${toJ(this.late.peek())}`);
           for (const _ of Survey.dump())
-            src.tell(`${_}`);
+            src.tell(`B ${_}`);
           return;
         }
 
@@ -2145,7 +2176,7 @@ const abi	= this.abi	= new Abi(this);
             });
 //          console.warn('RUN', x);
 
-          if (this.state.set?.conf?.verbose)
+          if (this.state.set.conf?.verbose)
             X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
           await Promise.any(a);
           p	= 162 - p;
