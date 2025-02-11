@@ -1264,8 +1264,8 @@ class Abi	// per spawn instance for bot
   *Csign(c)
     {
       const type = c.shift();
-      const find = _ => this.find_sign(type, (({text,pos}, d) => { if (text[3]===_) return text[3] }));
-      const findMatch = _ => { const t = find(_); return t.length ? t : notEmpty(this._.match(_).map(find).flat()) };
+      const find = _ => this.find_sign(type, (({text,pos}, d) => { if (patternMatch(text[3])(_)) return _ }));
+      const findMatch =_ => { const t = find(_); return t.length ? t : notEmpty(this._.match(_).map(find).flat()) };
       const signs = !c.length ? this.find_sign(type) :
         first(c, _ =>
           {
