@@ -3,7 +3,7 @@
 // [item=count...] like 'get item=count', but if only fetches until count is reached
 
 if (!_.length)
-  _	= '*_sword=1 *_axe=1 torch=64'.split(' ');
+  _	= '*_sword *_axe torch=64'.split(' ');
 
 for (const x of _)
   {
@@ -14,7 +14,8 @@ for (const x of _)
       {
         const h = yield ['have', t];
         if (h >= n) break;
-        yield yield [`get ${x.id}=${n-h}`]
+	const d = n-h + n/2;
+        yield yield [`get ${x.id}=${d|0}`]
       }
   }
 
