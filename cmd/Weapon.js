@@ -1,4 +1,4 @@
 #
 
-return yield ['get netherite_sword']
+return ['get netherite_sword']
 
