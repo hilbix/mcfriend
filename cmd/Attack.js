@@ -8,7 +8,7 @@ this.backoff ??= 0;
 function* hostile(_) { const e = yield ['nearest', _]; if (e.id) return e }
 function* find(...a) { for (const name of a) { const e = yield* hostile(name === '.' ? [] : {name}); if (e !== void 0) return e } }
 
-const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','slime']));
+const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','slime','zombie','skeleton']));
 
 if (!e)
   {
