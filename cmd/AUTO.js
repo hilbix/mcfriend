@@ -15,6 +15,7 @@ yield yield ['drop'];
 // Then register the list and trigger autoattack in case such a creature shows up.
 yield ['in auto:attack:enabled attack'];
 yield ['in auto:take:enabled take'];
+yield ['in auto:tree:enabled tree'];
 
 return 'AUTO ended';
 
