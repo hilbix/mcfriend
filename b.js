@@ -710,7 +710,20 @@ class Abi	// per spawn instance for bot
   findList(val)		{ return this.listcache[val] ??= Object.keys(this.state.set.list).filter(_ => this.inList(_,val)) }
   // list:	array or value
   // val:	value (key) to search for in list
-  inList(list, val)	{ for (const _ of this.theList(list)) if (_ === val) return true }
+  inList(list, val)
+    {
+      const neg=`!${val}`;			// allow !item to inhibit list for this item, takes precedence
+      let ok = false;
+      for (const _ of this.theList(list))
+        {
+          console.error('inList', _, val);
+          if (_ === neg)
+            return false;
+          if (_ === val)
+            ok	= true;
+        }
+      return ok;
+    }
   // expand the list
   *theList(list)
     {
@@ -721,6 +734,8 @@ class Abi	// per spawn instance for bot
           const n	= l.shift();	// get first element
           if (n === void 0) continue;	// void elements do not count
           yield n;			// return element
+          for (const _ of this._.match(n))
+            yield _;
           if (h.has(n)) continue;	// already visited, so ignore
           h.add(n);			// mark visited
           const x	= this.state.set?.list?.[n];
@@ -1013,7 +1028,7 @@ class Abi	// per spawn instance for bot
       this.actcache.push(t);
       src.tell(t);
     }
-  show(src)
+  running(src)
     {
       src.tell(`#A ${this._.late.length}`);
       for (const x of this._.late.iter())
@@ -1308,7 +1323,7 @@ class Abi	// per spawn instance for bot
           return x.join(' ');
         }
     }
-  *Ccopy(c, src)
+  async *Ccopy(c, src)
     {
       const dest	= c.shift();
       const tell	= !dest || dest === ':' ? src.tell : _ => this.B.whisper(dest, _);
@@ -1320,7 +1335,14 @@ class Abi	// per spawn instance for bot
           const r = this._set(a);
           r.next();
           for (const [x,...y] of r)
-            tell(`set ${a}:${x} +${y.join(' +')}`);
+            {
+              console.log('copy', x,y);
+              await tell(`set ${a}:${x} +${y.join(' +')}`);
+              await tell(`set ${a}:${x} +${y.join(' +')}`);
+              await tell(`set ${a}:${x} +${y.join(' +')}`);
+              await tell(`set ${a}:${x} +${y.join(' +')}`);
+              await tell(`set ${a}:${x} +${y.join(' +')}`);
+            }
         }
     }
 
@@ -1345,9 +1367,7 @@ class Abi	// per spawn instance for bot
             }
         }
 
-      this.listcache = OB();	// clear cache
-
-      const v	= d[m] ?? {};
+      let v	= d[m] ?? {};
       const o	= toJ(v);
       while (c.length)
         {
@@ -1361,6 +1381,9 @@ class Abi	// per spawn instance for bot
         }
       if (toJ(v) === o)
         return yield `# ${p} unchanged`;
+
+      this.listcache = OB();	// clear cache
+
       d[m]		= v;
       this.state.set	= this.state.set;	// save state change
       return yield `# ${p} updated`;
@@ -1953,7 +1976,7 @@ class Bot	// global instance for bot
       src = this.src(src);
 
       if (c[0][0] === '!')
-        return this.abi.show(src);
+        return this.abi.running(src);
 
       c[0] = c[0].toLowerCase();
       if (/[^a-z]/.test(c[0])) return src.tell(`#invalid command: ${c[0]}`);
@@ -2025,12 +2048,13 @@ const abi	= this.abi	= new Abi(this);
                   if (!n)
                     {
                       this.late.next();
-//                      CON('LATE', _[1]);
-                      this.abi.Crun(_[1], _[2]).next();
+                      CON('LATE', _[1]);
+                      this.run.active = true;	// HACK
+                      this.run.add(...this.abi.runcmd(_[1], _[2]));
                     }
                   else if (n !== (_[0]=true))
                     {
-//                      CON('LATE:', n, _[1]);
+                      CON('LATE:', n, _[1]);
                       setTimeout(() => _[0]=0, n);
                     }
                 }
