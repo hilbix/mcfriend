@@ -2,5 +2,5 @@
 
 this.pings ??= 0;
 
-return [`act ${++pings}. pong`, _];
+return [`act #${++pings}. pong`, _];
 
