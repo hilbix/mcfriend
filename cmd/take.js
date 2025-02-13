@@ -14,8 +14,7 @@ for (const [c,s] of a)
     const t = c.container;
     if (!t) continue;
 
-//    yield yield ['Move', c, 1];
-    yield yield ['TP', s];
+    yield yield ['Move', s, 1];
     const r = yield ['OPEN', c];
     if (!r) continue;
 
@@ -31,26 +30,26 @@ for (const [c,s] of a)
             // /execute as @a unless data entity @s Attributes[{Name:"minecraft:generic.luck",Base:666d}] run tellraw @p [{"selector":"@s"},"=",{"entity":"@s","nbt":"Attributes[{Name:'minecraft:generic.luck'}].Base"}]
             // make following hack no more needed:
             //if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
-            yield yield ['take', r, e, e.count];
-            // For unknown reason this crashes outside this sandbox
+            yield yield ['take', r, e, e.count];	// For unknown reason this crashes outside this sandbox
+            yield ['AGAIN take 0'];	// reset backoff
           }
       else
         {
 //          ok	= 'drop';
           if (yield ['slot', t])	// filled slot?
-            yield yield ['take', t];	// take out
+            {
+              yield yield ['take', t];	// take out
+              yield ['AGAIN take', 0];	// reset backoff
+            }
         }
     } catch (e) {
       console.error('TAKE', e);
       yield yield ['act ERROR', e];
     }
+    yield yield ['OPEN'];			// close r
     yield yield ['wait', 10];
-    yield yield ['OPEN'];	// close r
     yield yield [ok];
   }
 
-const t = yield ['set auto:take:again'];
-if (t) yield ['in', t, 'take'];
-
-yield yield ['act TAKE done'];
+return ['act TAKE done', yield ['AGAIN take']];
 
