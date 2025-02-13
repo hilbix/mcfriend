@@ -28,11 +28,12 @@ if (!(yield ['hand']).weapon)
     const w = Array.from(yield ['invs']).filter(_ => _.weapon).sort((a,b) => a.dur < b.dur);
     if (!w.length)
       {
-        yield 'I have no weapon';
         if (++wait>5)
           return 'failed to fetch weapon';
         yield yield ['Weapon', 'sword'];
-        return ['Attack', _]
+        yield ['in 10000 attack']
+        yield 'I have no weapon';
+        return 'no weapon';
       }
     yield yield ['equip hand', w[0]];
   }
