@@ -28,6 +28,6 @@ if (d<t)
   d	= t;
 backoff[w] = d+b;
 
-yield ['in', w, d];
+yield ['in', d, w];
 return d
 
