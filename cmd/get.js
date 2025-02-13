@@ -47,8 +47,8 @@ for (const [k,v] of l)
         const v = r.items().filter(_ => _.id === k);
         if (!v.length) 
           {
-            yield ['act nothing in', c]
-            yield ['close', r];
+            yield ['act', k, 'not in', c]
+            yield ['OPEN'];
             continue;
           }
 
