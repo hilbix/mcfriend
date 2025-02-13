@@ -22,7 +22,7 @@ for (const a of b)
 
     yield ['equip', 'hand', w[0]];
     try {
-      yield ['place', w[0], a];
+      yield ['place', a];
     } catch (e) {
       return 'placing torch failed';
     }
