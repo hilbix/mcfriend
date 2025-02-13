@@ -3,10 +3,9 @@
 
 this.last ??= void 0;
 this.wait ??= 0;
-this.backoff ??= 0;
 
-function* hostile(_) { const e = yield ['nearest', _]; if (e.id) return e }
-function* find(...a) { for (const name of a) { const e = yield* hostile(name === '.' ? [] : {name}); if (e !== void 0) return e } }
+function* nearest(_) { const e = yield ['nearest', _]; if (e.id) return e }
+function* find(...a) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}); if (e !== void 0) return e } }
 
 const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','slime','zombie','skeleton']));
 
@@ -16,19 +15,13 @@ if (!e)
     if (_.length)
       return ['act no enemy found', _];
 
-    const t = yield ['set auto:attack:again'];
-    const w = (t|0)+backoff;
-    if (t !== '')
-      {
-        yield yield ['in', w, 'attack'];
-        backoff += (yield ['set auto:attack:backoff'])|0;
-      }
-
+    const w = yield ['AGAIN attack'];
     yield yield ['home'];
     return ['act no enemy found', w/1000, _];
   }
-if (!e.hostile) return ['act WTF? not hostile', e.id, e];
-backoff = 0;
+//if (!e.hostile) return ['act WTF? not hostile', e.id, e];
+
+yield ['AGAIN attack 0'];	// reset waiting backoff
 
 if (!(yield ['hand']).weapon)
   {
@@ -41,7 +34,7 @@ if (!(yield ['hand']).weapon)
         yield yield ['Weapon', 'sword'];
         return ['Attack', _]
       }
-    yield yield ['equip', 'hand', w[0]];
+    yield yield ['equip hand', w[0]];
   }
 wait = 0;
 
