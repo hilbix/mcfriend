@@ -6,6 +6,7 @@ await sleep(1);
 
 yield ['act AUTOSTART', _];
 
+yield yield ['stop'];
 yield yield ['home'];
 yield yield ['drop'];
 
