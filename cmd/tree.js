@@ -101,6 +101,6 @@ try {
   yield [`act tree fail: ${e}`];
 }
 
-yield yield ['in auto:tree:wait tree'];
+yield ['AGAIN tree'];
 return ['PUT'];
 
