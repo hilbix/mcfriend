@@ -2,7 +2,7 @@
 
 for (;;)
   {
-    yield yield ['drop'];
+    yield ['drop'];
     const x = yield ['Attack', _];
     if (x !== void 0) return x;
     yield ['wait'];
