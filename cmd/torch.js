@@ -24,11 +24,11 @@ for (const a of b)
     try {
       yield ['place', a];
     } catch (e) {
-      return 'placing torch failed';
+      return //'placing torch failed';
     }
-    return 'placed torch';
+    return //'placed torch';
   }
 
-return 'no space to place torch';
+//return 'no space to place torch';
 
 
