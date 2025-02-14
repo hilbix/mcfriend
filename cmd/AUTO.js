@@ -10,6 +10,7 @@ yield yield ['stop'];
 yield yield ['home'];
 yield yield ['drop'];
 
+
 // This is wrong.
 //
 // The right thing is a list of creatures to automatically attack with priority.
