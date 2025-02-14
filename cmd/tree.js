@@ -58,7 +58,7 @@ try {
               }
           if (!had) continue;
           yield yield ['in 1000 tree'];
-          return ['act tree plant'];
+          return ['act tree plant', s];
         }
 
       const type	= l[0].id.slice(0,-4);
@@ -82,7 +82,7 @@ try {
       x.sort(num);
       z.sort(num);
 
-      yield ['act tree', x[0], z[0], s];
+      //yield ['act tree', x[0], z[0], s];
 
       yield yield ['PUT'];
       yield yield ['axe'];
@@ -94,7 +94,7 @@ try {
   //    yield yield ['PUT'];
 
       yield yield ['in 1000 tree'];
-      return ['act tree harvest'];
+      return ['act tree harvest', s];
     }
   yield ['act tree ok:', count];
 } catch (e) {
