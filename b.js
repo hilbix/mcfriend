@@ -592,6 +592,42 @@ class Player extends My		// player can be out of sight, so it is initalized by n
     }
   };
 
+const target =
+  { all:	'*'
+  , Hammer:	''
+  , Helm:	'*_helmet'
+  , Hose:	'*_leggings'
+  , Sword:	'*_sword'
+  , SwordAxe:	'*_sword	*_axe'
+  , Crossbow:	'crossbow'
+  , Bow:	'crossbow	bow'
+  , Boots:	'*_boots'
+  , Angel:	'fishing_rod'
+  , Dreizack:	'trident'
+  , Mining:	''
+  , Armor:	''
+  , Container:	'chest hopper dropper dispenser barrel furnace *_box'
+  };
+
+const enchant =
+  { All: 	{ mending:1,		unbreaking:3	}
+  , Hammer:	{ breach:4,		density:5,	wind_burst:3			}
+  , Helm:	{ aqua_affinity:1,	respiration:3	}
+  , Hose:	{ swift_sneak:3 			}
+  , Sword:	{ fire_aspect:2,	knockback:2,	looting:3	}
+  , SwordAxe:	{ bane_of_arthropods:5,	sharpness:5,	smite:5,	sweeping_edge:3		}
+  , Crossbow:	{ multishot:1,		piercing:4,	quick_charge:3			}
+  , Bow:	{ flame:1,		infinity:1,	power:5,	punch:2		}
+  , Boots:	{ feather_falling:4,	frost_walker:2,	depth_strider:3			}
+  , Angel:	{ luck_of_the_sea:3,	lure:3,		soul_speed:3			}
+  , Dreizack:	{ impaling:5,		loyalty:3,	riptide:3,	channeling:1	}
+  , Mining:	{ efficiency:5,		fortune:3,	silk_touch:1			}	// pick shovel axe
+  , Armor:	{ blast_protection:4,	protection:4,	thorns:3,	projectile_protection:4,	fire_protection:4		}
+  , Container:	{ furnace:2 }
+  };
+
+const CONTAINER = { chest:true, hopper:true, dropper:true, dispenser:true, barrel:true, furnace:2};
+
 class Item extends My
   {
   get id()		{ return this._?.name }
@@ -605,7 +641,6 @@ class Item extends My
   get axe()		{ return this._ && this._?.name.endsWith('_axe') }
  };
 
-const CONTAINER = { chest:true, hopper:true, dropper:true, dispenser:true, furnace:2};
 class Block extends My
   {
   get id()		{ return this._?.name }
@@ -716,7 +751,7 @@ class Abi	// per spawn instance for bot
       let ok = false;
       for (const _ of this.theList(list))
         {
-          console.error('inList', _, val);
+//          console.error('inList', _, val);
           if (_ === neg)
             return false;
           if (_ === val)
@@ -1395,18 +1430,21 @@ class Abi	// per spawn instance for bot
   async *Cdrop(c)
     {
       const test = this.match(c);
+      const r = OB();
       for (const i of this.B.inventory.items())
         {
           if (this._.search('item', i.name,        'keep')) continue;
           if (this._.search('item', i.displayName, 'keep')) continue;
 //          CON(i);
           if (!test(i.name) && !test(i.displayName)) continue;
-          yield `#dropping ${i.count} ${i.name} ${i.displayName}`;
+          //yield `#dropping ${i.count} ${i.name} ${i.displayName}`;
           await this.B.tossStack(i);
+          r[i.name] = (r[i.name]|0) + i.count;
         }
+      const x = Object.entries(r).map(([a,b])=>`${a}=${b}`).join(' ');
+      if (x)
+        return `#drop ${x}`;
     }
-
-
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
