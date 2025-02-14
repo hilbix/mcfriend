@@ -1,1 +1,4 @@
-.proxy.js
+//
+
+return ['drop', _];
+
