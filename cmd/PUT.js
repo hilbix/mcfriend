@@ -14,14 +14,14 @@ function* put(item, ...where)
       if (yield ['CACHE get in', c]) continue;
 
       const h = (yield ['have', item]) - (keep[item.id]|0);
-//      yield ['act have', h, item];
+      //yield ['act have', h, item];
       if (h <= 0) return true;
 
       const r = yield ['OPEN', c];
       if (!r) continue;
       try {
         yield yield ['put', r, item, h];
-        yield ['act putted', h, item];
+        //yield ['act putted', h, item];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
