@@ -13,6 +13,8 @@ function* put(item, ...where)
       hadsign |= s.text[3] === item.id;
       if (yield ['CACHE get in', c]) continue;
 
+      yield ['OPEN'];
+
       const h = (yield ['have', item]) - (keep[item.id]|0);
       //yield ['act have', h, item];
       if (h <= 0) return true;
