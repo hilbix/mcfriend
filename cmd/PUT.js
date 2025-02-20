@@ -7,10 +7,10 @@ let hadsign;
 function* put(item, ...where)
 {
   // this is not correct in case the put chest is full we shall fallback to store
-  for (const c of (yield ['CHEST', where]) || [])
+  for (const [c,s] of (yield ['CHEST', where]) || [])
     {
       if (!c) continue;
-      hadsign = true;
+      hadsign |= s.text[3] === item.id;
       if (yield ['CACHE get in', c]) continue;
 
       const h = (yield ['have', item]) - (keep[item.id]|0);
@@ -27,7 +27,7 @@ function* put(item, ...where)
         if (e.message === 'destination full')
           yield yield ['CACHE set in', c];
         else
-          yield ['act OOPS', e.message, c];
+          yield ['act OOPS', e.message, c, s];
       } finally {
         yield ['wait', 5];
       }
@@ -41,22 +41,22 @@ function* valid(i)
   const _	= keep[id];
   if (_ !== void 0)	return;		// ignore already seen
   keep[id]	= 1;
-  const k	= keep[id]	= (yield [`set item:${i.id}:keep`])|0;
-  if (!k)		return true;
+  const k	= keep[id]	??= ((yield [`set item:${i.id}:keep`]) ?? false);
+  if (`${k}` !== `${k|0}`) return k;
   const h	= (yield ['have', i.id])|0;
   return h > k;
 }
 
-const more = [], over = [];
+const much = [], more = [], over = [];
 
 for (const i of yield ['invs'])
   if (yield* valid(i))
     {
       hadsign = false;
-      if ((yield* put(i, 'store', i.id)) || (yield* put(i, 'put', i.id)) || (yield* put(i, 'overflow', i.id)) || (yield* put(i, 'toomuch', i.id)) || (hadsign && (yield* put(i, 'toomuch', 'MISC'))))
+      if ((yield* put(i, 'store', i.id)) || (yield* put(i, 'put', i.id)) || (yield* put(i, 'overflow', i.id)) || (yield* put(i, 'toomuch', i.id)) || (yield* put(i, 'destroy', i.id)))
         yield ['wait', 5];
       else if (hadsign)
-        over.push(i);
+        much.push(i);
       else
         more.push(i);
     }
@@ -65,6 +65,8 @@ yield ['wait', 5];
 
 for (const i of more)
   (yield* put(i, 'put', 'MISC')) || over.push(i);
+for (const i of much)
+  (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
   yield* put(i, 'overflow', 'MISC');
 
