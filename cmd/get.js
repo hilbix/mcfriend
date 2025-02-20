@@ -2,12 +2,12 @@
 // item..	get something out of a storage box
 //		item=5 takes 5 such items, default: 1
 
-const i = Array.from(yield ['invs']);
+//const i = Array.from(yield ['invs']);
 
 const l = _.length
   ? _.map(_ => _.split('=',2))		// arg: item=n
   : Object
-    .entries({} || (yield ['get list get']) || {})
+    .entries({} || (yield ['set list get']) || {})
     .filter(([k,v]) =>
       {
         const n = (v|0)||1;
@@ -20,7 +20,7 @@ if (!Object.keys(l).length) return [`act please state what to get`];
 
 for (const [k,v] of l)
   {
-    const signs = [].concat(yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _ && _.valid);
+    const signs = [].concat(yield ['sign', 'empty', k], yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
         yield ['act no sign found for', _];
@@ -44,7 +44,7 @@ for (const [k,v] of l)
         const r = yield ['OPEN', c];
 
         // locate the needed item
-        const v = r.items().filter(_ => _.id === k);
+        const v = r.items().filter(yield* itemFilter(k));
         if (!v.length) 
           {
             yield ['act', k, 'not in', c]

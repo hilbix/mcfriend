@@ -1,0 +1,53 @@
+// seed area
+// Needs two "seed"-signs, 3rd line is what to plant
+
+yield ['act SEED start'];
+
+try {
+  for (const [a,b] of yield ['AREA seed'])
+    {
+      const av = a.vec(), bv = b.vec();
+      if (av.y !== bv.y)
+        {
+          yield ['act seed AREA must be flat:', area];
+          continue;
+        }
+
+      const i = a.text[3];
+      const n = ((Math.abs(av.x - bv.x) + 1) * (Math.abs(av.z - bv.z) + 1))|0;
+
+//      yield yield ['PUT'];
+      yield yield ['supply', `${i}=${n+1}`];
+
+      const c	= Array.from(yield ['invs']).filter(_ => _.id === i);
+      if (!c.length)
+        {
+          yield ['act WTF? out of', i];
+          continue;
+        }
+      yield yield ['equip hand', c[0].type];
+
+      const iter = yield ['block', a,b];
+      for (const c of iter())
+        {
+          if (c.id !== 'air') continue;
+
+          const d = yield ['block', c.pos(0,-1,0)];
+          if (d.id !== 'farmland') continue;
+
+          yield yield ['Move', c.pos(0,0.1,0)];
+          yield yield ['wait'];		// relax a bit
+          yield yield ['click', d];
+          yield yield ['wait'];		// relax a bit
+        }
+    }
+  yield ['act SEED ok'];
+} catch (e) {
+  yield [`act SEED fail: ${e}`];
+  throw e;
+}
+
+yield ['act SEED done'];
+return ['PUT']
+
+
