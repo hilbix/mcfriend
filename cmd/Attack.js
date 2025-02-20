@@ -13,11 +13,11 @@ if (!e)
   {
     yield yield ['supply'];
     if (_.length)
-      return ['act no enemy found', _];
+      return `no enemy found ${_}`;
 
     const w = yield ['AGAIN attack'];
     yield yield ['home'];
-    return ['act no enemy found', w/1000, _];
+    return `no enemy found ${w} ${_}`;
   }
 //if (!e.hostile) return ['act WTF? not hostile', e.id, e];
 
@@ -30,9 +30,9 @@ if (!(yield ['hand']).weapon)
       {
         if (++wait>5)
           return 'failed to fetch weapon';
-        yield yield ['Weapon', 'sword'];
-        yield ['in 10000 attack']
-        yield 'I have no weapon';
+        yield 'Need weapon';
+        yield yield ['tool', 'sword'];
+        yield ['in 1 attack']
         return 'no weapon';
       }
     yield yield ['equip hand', w[0]];
