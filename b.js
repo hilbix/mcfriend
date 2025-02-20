@@ -17,6 +17,8 @@ const first = (arr,match,...a) =>
       }
   };
 const notEmpty = a => a.length ? a : void 0;
+function* range(a,b) { a = a|0; b = b|0; if (a < b) for (let _=a; _ <= b; yield _++); else for (let _=b; _ <= a; yield _++); }
+function* inner(a,b) { a = a|0; b = b|0; if (a > b) [a,b] = [b,a]; if (a+1>=b) a--, b++; for (let _=a; ++_ < b; yield _); }
 
 // 'chat message messagestr'	// last ist best
 const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entityEquip' //entityMoved' //'blockUpdate' //blockUpdate itemDrop'
@@ -542,24 +544,39 @@ class CTX
       this.console	= console;			// output vm's console to our console here
       this.sleep	= Sleep;
       this.toJ		= toJ;
+      this.itemFilter	= function*(_)
+        {
+          if (!_)
+            return _ => true;
+          const l	= Object.fromEntries((yield ['item', _]).map(_ => [_.id,true]));
+          return _ => l[_.id];
+        }
     }
   }
 
 class My
   {
-  constructor(_)
-    {
-      this._ = _;
-    }
+  constructor(_)	{ this._ = _ }
+  get _vec()		{ return this._pos._ }
+
+  get id()		{ return this._?.name }
+  get meta()		{ return this._?.metadata }
+  get type()		{ return this._?.type }
+  get name()		{ return this._?.name }
+
+  vec(x,y,z)		{ return x instanceof My ? this._vec.plus(x._vec) : x instanceof v3.Vec3 ? this._vec.plus(x) : this._vec.offset(x|0,y|0,z|0) }
+  dist(_)		{ return this._vec.distanceTo(_._vec) }
+  dir(_)		{ return this.vec(DIR(_)) }
+  pos(x,y,z)		{ return new Pos(this._vec.offset(x??0,y??0,z??0)) }
+  *locate()		{ return this._pos ??= new Pos(this._vec) }
   };
 class Pos extends My
   {
-  get id()		{ return this._ ? POS(this._) : '(unknown)' }
+  get id()		{ const _ = this._; return _ ? `${_.x} ${_.y} ${_.z}` : '(unknown)' }
   toString()		{ return `Pos ${POS(this._)}` }
-  constructor(x,y,z)	{ super(x instanceof v3.Vec3 ? x : x instanceof Pos ? x._ : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
+  get _vec()		{ return this._ }
+  constructor(x,y,z)	{ super(x instanceof My ? this._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
-  vec(x,y,z)		{ return x instanceof v3.Vec3 ? this._.plus(x) : this._.offset(x|0,y|0,z|0) }
-  dir(_)		{ return this.vec(DIR(_)) }
   };
 
 const HOSTILE = { hostile:true, mob:true };
@@ -567,11 +584,11 @@ class Entity extends My
   {
   get id()		{ return this._?.id }
   toString()		{ return this._ ? `Entity ${this._.displayName ?? this._.name}` : '(no entity)' }
-  *locate()		{ return this._pos ??= new Pos(this._.position) }
+  get _vec()		{ return this._.position }
   get hostile()		{ return HOSTILE[this._?.type] }
-  get name()		{ return this._?.name }
   };
 
+// _pos only valid after locate
 class Player extends My		// player can be out of sight, so it is initalized by name
   {
   get id()		{ return this._?.id }
@@ -628,12 +645,9 @@ const enchant =
 
 const CONTAINER = { chest:true, hopper:true, dropper:true, dispenser:true, barrel:true, furnace:2};
 
-class Item extends My
+class Item extends My	// no _pos
   {
-  get id()		{ return this._?.name }
   toString()		{ return this._ ? `Item ${this._.displayName}` : '(no item)' }
-  get type()		{ return this._?.type }
-  get meta()		{ return this._?.metadata }
   get count()		{ return this._?.count }
 
   // following must be improved:
@@ -643,10 +657,8 @@ class Item extends My
 
 class Block extends My
   {
-  get id()		{ return this._?.name }
   toString()		{ return this._ ? `Block ${this._.name}` : `(no block)` }
-  *locate()		{ return this._pos ??= new Pos(this._.position) }
-  pos(x,y,z)		{ return new Pos(this._.position.offset(x??0,y??0,z??0)) }
+  get _vec()		{ return this._.position }
   get container()	{ return CONTAINER[this.id] }
   };
  
@@ -654,27 +666,24 @@ class Sign extends My
   {
   get id()		{ return this._?.block?.name }
   toString()		{ return this._ ? `Sign ${this._.text.slice(2,4).join(':')} ${POS(this._.pos)}` : '(no sign)' }
-  *locate()		{ return this._pos ??= new Pos(this._.pos) }
+  get _vec()		{ return this._.pos }
   get valid()		{ return this._?.valid }
   get text()		{ return this._.text }
   };
 
 class Container extends My
   {
-  get id()		{ return this._?.name }
-  toString()		{ return this._ ? `Container ${this._.name}` : `(no container)` }
+  get id()		{ return `Container ${this._.type}#${this._.id}` }
+  toString()		{ return this._ ? this.id : `(no container)` }
   *locate()		{ return this._pos ??= new Pos(this._.position) }
-  out()			{ const x = CONTAINER[this._.name]; return this.items().filter((_,i) => x === true || x.includes(i)) }
   items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
-  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
+
   close()		{ return this._.close() }
+  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
   take(i,n)
     {
       try {
-//        console.warn('withdraw', i, n);
-        const r = this._.withdraw(i.type, i.meta, n||null)
-//        console.warn('withdraw', i, n, r);
-        return r;
+        return this._.withdraw(i.type, i.meta, n||null)
       } catch (e) {
         console.error('WITHDRAW', e);
       }
@@ -728,6 +737,7 @@ class Abi	// per spawn instance for bot
       //this.digs		= OB();
       this.want		= OB();
       this.listcache	= OB();
+      this.hide		= OB();
 
       this.autostart('init');
     }
@@ -760,17 +770,38 @@ class Abi	// per spawn instance for bot
       return ok;
     }
   // expand the list
-  *theList(list)
+  *theList(list, ...what)
     {
       const l	= mkArr(list);
       const h	= new Set();
+      const b	= new Set();
       do
         {
           const n	= l.shift();	// get first element
-          if (n === void 0) continue;	// void elements do not count
+          if (n === void 0) continue;	// ignore void elements
+
+          if (b.has(n)) continue;	// ignore blocked
           yield n;			// return element
-          for (const _ of this._.match(n))
-            yield _;
+
+          if (n.startsWith('!'))	// block something?
+            {
+              b.add(n);
+              const k = n.substr(1);
+              b.add(k);
+              for (const _ of this.theList(k, ...what))
+                {
+                  if (_.startsWith('!')) continue;	// ignore ignores
+                  b.add(_);		// block regular elements
+                  yield `!${_}`;
+                }
+              continue;
+            }
+
+          for (const _ of this._.match(n, ...what))
+            if (!b.has(_))		// when not blocked
+              yield _;			// return matches
+
+          // iterate into list
           if (h.has(n)) continue;	// already visited, so ignore
           h.add(n);			// mark visited
           const x	= this.state.set?.list?.[n];
@@ -943,10 +974,16 @@ class Abi	// per spawn instance for bot
 //            if (iters.length>1) console.warn('DOb', iters.length, `${_.done} ${_.value}`);
             err	= void 0;
           } catch (cause) {
-            // present the error of the script prominently into our console
-            console.warn('----------------------', iter.filename);
-            console.error('FAIL:', iters.length, iter.filename, cause);
-            console.warn('----------------------', iter.filename);
+            const x = `${cause}`;
+            if (iter.filename || !this.hide[x])
+              {
+                // present the error of the script prominently into our console
+                console.warn('----------------------', iter.filename, x);
+                console.error('FAIL:', iters.length, iter.filename, cause);
+                console.warn('----------------------', iter.filename);
+              }
+            else
+              console.log('##', iters.length, x);
 
             iter.state	= 'err';
             iter.err	= true;
@@ -1065,13 +1102,14 @@ class Abi	// per spawn instance for bot
     }
   running(src)
     {
+      for (const _ of Survey.dump())
+        src.tell(`#B ${_}`);
       src.tell(`#A ${this._.late.length}`);
       for (const x of this._.late.iter())
         src.tell(`#A ${toJ(x)}`);
-      for (const _ of Survey.dump())
-        src.tell(`#B ${_}`);
       return;
     }
+  *Chide(c,src)		{ this.hide[c.join(' ')] = true }
   *Cstop(c,src)
     {
       this.B.pathfinder.stop();
@@ -1096,7 +1134,7 @@ class Abi	// per spawn instance for bot
   async *Cwait(c)	{ await this.B.waitForTicks((c[0]|0)||1) }
   *Cautostart(c,src)	{ this.autostart(c.join(' ')) }
   *Crun(c,src)		{ this._.run.add(...this.runcmd(c, src)) }
-  *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(n, c, src); else return `no ${_}: ${c.join(' ')}` }
+  *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(n*1000, c, src); else return `no ${_}: ${c.join(' ')}` }
   *Csay(c)		{ this.chat(...c) }
   *Cequip([d,i])	{ return i ? this.B.equip((i|0)>0 ? (i|0) : i._, d) : this.B.unequip(d) }
   *Cattack(c)		{ return this.B.attack(c[0]._) }
@@ -1203,13 +1241,28 @@ class Abi	// per spawn instance for bot
 
       const delta = (...d) => d.map(_ => new Block(this.B.blockAt(p.vec(_.x, _.y, _.z))));
       if (c.length === 2)
-        switch (c[1])
-          {
-          default: throw `Block ${c}???`;
-          case 6:	return delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
-          case 7:	return delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
-          case 27: return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
-          }
+        {
+          if (c[1] instanceof My)
+            {
+              const f	= p.vec();
+              const t	= (yield* c[1].locate()).vec();
+              const B	= this.B;
+              return function*()
+                {
+                  for (const x of inner(f.x, t.x))
+                    for (const y of inner(f.y, t.y))
+                      for (const z of inner(f.z, t.z))
+                         yield new Block(B.blockAt(v3(x,y,z)));
+                }
+            }
+          switch (c[1])
+            {
+            default:	throw `Block ${c}???`;
+            case 6:	return delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+            case 7:	return delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+            case 27:	return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
+            }
+        }
 
        const x	= c[1]|0;
        const y	= c[2]|0;
@@ -1231,6 +1284,7 @@ class Abi	// per spawn instance for bot
   // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
   *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+this.B.inventory.count(i.type, i.meta), 0) }
   *Citem(c)		{ return c.map(_ => Array.from(this.items(_))).flat() }
+  *Cblockdata(c)	{ return c.map(_ => Array.from(this._.match(_, 'blocks').map(_ => this.B.mcData.blocksByName[_]))).flat() }
   // take slot
   // take container item count
   *Ctake(a)		{ const x = a.shift(); return a.length ? x.take(...a) : this.B.putAway(x) }
@@ -1245,6 +1299,11 @@ class Abi	// per spawn instance for bot
       const b	= this.B.blockAt(l);
       return await this.B.placeBlock(b, INV(d));
     }
+  async *Cclick(c)
+    {
+      const l	= (yield* (c[0] ?? new Pos(this.B.entity.position)).locate()).vec();
+      return this.B.activateBlock(this.B.blockAt(l));
+    }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1258,11 +1317,16 @@ class Abi	// per spawn instance for bot
       if (i|0) return yield get(i|0);
       if (!isString(i)) throw `unknown item spec: ${i}`;
       const have = {};
-      for (const _ of this._.match(i, 'items'))
+      for (const _ of this.theList(i, 'items'))
         {
-          const id = this.B.mcData.itemsByName[_].id;
+          if (!_) continue;
+          const i = this.B.mcData.itemsByName[_];
+          if (!i) continue;			// we might get unknown things/blocked etc.
+
+          const id = i.id;
           if (have[id]) continue;
           have[id] = true;
+
           yield get(id);
         }
       if (!Object.keys(have).length)
@@ -1352,7 +1416,7 @@ class Abi	// per spawn instance for bot
             else
               yield* rec(v,k, p);
           if (!x.length)
-            return;
+            return true;		// set but emtpy, assume boolean true
           if (p)
             yield [p].concat(x);
           return x.join(' ');
@@ -1525,7 +1589,9 @@ class Abi	// per spawn instance for bot
     {
       data.unshift('/data');
       this.B.chat('');
-      this.B.chat(data.join(' '));
+      const out = data.join(' ');
+      this.B.chat(out);
+      console.error('DATA', out);
       if (!match?.length) return;
 
       const m = match => _ => match.filter((m,i) => _[i] !== m).length;
@@ -1999,7 +2065,7 @@ class Bot	// global instance for bot
   M_messagestr(str, who, data)
     {
       this.log('CHAT:', toJ(who), str);
-      data?.json && this.abi.runwant(data.json.translate, () => MJ(data))
+      data?.json && this.abi?.runwant(data.json.translate, () => MJ(data));	// .abi unset when terminating
     }
 
   M_chunkColumnLoad(_)		{ this.chunk.add(_.x|0, _.z|0) }
@@ -2043,9 +2109,7 @@ class Bot	// global instance for bot
       await this._save();
 
       this._inited.o(this.B);
-      console.error('WAIT');
       await IMPORTS;	// make sure all plugins are loaded
-      console.error('HERE');
 
       // Instantiate Bot's runtime for this connection
       const r = await this.start();
