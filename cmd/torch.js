@@ -1,7 +1,7 @@
 // place torches where it is dark
 
 const w = Array.from(yield ['invs']).filter(_ => _.id === 'torch');
-if (!w.length) return 'lacking torches';
+if (!w.length) return 'no torch';
 
 const p = yield ['pos'];
 const b = yield ['block', p, 27];
