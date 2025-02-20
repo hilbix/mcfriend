@@ -1,4 +1,0 @@
-//
-
-return ['get *_sword']
-
