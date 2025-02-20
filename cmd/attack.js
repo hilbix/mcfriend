@@ -1,10 +1,14 @@
 //
 
+yield ['act ATTACK start'];
+
 for (;;)
   {
     yield ['drop'];
+    yield ['supply'];
     const x = yield ['Attack', _];
-    if (x !== void 0) return x;
+    if (x !== void 0)
+      return ['act ATTACK done', x];
     yield ['wait'];
     yield yield ['torch'];
     yield ['wait',2];
