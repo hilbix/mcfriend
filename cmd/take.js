@@ -2,6 +2,8 @@
 
 this.track ??= {};
 
+yield ['act TAKE start'];
+
 yield ['CACHE clear'];
 yield ['PUT'];
 
@@ -15,10 +17,11 @@ for (const [c,s] of a)
     if (!t) continue;
 
     yield yield ['Move', s, 1];
-    const r = yield ['OPEN', c];
+    const r	= yield ['OPEN', c];
     if (!r) continue;
 
-    const i = r.items();
+    const i	= r.items().filter(yield* itemFilter(s.text[3]));
+
     let ok	= 'PUT';
     try {
       if (t === true)
