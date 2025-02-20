@@ -8,12 +8,12 @@ const w	= _.shift();
 if (!w) return;
 
 const t = (yield [`set auto:${w}:wait`])|0;
-console.error('AGAIN', t);
+//console.error('AGAIN', t);
 if (!t) return;
 
 if (_.length)
   {
-    console.error('backoff', _);
+//    console.error('backoff', _);
     backoff[w] = _[0]|0;
     return;
   }
