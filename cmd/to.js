@@ -1,6 +1,6 @@
 //
 
-for (const a of ['store', 'get', 'overflow', 'destroy'])
+for (const a of ['store', 'get', 'overflow', 'toomuch', 'destroy'])
   {
     const s	= yield ['sign', a, _];
     if (!s?.length) continue;
