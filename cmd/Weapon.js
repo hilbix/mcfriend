@@ -1,4 +1,4 @@
 //
 
-return ['get netherite_sword']
+return ['get *_sword']
 
