@@ -116,7 +116,7 @@ To automate this (see `cmd/AUTO.js`):
 
 - `/tell bot set auto:take:enabled =20`
   - runs `take` 20s after bot connected
-- `/tell bot set auto:take:await =60`
+- `/tell bot set auto:take:wait =60`
   - repeats `take` after 60s
 - Similar to take:
   - `harvest`
