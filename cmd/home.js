@@ -1,4 +1,6 @@
 // Send the bot home
+// (and optionally say something)
 
-return ['Move', yield ['sign home']];
+if (_.length) yield ['act', _];
+return yield ['Move', yield ['sign home']];
 
