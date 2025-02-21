@@ -155,7 +155,7 @@ Lists:
 - Lists can include lists
   - You cannot use matching for include lists
 - Lists can exclude things with a preceeding `!`
-  - `/tell bot list:COBBLES !coblestone cobble*`
+  - `/tell bot list:COBBLES !cobblestone cobble*`
   - Matches all items/blocks starting with `cobble*`, except for `cobblestone` itself
 - Lists can be hierarchial like `list:BOTS:overworld` and `lists:BOTS:nether`
   - They are referred to by `BOTS:overworld` and `BOTS:nether`
