@@ -4,6 +4,7 @@ yield ['act ATTACK start'];
 
 for (;;)
   {
+    yield ['PUT'];
     yield ['drop'];
     yield ['supply'];
     const x = yield ['Attack', _];
