@@ -20,7 +20,7 @@ if (yield ['set conf:stop'])
   yield 'autostart disabled (conf:stop)';
 else
   for (const _ of 'attack take tree harvest chop'.split(' '))
-    yield [`in auto:${_}:enabled attack`];
+    yield [`in auto:${_}:enabled ${_}`];
 
 return 'AUTOSTART ok';
 
