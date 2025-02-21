@@ -159,8 +159,19 @@ Lists:
   - Matches all items/blocks starting with `cobble*`, except for `cobblestone` itself
 - Lists can be hierarchial like `list:BOTS:overworld` and `lists:BOTS:nether`
   - They are referred to by `BOTS:overworld` and `BOTS:nether`
+- To copy settings from one bot to another:
+  - `/tell bot copy otherbot`
+  - This copies all settings (see `/tell bot set`) to `otherbot`
+  - Note that you can restrict what to export like `/tell bot copy otherbot conf:web`
 
-**Example looting:**
+> With a list like `BOTS` you can for example name the first line of a sign with `BOTS` instead of `bot`
+>
+> Then you can add and remove the names of the bots which shall use the sign.
+>
+> Or you can use it on the third line of a sign to specify more than one item (as signes are very limited in space)
+
+
+**Example auto looting:**
 
 - Name an Armorstand `mcFriend`
 - Put the Armorstand on top of a hopper which goes into a chest
@@ -213,6 +224,8 @@ The bot will walk to the bed and when night or thunderstorm comes it will fall a
 ------------------------------------------------------------
 
 > Following is old and need an overhaul
+>
+> **FOLLOWING IS NOT UP TO DATE AND POSSIBLY WRONG IN MANY WAYS!**
 
 ------------------------------------------------------------
 
