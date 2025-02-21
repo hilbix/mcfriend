@@ -53,7 +53,20 @@ To connect the bot named `b` to Mincraft server running on `127.0.0.1:25565`:
 
 Be sure to use `op b` to op the bot, else it will not work.
 
-**Example note signs**
+> To run it with a different name (here: `c`):
+>
+> `./b.js 0 0 0 0 c`
+>
+> **NOTE THAT THIS WILL CHANGE IN FUTURE!**
+>
+> Alternatively create a softlink and run the link:
+>
+> `ln -s b.js c.js`
+
+
+**Sign navigation**
+
+> The Bot is named `bot` in this example
 
 - Create a sign with following 3 lines:
   - `bot` (this must be the topmost!)
@@ -63,30 +76,32 @@ Be sure to use `op b` to op the bot, else it will not work.
   - (the backside of the sign is ignored)
 - Then issue following command to teleport to the sign:
   - `/tell bot to home`
+  - See `cmd/to.js`
 - Create a second sign nerby with following 2 lines:
   - `bot`
   - `home`
-- Then you can use following command:
+- Then following command teleports the Bot to the sign:
   - `/tell bot home`
   - See `cmd/home.js`
+
 
 **Example sorting:**
 
 > The Bot is named `bot` in this example
 
 - Build a first chest and put a sign on the chest with following lines
-  - bot
-  - take
- - Build a second chest with following sign on it
-  - bot
-  - store
-  - cobblestone
+  - `bot` (this must be on the first line of the sign)
+  - `take` (this must be the second line of the sign)
+- Build a second chest with following sign on it
+  - `bot`
+  - `store`
+  - `cobblestone
 - Build a third chest with following sign on it
-  - bot
-  - put
-  - MISC
+  - `bot`
+  - `put`
+  - `MISC`
 
-Now fill the first first chest with some items, and some Cobblestone.  Then issue following command:
+Now fill the first chest with some items, and some Cobblestone.  Then issue following command:
 
 - `/tell bot take`
   - Pulls the items from the first chest
@@ -110,6 +125,7 @@ To automate this (see `cmd/AUTO.js`):
   - `tree`
 - Note that `attack` and `tree` also have `auto:tree:backoff`
   - This increases the waiting time if nothing is to do
+  - See `cmd/AGAIN.js`
 
 More controls:
 
