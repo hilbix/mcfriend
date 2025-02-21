@@ -3,7 +3,7 @@
 // [item=count...] like 'get item=count', but if only fetches until count is reached
 
 if (!_.length)
-  _	= '*_sword *_axe torch=64'.split(' ');
+  _	= '*_sword *_axe torch=50'.split(' ');
 
 for (const x of _)
   {
