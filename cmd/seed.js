@@ -2,6 +2,7 @@
 // Needs two "seed"-signs, 3rd line is what to plant
 
 yield ['act SEED start'];
+yield yield ['PUT'];
 
 try {
   for (const [a,b] of yield ['AREA seed'])
@@ -16,13 +17,12 @@ try {
       const i = a.text[3];
       const n = ((Math.abs(av.x - bv.x) + 1) * (Math.abs(av.z - bv.z) + 1))|0;
 
-//      yield yield ['PUT'];
       yield yield ['supply', `${i}=${n+1}`];
 
       const c	= Array.from(yield ['invs']).filter(_ => _.id === i);
       if (!c.length)
         {
-          yield ['act WTF? out of', i];
+          yield ['act WTF? have no', i];
           continue;
         }
       yield yield ['equip hand', c[0].type];
