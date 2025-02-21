@@ -602,10 +602,10 @@ class Player extends My		// player can be out of sight, so it is initalized by n
 
       yield `#cannot see ${this._}`;
 
-      const d	= await abi.data(['commands.data.entity.query', this._], ['No','entity','was','found'], 'get entity', this._, 'Pos');
-      return this._pos = new Pos(...d[2]);
-
-//      t	= d[2].map(_ => parseInt(_));	// why does .map(parseInt) not work?
+      const d	= await abi.getas(this._, {nbt:"Pos",entity:"@s"});
+      // d = "error";
+      // d = "[1.0d,2.0d,3.0d]";
+      return d.startsWith('[') ? this._pos = new Pos(...fromJ(d.replace(/d/g,""))) : d;
     }
   };
 
@@ -735,9 +735,9 @@ class Abi	// per spawn instance for bot
       this.actcache	= [];
       //this.stat		= OB();
       //this.digs		= OB();
-      this.want		= OB();
+      this._want	= OB();
+      this._hide	= OB();
       this.listcache	= OB();
-      this.hide		= OB();
 
       this.autostart('init');
     }
@@ -975,7 +975,7 @@ class Abi	// per spawn instance for bot
             err	= void 0;
           } catch (cause) {
             const x = `${cause}`;
-            if (iter.filename || !this.hide[x])
+            if (iter.filename || !this._hide[x])
               {
                 // present the error of the script prominently into our console
                 console.warn('----------------------', iter.filename, x);
@@ -1109,13 +1109,13 @@ class Abi	// per spawn instance for bot
         src.tell(`#A ${toJ(x)}`);
       return;
     }
-  *Chide(c,src)		{ this.hide[c.join(' ')] = true }
+  *Chide(c,src)		{ this._hide[c.join(' ')] = true }
   *Cstop(c,src)
     {
       this.B.pathfinder.stop();
       this._.run.add(() =>
         {
-          CON('stop');
+//          CON('stop');
           for (;;)
             {
               const x = this._.late.next();
@@ -1585,44 +1585,20 @@ class Abi	// per spawn instance for bot
       return r.sort((a,b) => a.dist < b.dist);
     }
 
-  data(match, mismatch, ...data)	// Minecraft /data command with response via this.want[match[0]]
+  getas(entity, json)	// Get output of /execute as ENTITY tellraw bot [JSON]
     {
-      data.unshift('/data');
-      this.B.chat('');
-      const out = data.join(' ');
-      this.B.chat(out);
-      console.error('DATA', out);
-      if (!match?.length) return;
-
-      const m = match => _ => match.filter((m,i) => _[i] !== m).length;
-      return this.addwant(10000, match[0], m(match), mismatch?.length ? m(mismatch) : () => true).p;
+      this._getas	= (this._getas|0)+1;
+      const token	= `${Date.now()}_${this._getas}_${entity}`;
+      this.chat(`/execute unless entity ${entity} run tellraw ${this._.botname} "return ${token} not found"`);
+      this.chat(`/execute as ${entity} run tellraw ${this._.botname} ["return ${token} ",${toJ(json)}]`);
+      return this.addwant(2000, token).p;
     }
-  addwant(timeout, match, ok, ko, ...args)
+  addwant(timeout, token)
     {
-      const p = PO();
-      const s = this.want[match] ??= new Set();
-      const r = { f:_ => { ok(...args, _) || p.o(_); ko(...args, _) || p.k(_) } };	// it seems to be undocumented what return value p.o() has.  It seems to be void 0, which is what I need here!
-      s.add(r);
-      const t = setTimeout(p.k, 10000, `timeout: ${match}`);
-      p.p.catch(console.error).finally(() => { console.warn('addwant finally'); s.delete(r); clearTimeout(t) });
+      const p	= this._want[token]	= PO();
+      const t	= setTimeout(p.k, timeout, `timeout: ${token}`);
+      p.p.catch(console.error).finally(() => { clearTimeout(t); delete this._want[token] });
       return p;
-    }
-  async runwant(match, get)
-    {
-      const _ = this.want[match];	// this is a Set()
-      if (!_?.size) return;
-
-      const arg = get(match, _);
-
-      //console.warn(data.json.translate, _, arg);
-      //console.warn('ARGS:', arg);
-      for (const x of _)
-        try {
-          await x.f.call(_, arg);	// must remove itself when done
-        } catch (e) {
-          set.delete(x);		// something failed
-          console.error(x.e = e);
-        }
     }
   // help	shows all help keywords
   // help kw	shows all known works according to keyword
@@ -2065,14 +2041,17 @@ class Bot	// global instance for bot
   M_messagestr(str, who, data)
     {
       this.log('CHAT:', toJ(who), str);
-      data?.json && this.abi?.runwant(data.json.translate, () => MJ(data));	// .abi unset when terminating
+      if (!str.startsWith('return ')) return;
+      const c = str.split(' ');
+      const _ = this.abi._want[c[1]];
+      if (_)
+        _.o(c.slice(2).join(' '));
     }
-
   M_chunkColumnLoad(_)		{ this.chunk.add(_.x|0, _.z|0) }
   M_whisper(src, cmd)
     {
 //      console.error('WHISPER', src, cmd);
-      if (src === this.B.player.username) return;
+//      if (src === this.B.player.username) return;
       const c = cmd.split(' ').filter(_ => _);
       if (c[0] === '') return;
       if (c[0][0] === '#') return console.log(cmd);
@@ -2150,13 +2129,13 @@ const abi	= this.abi	= new Abi(this);
                   if (!n)
                     {
                       this.late.next();
-                      CON('LATE', _[1]);
+//                      CON('LATE', _[1]);
                       this.run.active = true;	// HACK
                       this.run.add(...this.abi.runcmd(_[1], _[2]));
                     }
                   else if (n !== (_[0]=true))
                     {
-                      CON('LATE:', n, _[1]);
+//                      CON('LATE:', n, _[1]);
                       setTimeout(() => _[0]=0, n);
                     }
                 }
