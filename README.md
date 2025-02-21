@@ -1,6 +1,7 @@
-> This is in its very early stages!  Do not expect too much!
+> This starts to work as intended.  Currently it still is a bit chaotic.
 >
-> Not everything you see here is already implemented or working as advertized!
+> Not everything you see here is already implemented or working as advertized!  
+> Also it might be that features will change drastically.
 
 Currently I use a Vanilla Minecraft Server 1.20.4 which is not publicly open.
 
@@ -12,9 +13,192 @@ Currently I use a Vanilla Minecraft Server 1.20.4 which is not publicly open.
 
 > In future the `timber` databack will no more be needed I hope.
 > Because of this it is not includeded, so you must download and install it yourself.
+>
+> You need `timber` for `cmd/tree.js` to properly function
 
 For Resources needed see below.
 
+**Current state:**
+
+- As mineflayer-pathfinder often hangs, I decided to not use it currently.
+  Instead the bots teleport to the location.  This is imperfect, but works reliably.
+
+- Many features are missing for now!  There is no security builtin, so the bots must run as `op`
+   and you are able to destroy your server by sending commands to the bot.
+
+- `cmd/harvest.js`: Farming Crops, Potato, Carrot, Beetroot
+- `cmd/seed.js`: Seeding (planting) Crops, Potato, Carrot, Beetroot
+- `cmd/chop.js`: Sugarcane, Bamboo
+- `cmd/tree.js`: Chop down trees (needs `timber`)
+- `cmd/take.js`: Loot items from chests, barrels and furnaces
+- `cmd/put.js`: Put (sort!) items into chests and barrels
+- `cmd/attack.js`:  Mobs are hardcoded in the script
+  - And the bot frequently dies
+
+- Sleeping works with the old `bot.js`
+  - I only use the old one for sleeping and nothing else
+  - The new `b.js` has no sleeping implemented (yet)
+
+- Only the Overworld is supported.
+  - The bots work in the Nether, too
+  - The bots do not know how to enter the Nether
+  - You need to teleport the bots to you
+
+
+**Run the bot**
+
+To connect the bot named `b` to Mincraft server running on `127.0.0.1:25565`:
+
+	./b.js
+
+Be sure to use `op b` to op the bot, else it will not work.
+
+**Example note signs**
+
+- Create a sign with following 3 lines:
+  - `bot` (this must be the topmost!)
+  - `note` (this must be the second line)
+  - `home` (this must be the third line)
+  - (the fouth line is ignored)
+  - (the backside of the sign is ignored)
+- Then issue following command to teleport to the sign:
+  - `/tell bot to home`
+- Create a second sign nerby with following 2 lines:
+  - `bot`
+  - `home`
+- Then you can use following command:
+  - `/tell bot home`
+  - See `cmd/home.js`
+
+**Example sorting:**
+
+> The Bot is named `bot` in this example
+
+- Build a first chest and put a sign on the chest with following lines
+  - bot
+  - take
+ - Build a second chest with following sign on it
+  - bot
+  - store
+  - cobblestone
+- Build a third chest with following sign on it
+  - bot
+  - put
+  - MISC
+
+Now fill the first first chest with some items, and some Cobblestone.  Then issue following command:
+
+- `/tell bot take`
+  - Pulls the items from the first chest
+- `/tell bot list inv`
+  - Lists the inventory of the bot
+- `/tell bot put`
+  - Sorts the items into the two other chests
+  - Cobblestone goes into the second
+  - Everything else goes into the third
+
+To automate this (see `cmd/AUTO.js`):
+
+- `/tell bot set auto:take:enabled =20`
+  - runs `take` 20s after bot connected
+- `/tell bot set auto:take:await =60`
+  - repeats `take` after 60s
+- Similar to take:
+  - `harvest`
+  - `chop`
+  - `attack`
+  - `tree`
+- Note that `attack` and `tree` also have `auto:tree:backoff`
+  - This increases the waiting time if nothing is to do
+
+More controls:
+
+- `/tell bot set conf quiet`
+  - Makes the bot less chatty
+- `/tell bot set conf verbose`
+  - Adds some more diagnosic
+- `/tell bot set auto -tree`
+  - Removes all `auto:tree` settings
+
+Lists:
+
+- You can use lists to replace something with more entries
+  - Recommended: Name lists `ALL_UPPERCASE`
+- You can use `*` as an allquantor (there is only this!) for matching
+- `/tell bot set list` lists all known lists
+  - Initially there are none
+- `/tell bot set list:BOTS a b c`
+  - Adds entries `a`, `b` and `c` to the list
+- `/tell bot set list:BOTS -a +b =c`
+  - removes `a` from the list
+  - adds `b` to the list
+  - replaces the contents of the list with `c`
+  - So afterwards the list only contains `c`
+- Matching like `cobble*` is matched agains Minecraft names (mcData)
+  - Also matches itself
+- Lists can include lists
+  - You cannot use matching for include lists
+- Lists can exclude things with a preceeding `!`
+  - `/tell bot list:COBBLES !coblestone cobble*`
+  - Matches all items/blocks starting with `cobble*`, except for `cobblestone` itself
+- Lists can be hierarchial like `list:BOTS:overworld` and `lists:BOTS:nether`
+  - They are referred to by `BOTS:overworld` and `BOTS:nether`
+
+**Example looting:**
+
+- Name an Armorstand `mcFriend`
+- Put the Armorstand on top of a hopper which goes into a chest
+  - The chest should have a `take` sign, for the bots to understand where to fetch things
+- Add `datapack/mcfriend` to `mincraft/world/datapacks/mcfriend/`
+- You should see `mcFriend extension loaded` when starting the server
+- This extension teleports all loose items to the Armorstand
+  - such that the hopper catches them
+
+**Web (mineflayer-viewer)**
+
+- `/tell bot set conf:web:host =127.0.0.1`
+  - This is the default
+- `/tell bot set conf:web:port =8080`
+  - This is the default
+- `/tell bot set conf:web enabled`
+  - This is needed to enable the web
+- `/tell bot set conf:web -enabled`
+  - Disable web again (does not touch host/port)
+- `/tell bot set conf -web`
+  - Disable web and remove all web setting
+- `/tell bot set : -conf`
+  - Remove all `conf` settings
+  - Bot crashes, but recovers when run again
+
+
+**Run the old bot for autosleeping**
+
+> Note that the web port can be enabled in the code, search for `WEBPORT`
+
+This connects the bot named `bot2` on Mincraft server `127.0.0.1:25565`:
+
+	./bot.js '' '' '' '' bot2
+
+Then
+
+	/tell bot2 autosleep
+
+In the game there must be a bed with a sign nearby which has on the front
+
+- `bot2` on the first line
+- `sleep` on the second line
+
+The bot will walk to the bed and when night or thunderstorm comes it will fall asleep.
+
+> Note that the bot can do much more than sleep, but I only use it for this purpose now.
+> As soon as the new bot `b.js` works with sleeping, too, it will replace the old `bot.js` completely!
+
+
+------------------------------------------------------------
+
+> Following is old and need an overhaul
+
+------------------------------------------------------------
 
 # MCfriend, your friendly Mincraft bot
 
