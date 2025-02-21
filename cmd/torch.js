@@ -7,8 +7,8 @@ const p = yield ['pos'];
 const b = yield ['block', p, 27];
 for (const a of b)
   {
-    if (a.id !== 'air') continue;
     if (a.id === 'torch') return;
+    if (a.id !== 'air') continue;
 
     // check block under torch is something we can place a torch
     const g = yield ['block', a.pos(0,-1,0)];
