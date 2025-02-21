@@ -361,13 +361,14 @@ class Q
   get name()		{ return this._ }
   get args()		{ return this.a }
   set args(a)		{ this.a = [].concat(a) }
+  set sort(a)		{ this._sort = a }
 
   next()		{ return this.q.shift() }
   peek()		{ return this.q[0] }
   wait()		{ return this._w ??= this._wait().finally(() => this._w = void 0) }
   async _wait()		{ while (!this.q.length) await (this.w ??= PO()).p }
   signal()		{ const w = this.w; this.w = void 0; w?.o(); return this }
-  add(..._)		{ this.dump && X(`${this.name}${this.q.length} `); this.q.push(this.a.concat(_)); return this.signal() //; console.log(this._, _)
+  add(..._)		{ this.dump && X(`${this.name}${this.q.length} `); this.q.push(this.a.concat(_)); if (this._sort) this.q.sort(this._sort); return this.signal() //; console.log(this._, _)
                         }
   addX(..._)		{ console.error('addX', this._, _); return this.add(..._) }
   get iter()		{ const q=this.q; return function*() { for (const x of q) yield x } }
@@ -680,10 +681,10 @@ class Container extends My
 
   close()		{ return this._.close() }
   put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
-  take(i,n)
+  async take(i,n)
     {
       try {
-        return this._.withdraw(i.type, i.meta, n||null)
+        return await this._.withdraw(i.type, i.meta, n||null)
       } catch (e) {
         console.error('WITHDRAW', e);
       }
@@ -692,29 +693,26 @@ class Container extends My
 
 class Survey
   {
-  #id; #a; #d; #e; #r; #s;
+  #id; #f; #a; #d; #e; #r; #s;
   static #gid = 0;
   static #ln = OB();
   static *dump()
     {
       const n = Date.now();
       yield Survey.#gid;
-      for (const [k,v] of Object.entries(this.#ln))
-        {
-          const d = v.data;
-          console.log('dump', k, toJ(d));
-          yield `${k} ${d.id} ${n-d.d} ${d.s}: ${toJ(d.a)} = ${d.r} (${d.e})`;
-        }
+      for (const v of Object.values(this.#ln))
+        yield* v.data;
     }
-  get data() { return {id:this.#id, d:this.#d, a:this.#a, e:this.#e, r:this.#r, s:this.#s} }
+  get data() { return this.#f({id:this.#id, d:this.#d, f:this.#f, a:this.#a, e:this.#e, r:this.#r, s:this.#s}) }
 
-  constructor(...a)
+  constructor(...a)	// args.., or fn args..
     {
       this.#id	= ++Survey.#gid;
+      this.#f	= 'function' === typeof a[0] ? a.shift() : _ => [`${_.id} ${_.d} ${_.s}: ${_.r ?? ''}=${_.e ?? ''}: ${s.join(', ')}`];
       this.#a	= a;
-      Survey.#ln[this.#id] = this;
       this.#s	= 'new';
       this.#d	= Date.now();
+      Survey.#ln[this.#id] = this;
     }
   err(...a)	{ this.#e = a; this.#s = 'err' }
   end(...a)	{ this.#r = a; this.#s = 'end'; delete Survey.#ln[this.#id] }
@@ -911,7 +909,14 @@ class Abi	// per spawn instance for bot
   async run(c, src, abort)
     {
       const inf = {c,src,abort};
-      const id = new Survey('run', inf);
+      const id = new Survey(({id,d,e,r,s}) =>
+        {
+          const v = [];
+          if (inf.iters)
+            inf.iters.forEach((_,i) => v.unshift([id, i, _.state, _.filename]));
+          v.unshift([id,s,d,r,e, src._, toJ(c)]);
+          return v.map(_ => _.filter(_ => _ !== void 0).join(' '));
+        });
       try {
         const r = await this.yielder(inf, await this.cmdload(src, c));
       } catch (e) {
@@ -1104,9 +1109,10 @@ class Abi	// per spawn instance for bot
     {
       for (const _ of Survey.dump())
         src.tell(`#B ${_}`);
-      src.tell(`#A ${this._.late.length}`);
+      const time = this._.late.time;
+      src.tell(`#A ${this._.late.length} ${time}`);
       for (const x of this._.late.iter())
-        src.tell(`#A ${toJ(x)}`);
+        src.tell(`#A ${x[0] - time} ${toJ(x[1])}`);
       return;
     }
   *Chide(c,src)		{ this._hide[c.join(' ')] = true }
@@ -1134,7 +1140,7 @@ class Abi	// per spawn instance for bot
   async *Cwait(c)	{ await this.B.waitForTicks((c[0]|0)||1) }
   *Cautostart(c,src)	{ this.autostart(c.join(' ')) }
   *Crun(c,src)		{ this._.run.add(...this.runcmd(c, src)) }
-  *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(n*1000, c, src); else return `no ${_}: ${c.join(' ')}` }
+  *Cin(c,src)		{ const _ = c.shift(); const n = this.conf_n('set', _); if (n>=0) this._.late.add(this._.late.time + n, c, src); else return `no ${_}: ${c.join(' ')}` }
   *Csay(c)		{ this.chat(...c) }
   *Cequip([d,i])	{ return i ? this.B.equip((i|0)>0 ? (i|0) : i._, d) : this.B.unequip(d) }
   *Cattack(c)		{ return this.B.attack(c[0]._) }
@@ -1287,7 +1293,7 @@ class Abi	// per spawn instance for bot
   *Cblockdata(c)	{ return c.map(_ => Array.from(this._.match(_, 'blocks').map(_ => this.B.mcData.blocksByName[_]))).flat() }
   // take slot
   // take container item count
-  *Ctake(a)		{ const x = a.shift(); return a.length ? x.take(...a) : this.B.putAway(x) }
+  async *Ctake(a)	{ const x = a.shift(); return a.length ? await x.take(...a) : await this.B.putAway(x) }
   // slot slot: get Item in slot (or void 0 if none)
   *Cslot(c)		{ return (this.B.currentWindow || this.B.inventory).slots[c[0]] }
   async *Cput([w,i,n])	{ return await w.put(i, n) }
@@ -1505,6 +1511,8 @@ class Abi	// per spawn instance for bot
           await this.B.tossStack(i);
           r[i.name] = (r[i.name]|0) + i.count;
         }
+      if (!this.state.set.conf?.verbose) return;
+
       const x = Object.entries(r).map(([a,b])=>`${a}=${b}`).join(' ');
       if (x)
         return `#drop ${x}`;
@@ -1906,6 +1914,8 @@ class Bot	// global instance for bot
       this.scan	= new Q('S');
       this.run	= new Q('R');
       this.late	= new Q('L');
+      this.late.sort	= (a,b) =>  a[0] - b[0]; 
+      this.late.time	= 0;
 
       // Register all events on Bot and World
       // Run the functions immediately and asynchronously, so nothing piles up
@@ -2126,18 +2136,19 @@ const abi	= this.abi	= new Abi(this);
               if (_)
                 {
                   const n = _[0];
-                  if (!n)
+                  if (n <= this.late.time)
                     {
+                      if (this.late.timer)
+                        clearInterval(this.late.timer);
+                      this.late.timer	= void 0;
+                      this.late.time	= n;	// HACK, the timer might have counted too much
                       this.late.next();
 //                      CON('LATE', _[1]);
                       this.run.active = true;	// HACK
                       this.run.add(...this.abi.runcmd(_[1], _[2]));
                     }
-                  else if (n !== (_[0]=true))
-                    {
-//                      CON('LATE:', n, _[1]);
-                      setTimeout(() => _[0]=0, n);
-                    }
+                  else
+                    this.late.timer ??= setInterval(() => this.late.time++, 1000);
                 }
             }
 
