@@ -1,18 +1,21 @@
 // equip a tool
+//
+// If tool is missing, try to craft the stone variant of it
 
 const tool = _[0];
 
 const isTool = _ => _?.id?.endsWith(`_${tool}`);
 
-if (isTool(yield ['hand'])) return;
+if (isTool(yield ['hand'])) return;	// Tool already handy
 
-for (let wtf;; wtf=true)
+for (let retry=2;; retry--)
   {
     const w = Array.from(yield ['invs']).filter(isTool);
     if (w.length)
-      return ['equip hand', w[0]];
-    if (wtf)
-      throw `missing ${tool}`;
-    yield ['supply', `*_${tool}`];
+      return ['equip hand', w[0]];	// Equip tool already in inventry
+    if (wtf<0)
+      break;
+    yield ['supply', `stone_${tool}`];
   }
 
+throw `missing ${tool}`;
