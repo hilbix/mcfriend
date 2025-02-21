@@ -42,8 +42,8 @@ function* valid(i)
   if (!id)		return;		// nothing is not valid
   const _	= keep[id];
   if (_ !== void 0)	return;		// ignore already seen
-  keep[id]	= 1;
-  const k	= keep[id]	??= ((yield [`set item:${i.id}:keep`]) ?? false);
+  const k	= keep[id]	??= ((yield [`set item:${i.id}:keep`]) ?? true);
+//  yield ['act PUT', i, i.id, keep[i.id]];
   if (`${k}` !== `${k|0}`) return k;
   const h	= (yield ['have', i.id])|0;
   return h > k;
@@ -54,6 +54,7 @@ const much = [], more = [], over = [];
 for (const i of yield ['invs'])
   if (yield* valid(i))
     {
+//      yield ['act PUT', i, i.id, keep[i.id]];
       hadsign = false;
       if ((yield* put(i, 'store', i.id)) || (yield* put(i, 'put', i.id)) || (yield* put(i, 'overflow', i.id)) || (yield* put(i, 'toomuch', i.id)) || (yield* put(i, 'destroy', i.id)))
         yield ['wait', 5];
@@ -63,7 +64,7 @@ for (const i of yield ['invs'])
         more.push(i);
     }
 
-yield ['wait', 5];
+//yield ['wait', 5];
 
 for (const i of more)
   (yield* put(i, 'put', 'MISC')) || over.push(i);
