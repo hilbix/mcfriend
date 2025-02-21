@@ -1503,6 +1503,7 @@ class Abi	// per spawn instance for bot
       const r = OB();
       for (const i of this.B.inventory.items())
         {
+	  // XXX TODO XXX remove following, this should be done outside
           if (this._.search('item', i.name,        'keep')) continue;
           if (this._.search('item', i.displayName, 'keep')) continue;
 //          CON(i);
