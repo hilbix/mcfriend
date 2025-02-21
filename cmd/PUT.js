@@ -15,7 +15,7 @@ function* put(item, ...where)
 
       yield ['OPEN'];
 
-      const h = (yield ['have', item]) - (keep[item.id]|0);
+      const h = (yield ['have', item]) - (parseInt(keep[item.id])|0);
       //yield ['act have', h, item];
       if (h <= 0) return true;
 
