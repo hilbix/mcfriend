@@ -13,7 +13,7 @@ if (!e)
   {
     yield yield ['supply'];
     if (_.length)
-      return `no enemy found ${_}`;
+      return ['home no enemy found', _];
 
     const w = yield ['AGAIN attack'];
     yield yield ['home'];
@@ -32,7 +32,7 @@ if (!(yield ['hand']).weapon)
           return 'failed to fetch weapon';
         yield 'Need weapon';
         yield yield ['tool', 'sword'];
-        yield ['in 1 attack']
+        yield ['in 5 attack']
         return 'no weapon';
       }
     yield yield ['equip hand', w[0]];
