@@ -1,7 +1,7 @@
 // x,y,z delta: move to location
 // TODO: implement a working pathfinder (mineflayer-pathfinder has issues)
 
-return ['TP', _];
+return yield ['TP', _];
 
 
 // Er hängt im arrive anscheinend (so genau bin ich mir da nicht sicher)
@@ -29,5 +29,5 @@ if (t<=1+(_[1]|0))
 
 yield act('act distance', ((t*10)|0)/10, 'teleporting to', _);
 yield ['tp', _];
-await sleep(500);
+return ['weit 20'];
 
