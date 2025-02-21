@@ -95,7 +95,7 @@ Be sure to use `op b` to op the bot, else it will not work.
 - Build a second chest with following sign on it
   - `bot`
   - `store`
-  - `cobblestone
+  - `cobblestone`
 - Build a third chest with following sign on it
   - `bot`
   - `put`
