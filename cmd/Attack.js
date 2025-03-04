@@ -7,17 +7,17 @@ this.wait ??= 0;
 function* nearest(_) { const e = yield ['nearest', _]; if (e.id) return e }
 function* find(...a) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}); if (e !== void 0) return e } }
 
-const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','slime','zombie','skeleton']));
+const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','slime']));
 
 if (!e)
   {
     yield yield ['supply'];
     if (_.length)
-      return ['home no enemy found', _];
+       return last=['home no enemy', _];
 
     const w = yield ['AGAIN attack'];
     yield yield ['home'];
-    return `no enemy found ${w} ${_}`;
+    return last=`no enemy ${w} ${_}`;
   }
 //if (!e.hostile) return ['act WTF? not hostile', e.id, e];
 
@@ -29,11 +29,11 @@ if (!(yield ['hand']).weapon)
     if (!w.length)
       {
         if (++wait>5)
-          return 'failed to fetch weapon';
+          return last='failed to fetch weapon';
         yield 'Need weapon';
         yield yield ['tool', 'sword'];
         yield ['in 5 attack']
-        return 'no weapon';
+        return last='no weapon';
       }
     yield yield ['equip hand', w[0]];
   }
@@ -43,7 +43,7 @@ const p = yield [`locate`, e];
 if ((yield ['dist', e]) >= 2)
   yield yield ['Move', p, 1, e.id !== last ? e : null];
 if (e.name !== last)
-  yield yield ['act attacking', e, p];
+  yield yield ['act ATTACK', e, p];
 last = e.name;
 yield yield ['attack', e];
 
