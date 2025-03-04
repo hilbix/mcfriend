@@ -1,6 +1,8 @@
 // Suppply BOT with certain standard items
 //
 // [item=count...] like 'get item=count', but if only fetches until count is reached
+//
+// XXX TODO XXX this currenlty freaks out if something is missing completely
 
 if (!_.length)
   _	= '*_sword *_axe torch=50'.split(' ');
