@@ -8,7 +8,7 @@ const loc = yield [
   , 1: 'player'
   , 2: _[0] === 'sign' ? 'sign' : `wtf Please start sign search with "sign" and not`
   , 3: 'pos'
-  }[_.length] ?? `wrf wrong number of arguments ${_.length}:`
+  }[_.length] ?? `wtf wrong number of arguments ${_.length}:`
   , _
   ];
 
