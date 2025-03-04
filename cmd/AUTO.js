@@ -17,10 +17,11 @@ yield yield ['drop'];
 // The right thing is a list of creatures to automatically attack with priority.
 // Then register the list and trigger autoattack in case such a creature shows up.
 if (yield ['set conf:stop'])
-  yield 'autostart disabled (conf:stop)';
+  yield 'AUTOSTART disabled (conf:stop)';
 else
-  for (const _ of 'attack take tree harvest chop'.split(' '))
-    yield [`in auto:${_}:enabled ${_}`];
+  for (const _ of (yield ['set auto:']).split(' '))
+    if ((yield [`set auto:${_}:bot:${ME}`]) && !(yield [`set auto:${_}:stop`]))
+      yield [`in auto:${_}:start ${_}`];
 
 return 'AUTOSTART ok';
 
