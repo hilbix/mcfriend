@@ -13,7 +13,7 @@ for (let retry=2;; retry--)
     const w = Array.from(yield ['invs']).filter(isTool);
     if (w.length)
       return yield ['equip hand', w[0]];	// Equip tool already in inventory
-    if (wtf<0)
+    if (retry<0)
       break;
     yield ['supply', `stone_${tool}`];
   }
