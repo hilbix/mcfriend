@@ -542,9 +542,16 @@ class CTX
     {
       this.#abi		= abi;
       this.#filename	= filename;
+
+      // XXX TODO XXX: these should be unmutable
+      this.ME		= abi._.botname;
       this.console	= console;			// output vm's console to our console here
       this.sleep	= Sleep;
+      this.fromJ	= fromJ;
       this.toJ		= toJ;
+      this.OB		= OB;
+
+      // XXX TODO XXX: THIS SHOULD GO INTO SOME AUTOLOADED LIB!
       this.itemFilter	= function*(_)
         {
           if (!_)
@@ -654,6 +661,10 @@ class Item extends My	// no _pos
   // following must be improved:
   get weapon()		{ return this._ && this._?.name.endsWith('_sword') }
   get axe()		{ return this._ && this._?.name.endsWith('_axe') }
+  get valid()		{ return !!this._ }
+  get empty()		{ return !this._ }
+  get n()		{ return this._?.count ?? 0 }
+  get max()		{ return this._?.stackSize ?? 0 }
  };
 
 class Block extends My
@@ -689,7 +700,23 @@ class Container extends My
         console.error('WITHDRAW', e);
       }
     }
- };
+  };
+
+class Recipe extends My
+  {
+  #abi;
+  constructor(abi,..._)	{ this.#abi = abi; super(..._) }
+  get id()		{ return `Recipe ${this._.id}` }
+  toString()		{ return this._ ? this.id : `(no container)` }
+  input()
+    {
+      return this._.delta.filter(_ => _.count<0).map(_ => this.#abi.itemById(_.id, -_.count));
+    }
+  output()
+    {
+      return this._.delta.filter(_ => _.count>0).map(_ => this.#abi.itemById(_.id,  _.count));
+    }
+  };
 
 class Survey
   {
@@ -1105,8 +1132,15 @@ class Abi	// per spawn instance for bot
       this.actcache.push(t);
       src.tell(t);
     }
-  running(src)
+  running(src, c)
     {
+      if (c[0][0] === '!')
+        c[0]	= c[0].slice(1);
+      if (!c[0].length)
+        c.shift();
+      if (c.length)
+        {
+        }
       for (const _ of Survey.dump())
         src.tell(`#B ${_}`);
       const time = this._.late.time;
@@ -1310,17 +1344,25 @@ class Abi	// per spawn instance for bot
       const l	= (yield* (c[0] ?? new Pos(this.B.entity.position)).locate()).vec();
       return this.B.activateBlock(this.B.blockAt(l));
     }
+  *Crecipe([table,item])
+    {
+      return this.B.recipesAll(item.type, item.meta, table.type).map(_ => new Recipe(this, _));
+    }
+  async *Ccraft([table,recipe,count])
+    {
+      return await this.B.craft(recipe._, (count|0)||1, table._);
+    }
 
 
   ////////////////////////////////////////////////////////////////////////////////////////////////
   // Assorted helpers, may vanish
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
+  itemByNr(i,c)		{ return new Item(new this.B.ITEM(i|0, c|0)) }
   *items(i, count)
     {
       if (i instanceof Item) return yield i;
-      const get = _ => { const i = new this.B.ITEM(_, count|0); const r = new Item(i); return r }
-      if (i|0) return yield get(i|0);
+      if (i|0) return yield this.itemByNr(i, count);
       if (!isString(i)) throw `unknown item spec: ${i}`;
       const have = {};
       for (const _ of this.theList(i, 'items'))
@@ -1333,7 +1375,7 @@ class Abi	// per spawn instance for bot
           if (have[id]) continue;
           have[id] = true;
 
-          yield get(id);
+          yield this.itemByNr(id, count);
         }
       if (!Object.keys(have).length)
         throw `unknown item: ${i}`;
@@ -1417,17 +1459,19 @@ class Abi	// per spawn instance for bot
           const p	= _ ? `${b}${_}:` : b;
           const x	= [];
           for (const [k,v] of Object.entries(o))
-            if (!Object.keys(v).length)
+            {
+              if (Object.keys(v).length)
+                yield* rec(v,k, p);
               x.push(k);
-            else
-              yield* rec(v,k, p);
+            }
           if (!x.length)
             return true;		// set but emtpy, assume boolean true
           if (p)
             yield [p].concat(x);
-          return x.join(' ');
+          return x.sort().join(' ');
         }
     }
+  // XXX TODO XXX implement outside!
   async *Ccopy(c, src)
     {
       const dest	= c.shift();
@@ -1454,21 +1498,25 @@ class Abi	// per spawn instance for bot
   // set list[:sublist] [+-=]value
   *Cset(c)
     {
-      const x		= c.shift();
-      const r		= this._set(x, c.length);
+      const t		= c.shift();
+      const r		= this._set(t, c.length);
       const n		= r.next();
       const [p,d,m]	= n.value;
+      const had		= OB();
 
       if (!c.length)
         {
           if (!(m in d))
             return this._.log('#missing entry', p);
+          const flag = t?.endsWith(':');
           for (;;)
             {
               const x	= r.next();
               if (x.done)
-                return x.value;		// return value
-              yield x.value.join(' ');
+                return flag && had.length ? Object.keys(had).concat(x.value).join(' ') : x.value;	// return value
+              if (!flag)
+                yield x.value.join(' ');
+              had[x.value[0].split(':',1)[0]] = true;
             }
         }
 
@@ -1477,6 +1525,8 @@ class Abi	// per spawn instance for bot
       while (c.length)
         {
           const [_,x]	= VAL(c.shift());
+          if (x.includes(':'))
+            throw `cannot use : in list values: ${x}`;
           switch (_)
             {
             case '-':	delete v[x];		break;
@@ -1503,7 +1553,7 @@ class Abi	// per spawn instance for bot
       const r = OB();
       for (const i of this.B.inventory.items())
         {
-	  // XXX TODO XXX remove following, this should be done outside
+          // XXX TODO XXX remove following, this should be done outside
           if (this._.search('item', i.name,        'keep')) continue;
           if (this._.search('item', i.displayName, 'keep')) continue;
 //          CON(i);
@@ -1594,20 +1644,32 @@ class Abi	// per spawn instance for bot
       return r.sort((a,b) => a.dist < b.dist);
     }
 
+  token(..._)	{ return `${this._tokenr = (this._tokenr|0)+1}_${toJ(_).replace(/[^a-zA-Z0-9]/g,'_')}_${Date.now()}` }
+
   getas(entity, json)	// Get output of /execute as ENTITY tellraw bot [JSON]
     {
-      this._getas	= (this._getas|0)+1;
-      const token	= `${Date.now()}_${this._getas}_${entity}`;
-      this.chat(`/execute unless entity ${entity} run tellraw ${this._.botname} "return ${token} not found"`);
-      this.chat(`/execute as ${entity} run tellraw ${this._.botname} ["return ${token} ",${toJ(json)}]`);
-      return this.addwant(2000, token).p;
+      const w	= this.addwant(2000, entity);
+      this.chat(`/execute unless entity ${entity} run tellraw ${this._.botname} "return ${w.t} not found"`);
+      this.chat(`/execute as ${entity} run tellraw ${this._.botname} ["return ${w.t} ",${toJ(json)}]`);
+      return w.p;
     }
-  addwant(timeout, token)
+  addwant(timeout, ..._)
     {
-      const p	= this._want[token]	= PO();
-      const t	= setTimeout(p.k, timeout, `timeout: ${token}`);
-      p.p.catch(console.error).finally(() => { clearTimeout(t); delete this._want[token] });
+      const t	= this.token(_);
+      const p	= this._want[t]	= PO();
+      p.t	= t;
+      const w	= setTimeout(p.k, timeout, `timeout: ${t}`);
+      p.p.catch(console.error).finally(() => { clearTimeout(w); delete this._want[t] });
       return p;
+    }
+  async *Creturn(c)
+    {
+      const e	= c.shift();
+      const s	= c.join(' ')
+      const w	= this.addwant(10000,e);
+      this.chat(`/execute unless player ${e} run tellraw ${this._.botname} "return ${w.t} #not found: ${e}"`);
+      this.chat(`/execute if entity ${e} run tell ${e} return ${w.t} ${s}`);
+      return await w.p;
     }
   // help	shows all help keywords
   // help kw	shows all known works according to keyword
@@ -2070,7 +2132,7 @@ class Bot	// global instance for bot
       src = this.src(src);
 
       if (c[0][0] === '!')
-        return this.abi.running(src);
+        return this.abi.running(src, c);
 
       c[0] = c[0].toLowerCase();
       if (/[^a-z]/.test(c[0])) return src.tell(`#invalid command: ${c[0]}`);
