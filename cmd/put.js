@@ -1,1 +1,4 @@
-return ['PUT',_]
+
+yield ['CACHE clear'];
+return yield ['PUT',_]
+
