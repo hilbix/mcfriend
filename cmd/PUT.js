@@ -56,7 +56,13 @@ for (const i of yield ['invs'])
     {
 //      yield ['act PUT', i, i.id, keep[i.id]];
       hadsign = false;
-      if ((yield* put(i, 'store', i.id)) || (yield* put(i, 'put', i.id)) || (yield* put(i, 'overflow', i.id)) || (yield* put(i, 'toomuch', i.id)) || (yield* put(i, 'destroy', i.id)))
+      if ((yield* put(i, 'store', i.id))
+       || (yield* put(i, 'put', i.id))
+       || (yield* put(i, 'fill', i.id))
+       || (yield* put(i, 'overflow', i.id))
+       || (yield* put(i, 'toomuch', i.id))
+       || (yield* put(i, 'destroy', i.id))
+         )
         yield ['wait', 5];
       else if (hadsign)
         much.push(i);
