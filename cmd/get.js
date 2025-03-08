@@ -20,7 +20,7 @@ if (!Object.keys(l).length) return [`act please state what to get`];
 
 for (const [k,v] of l)
   {
-    const signs = [].concat(yield ['sign', 'empty', k], yield ['sign', 'get', k], yield ['sign', 'store', k]).filter(_ => _ && _.valid);
+    const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
         yield ['act no sign found for', _];
@@ -32,7 +32,7 @@ for (const [k,v] of l)
 //        yield ['act', s];
 //        const p = yield ['locate', s];
 //        yield ['act', p];
-        const d = (yield ['block', s, 6]).filter(_ => _.id === 'chest');
+        const d = (yield ['block', s, 6]).filter(_ => _.container);
         if (d.length !== 1) return ['act invalid sign', s, d.length];
 
         // move to the chest
@@ -54,7 +54,11 @@ for (const [k,v] of l)
 
         // take the item and close
         try {
-          yield ['take', r, v[0], n];
+	  const t	= c.container;
+	  if (t === true)
+            yield ['take', r, v[0], n];
+	  else
+	    yield ['take', t];
         } catch (e) {
         }
         yield ['OPEN'];
