@@ -261,19 +261,6 @@ const MESS = _ =>
       yield 'no bed found';
     }
 
-  QBdiggingCompleted(_)	{ this.digok('o', _) }
-  QBdiggingAborted(_)	{ this.digok('k', _) }
-  digok(fn, block)
-    {
-      const p = POS(block.position);
-      const d = this.digs[p];
-      if (d)
-        {
-          delete this.digs[p];
-          d[fn](block);
-        }
-    }
-
   QBgoal_reached(..._)	{ this.moved('o', _) }
   QBpath_stop(..._)	{ this.moved('k', _) }
 
@@ -283,11 +270,6 @@ const MESS = _ =>
   QBtime(..._)			{ T.add(this.tick()) }
   QBchunkColumnLoad(_)		{ T.add(this.chunk_scan(_)) }
   QWblockUpdate(..._)		{ console.log('WBU', _) }
-  QBblockUpdate(orig, now)
-    {
-      if (isSign(now) || isSign(orig)) T.add(this.sign(now));
-      orig.name === now.name || IGN(orig) & IGN(now) & 4 || console.log('BBU', POS(orig.position), orig.name, now.name);
-    }
 
   QBentityEatingGrass(x) { console.log('grass', ENTITY(x)) }
   QBhealth(..._)
@@ -303,13 +285,6 @@ const MESS = _ =>
     {
       if (this._sleep) return yield 'already sleeping';
       yield* this.doSleep()
-    }
-  *Bstop(c)
-    {
-      if (c.length)
-        B.pathfinder.setGoal(null);
-      else
-        B.pathfinder.stop();
     }
 
   //breath is too buggy! QBbreath(..._) { const x = inc('breath'); track('oxygenLevel', console.log, 'breath', x); }
@@ -544,6 +519,7 @@ class CTX
       this.#filename	= filename;
 
       // XXX TODO XXX: these should be unmutable
+      this.__ABI__	= abi;				// XXX TODO XXX remove this!
       this.ME		= abi._.botname;
       this.console	= console;			// output vm's console to our console here
       this.sleep	= Sleep;
@@ -705,17 +681,11 @@ class Container extends My
 class Recipe extends My
   {
   #abi;
-  constructor(abi,..._)	{ this.#abi = abi; super(..._) }
+  constructor(abi,..._)	{ super(..._); this.#abi = abi }
   get id()		{ return `Recipe ${this._.id}` }
   toString()		{ return this._ ? this.id : `(no container)` }
-  input()
-    {
-      return this._.delta.filter(_ => _.count<0).map(_ => this.#abi.itemById(_.id, -_.count));
-    }
-  output()
-    {
-      return this._.delta.filter(_ => _.count>0).map(_ => this.#abi.itemById(_.id,  _.count));
-    }
+  get input()	{ return this._.delta.filter(_ => _.count<0).map(_ => this.#abi.itemByNr(_.id, -_.count)) }
+  get output()	{ return this._.delta.filter(_ => _.count>0).map(_ => this.#abi.itemByNr(_.id,  _.count)) }
   };
 
 class Survey
@@ -915,7 +885,7 @@ class Abi	// per spawn instance for bot
           const n = t[0].split(' ');
 
           if (this.inList(n.shift(), this._.botname))
-            return [n.join(' '), t[0], t[1], t[2]];
+            return [n.join(' '), t[0], t[1], t[2], this.B.game.dimension];
         });
     }
 
@@ -1254,6 +1224,7 @@ class Abi	// per spawn instance for bot
           });
 
       // .id	this.state.sign[.id] (id is stringified position)
+      // .dim	dimension
       // .text	texts (lines) of sign
       // .stat	sign status
       // .valid	sign loaded and correct
@@ -1346,6 +1317,7 @@ class Abi	// per spawn instance for bot
     }
   *Crecipe([table,item])
     {
+      console.error('RECIPE', item.type, item.meta, table.type);
       return this.B.recipesAll(item.type, item.meta, table.type).map(_ => new Recipe(this, _));
     }
   async *Ccraft([table,recipe,count])
@@ -1591,6 +1563,7 @@ class Abi	// per spawn instance for bot
 
   // yields:
   // .id	this.state.sign[.id] (id is stringified position)
+  // .dim	dimension
   // .text	texts (lines) of sign
   // .stat	sign status
   // .valid	sign loaded and correct
@@ -1599,6 +1572,7 @@ class Abi	// per spawn instance for bot
   get known_signs()
     {
       const self = this;
+      const d = this.B.game.dimension;
       return function*(...type)
         {
           const match = this.match(type);
@@ -1606,6 +1580,7 @@ class Abi	// per spawn instance for bot
             {
               if (!s) continue;		// deleted
               if (!match(s[2])) continue;
+	      if (s[4] !== d) continue;
 
               const x = self.rem.sign[k];
 
@@ -1616,15 +1591,16 @@ class Abi	// per spawn instance for bot
               if (isSign(b))
                 {
                   const t = b.signText.split('\n');
-                  ok = t[0] === s[1] && t[1] === s[2] && t[2] === s[3];
+                  ok	= t[0] === s[1] && t[1] === s[2] && t[2] === s[3] && d === s[4];
                 }
-              yield { id:k, text:s, stat:x, valid:ok, pos:v, block:b }
+              yield { id:k, text:s, stat:x, valid:ok, pos:v, block:b, dim:s[4] }
             }
         }
     }
   // find sign with given type and optional match type
   // returns:
   // .id	this.state.sign[.id] (id is stringified position)
+  // .dim	dimension
   // .text	texts (lines) of sign
   // .stat	sign status
   // .valid	sign loaded and correct
