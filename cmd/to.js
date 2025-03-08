@@ -2,9 +2,14 @@
 //
 // returns babble (ignore if not wanted)
 
-this.last	??= {};
+this.hist	??= [];
+
+const pos	= yield ['pos', src];
+//hist		= hist.filter(_ => pos.
 
 const have = [];
+
+//if (!_.length)
 
 return (yield* check(_)) || (yield* check(['store', 'get', 'overflow', 'toomuch', 'destroy', 'note'], _)) || (yield* sel()) || ['act not found', _];
 
@@ -33,6 +38,6 @@ function* check(t, ..._)
 function* jump(_)
 {
   yield yield ['say /tp', src._, (yield ['locate', _]).id];
-  return ['act to', _];
+  return ['act to', _, have.flat().length];
 }
 
