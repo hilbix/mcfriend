@@ -71,8 +71,9 @@ try {
           const r = yield ['block', _.pos(0, -1, 0)];
           switch (r.id)
             {
-            default: 	throw `tree ${_} not rooted: ${r.id}`;
+            default: 	throw `tree ${_} ${_.pos()} not rooted: ${r.id}`;
             case 'dirt':	break;
+            case 'coarse_dirt':	break;
             }
           d.push([yield ['dist',_], _]);
           const v = _.pos().vec();
