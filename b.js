@@ -110,40 +110,6 @@ const patternMatch = m =>
 
 /*
 
-const ERR = _ => (...e) => { D('ERR', e); console.error(...e); Chat('E', _, ...e) }
-
-const MESS = _ =>
-  {
-    const r = [];
-    const run = _ =>
-      {
-        if (_ === void 0) return;
-        //console.warn('M', DUMP(_, 1));
-        if (isArray(_))
-          {
-            for (const x of _)
-              {
-                run(x);
-                r.push(' ');
-              }
-            return;
-          }
-        if ('object' === typeof _)
-          {
-            r.push(_.translate);
-            if (_.json) return run(_.json);
-            if (_.with) return run(_.with);
-
-            r.push(_['']);
-            r.push(_.text);
-            return run(_.extra);
-          }
-        console.error('WTF M', typeof _, _);
-      }
-    run(_);
-    return r.join('');
-  }
-
       const extract = (a,_) =>	// yes, this is a bit weird
         {
           if (_ === void 0) return a;
@@ -198,12 +164,6 @@ const MESS = _ =>
         return n ? r.slice(0,n) : r;
     }
 
-  tick()
-    {
-      D('tick');
-      this.tick_autosleep();
-//      this.tick_autoattack();
-    }
   async tick_autosleep()
     {
       D('tick as');
@@ -513,6 +473,9 @@ class CTX
   {
   #abi; #filename;
 
+  get dimension()	{ return this.#abi.B?.game?.dimension }
+  get ME()		{ return this.#abi._.botname }
+
   constructor(abi, filename)
     {
       this.#abi		= abi;
@@ -520,7 +483,6 @@ class CTX
 
       // XXX TODO XXX: these should be unmutable
       this.__ABI__	= abi;				// XXX TODO XXX remove this!
-      this.ME		= abi._.botname;
       this.console	= console;			// output vm's console to our console here
       this.sleep	= Sleep;
       this.fromJ	= fromJ;
@@ -1223,6 +1185,7 @@ class Abi	// per spawn instance for bot
             return t ?? notEmpty(this.findList(_).map(findMatch).flat());
           });
 
+      // (distance) sorted list:
       // .id	this.state.sign[.id] (id is stringified position)
       // .dim	dimension
       // .text	texts (lines) of sign
@@ -1236,13 +1199,19 @@ class Abi	// per spawn instance for bot
       if (signs?.length)
         return signs.map(_ => new Sign(_));
     }
-  // Get the block at a given position
-  // Options are the 2nd argument:
+  // Get the block at a given position.
+  // To get a block offset, use yield ['block', b.vec(0,1,0)] or similar
+  //
+  // If 2 args and 2nd is a locateable (sign) it returns the inner blocks of the two given areas
+  // If 4 args, it is an offset to the given blocks around the block
+  //
+  // Else if the 2nd arg is a number:
+  //
   // 6:		get the 6 adjancent blocks around the given block
   // 7:		as 6 but with block
-  // 18:	get all surrounding blocks without the diagonals
-  // 19:	as 18 but with the block
-  // 26:	get all surrounding blocks
+  // notyet 18:	get all surrounding blocks without the diagonals
+  // notyet 19:	as 18 but with the block
+  // notyet 26:	get all surrounding blocks
   // 27:	get the full cube
   async *Cblock(c)
     {
@@ -1580,7 +1549,7 @@ class Abi	// per spawn instance for bot
             {
               if (!s) continue;		// deleted
               if (!match(s[2])) continue;
-	      if (s[4] !== d) continue;
+              if (s[4] !== d) continue;
 
               const x = self.rem.sign[k];
 
@@ -2122,7 +2091,7 @@ class Bot	// global instance for bot
       this.stop();
       const nr = ++this.nr;
 
-      this.Chat('start', nr);
+      this.Chat('start', nr, this.B.game.dimension);
 
 //      Write('DATA.json', toJ(DATA));
 
@@ -2156,8 +2125,7 @@ class Bot	// global instance for bot
   start()	{ return this._ ??= this._start() };
   async _start()
     {
-      let	o;
-const abi	= this.abi	= new Abi(this);
+      const abi	= this.abi	= new Abi(this);
 
       // XXX TODO XXX: Queues should be autodetected
       const r	= [this.in, this.run, this.say, this.out, this.chunk, this.scan];	// .in must be first, followed by .run
@@ -2165,7 +2133,7 @@ const abi	= this.abi	= new Abi(this);
       let p = 65;
       // XXX TODO XXX: Priorities shall be implicite
       do
-        {
+        try {
           while (this.run.length>1) this.run.next()[1](); // ignore all this.run but the last queued one
           if (this.run.length)
             x[1] && x[1][1]();				// stop current this.run if anotherone waits
@@ -2212,7 +2180,11 @@ const abi	= this.abi	= new Abi(this);
             X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
           await Promise.any(a);
           p	= 162 - p;
+        } catch (e) {
+          console.error('ERROR', e);
+          break;
         } while (this.abi === abi);
+      console.error('STOP', this.abi === abi);
     }
   };
 
