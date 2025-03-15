@@ -644,8 +644,8 @@ class Recipe extends My
   {
   #abi;
   constructor(abi,..._)	{ super(..._); this.#abi = abi }
-  get id()		{ return `Recipe ${this._.id}` }
-  toString()		{ return this._ ? this.id : `(no container)` }
+  get id()		{ return `Recipe ${this._.name}` }
+  toString()		{ return this._ ? this.id : `(missing recipe)` }
   get input()	{ return this._.delta.filter(_ => _.count<0).map(_ => this.#abi.itemByNr(_.id, -_.count)) }
   get output()	{ return this._.delta.filter(_ => _.count>0).map(_ => this.#abi.itemByNr(_.id,  _.count)) }
   };
@@ -1492,12 +1492,18 @@ class Abi	// per spawn instance for bot
     {
       const test = this.match(c);
       const r = OB();
+      const had = OB();
       for (const i of this.B.inventory.items())
         {
-          // XXX TODO XXX remove following, this should be done outside
-          if (this._.search('item', i.name,        'keep')) continue;
-          if (this._.search('item', i.displayName, 'keep')) continue;
-//          CON(i);
+          if (!had[i.name])
+            {
+              // only keep 1 stack
+              had[i.name]	= 1;
+            // XXX TODO XXX remove following, this should be done outside
+              if (this._.search('item', i.name,        'keep')) continue;
+              if (this._.search('item', i.displayName, 'keep')) continue;
+            }
+//        CON(i);
           if (!test(i.name) && !test(i.displayName)) continue;
           //yield `#dropping ${i.count} ${i.name} ${i.displayName}`;
           await this.B.tossStack(i);
