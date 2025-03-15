@@ -14,6 +14,8 @@
 //
 // The bot only crafts until the chest is full.
 
+this.FAIL ??= {};
+
 function* scan_todo(s)
 {
   const what	= s.text[3];
@@ -26,9 +28,8 @@ function* scan_todo(s)
       items[i.id] = i;
     }
 
-  const r	= [0, items];
-
   const b	= (yield ['block', s, 6]).filter(_ => _.container);
+  const r	= [0, items, b];
   if (b.length !== 1)
     {
       yield ['act #container? ', s];
@@ -70,7 +71,7 @@ function* autocraft()
     {
       if (!s.text[3])
         continue;
-      const [free,items] = yield* scan_todo(s);
+      const [free,items,chest] = yield* scan_todo(s);
 
       // try to put some equal number of everything into the box
       //const k	= Object.keys(items);
@@ -83,21 +84,22 @@ function* autocraft()
         {
           v.want	= (v.want ?? 0) + Math.floor(free / all.length) * v.max;
 //          console.error('===========', k, v.want, free, all.length, v.max);
-	}
-      dests.push([s,items]);
+        }
+      dests.push([chest,items]);
     }
 
 //dests.forEach((s,i]) => console.error('AUTOCRAFT', `${s.vec()}`, Object.entries(i).map(([k,v]) => `${k}:${v.id} want:${v.want} have:${v.have} free:${v.free} slots:${v.slots}`)));
 
-  for (const [sign,items] of dests)
+  for (const [chest,items] of dests)
     for (const [k,v] of Object.entries(items))
       if (v.want)
         {
-	  console.error('AUTOCRAFT', k, v);
-          yield yield ['CraftItem', v, v.want];
-	  const c = yield ['OPEN',sign];
-          yield yield ['put', c, v, v.want];
-	  yield ['OPEN'];
+          console.error('AUTOCRAFT', k, v);
+          const n = yield ['CraftItem', v, v.want];
+          if (!n) continue;
+          const c = yield ['OPEN',chest];
+          yield yield ['put', c, v, n];
+          yield ['OPEN'];
         }
 }
 
@@ -110,10 +112,10 @@ function* craftin()
       const w	= yield ['OPEN',c];
       for (const i of w.items())
         {
-	  if (!i.id) continue;
+          if (!i.id) continue;
           console.error('TAKE', yield ['take', w, i, i.n]);
-	  to[i.name] = (to[i.name]|0) + i.n;
-	}
+          to[i.name] = (to[i.name]|0) + i.n;
+        }
       yield yield ['OPEN'];
       yield yield ['wait'];
       for (const [k,v] of Object.entries(to))
@@ -130,10 +132,13 @@ yield yield ['drop'];
 if (_.length)
   for (const x of _)
     {
-      const n = x.split('=');
-      for (const y of yield ['item', n[0]])
-        yield yield* craft(y, (n[1]|0)||1);
-      yield yield ['drop'];
+      const k = x.split('=');
+      for (const i of yield ['item', k[0]])
+        {
+          const n = yield ['CraftItem', i, (k[1]|0)||1];
+          yield ['act crafted', n|0, i];
+          yield yield ['PUT'];
+        }
     }
 else
   {
