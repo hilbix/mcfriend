@@ -23,6 +23,7 @@ const craftable =
   , bone_meal:		['bone_block']
   , bamboo:		['bamboo_block']
   , bamboo_block:	['bamboo_planks']
+  , wheat:		['hay_block']
   };
 
 const m = _[0];
