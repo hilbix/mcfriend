@@ -25,7 +25,7 @@ for (const x of Object.values(order))
         const a	= x.shift();
         if (!x.length)
           {
-            yield ['act missing second sign for', a];
+            yield ['act missing second sign for', a.text[1], a];
             break;
           }
         // find the nearest other sign
