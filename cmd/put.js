@@ -1,4 +1,5 @@
 
 yield ['CACHE clear'];
-return yield ['PUT',_]
+yield yield ['PUT',_]
+yield yield ['act put done']
 
