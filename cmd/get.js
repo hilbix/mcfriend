@@ -18,6 +18,8 @@ const l = _.length
 
 if (!Object.keys(l).length) return [`act please state what to get`];
 
+let ok = 0;
+
 for (const [k,v] of l)
   {
     const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
@@ -54,11 +56,11 @@ for (const [k,v] of l)
 
         // take the item and close
         try {
-	  const t	= c.container;
-	  if (t === true)
+          const t	= c.container;
+          if (t === true)
             yield ['take', r, v[0], n];
-	  else
-	    yield ['take', t];
+          else
+            yield ['take', t];
         } catch (e) {
         }
         yield ['OPEN'];
@@ -68,11 +70,14 @@ for (const [k,v] of l)
         if ((h|0) >= n)
           {
             yield ['act got', h, v[0]];
+            ok++;
             break;
           }
       }
   }
 
+if (l.length !== ok)
+  return ['act unable to get', l];
 
 //console.error('GET', signs);
 
