@@ -8,7 +8,7 @@ for (let cnt=0;; cnt++)
   {
     yield yield ['drop'];
     yield yield ['supply'];
-    if (!yield ['have *sword'])
+    if (!(yield ['have *sword']))
       yield yield ['CRAFT stone_sword'];
     const x = yield ['Attack', _];
     if (x !== void 0)
