@@ -2,13 +2,17 @@
 //
 // This runs when the bot joins
 
-await sleep(1);
+yield ['wait 20'];
 
-yield ['act AUTOSTART', _];
+//yield ['act AUTOSTART', _];
 yield ['hide Error: destination full'];
 
 yield yield ['stop'];
 yield yield ['PUT'];
+
+// enter the right dimension
+for (const dim = (yield [`set conf:bot:${ME}:dim`]) || 'world'; yield ['PORT', dim]; yield ['wait 100']);
+
 yield yield ['home'];
 yield yield ['drop'];
 
