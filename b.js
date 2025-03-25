@@ -267,18 +267,21 @@ const	DUMP	= (_,d) =>
 const INV	= _ => v3(-_.x, -_.y, -_.z);	// inverse vector (of course this is missing in Vec3!)
 const DIR	= _ =>				// Minecraft directions
   {
-    switch (_)
-      {
-      case 'u':	return v3( 0, 1,  0);		// up
-      case 'd':	return v3( 0,-1,  0);		// down
-      case 'w':	return v3(-1, 0,  0);		// west
-      case 'e':	return v3( 1, 0,  0);		// east
-      case 'n':	return v3( 0, 0, -1);		// north
-      case 's':	return v3( 0, 0,  1);		// south
-      }
-    return v3(0,0,0);
-  };
+    let x=0, y=0, z=0;
 
+    for (const a of _)
+      switch (a)
+        {
+	case 'r':	x= -x; y= -y; z= -z; continue;	// reverse
+        case 'u':	y += 1; continue;	// up
+        case 'd':	y -= 1; continue;	// down
+        case 'w':	x -= 1; continue;	// west
+        case 'e':	x += 1; continue;	// east
+        case 'n':	z -= 1; continue;	// north
+        case 's':	z += 1; continue;	// south
+        }
+    return v3(x,y,z);
+  };
 
 class Q
   {
@@ -309,10 +312,12 @@ class Q
   get iter()		{ const q=this.q; return function*() { for (const x of q) yield x } }
   };
 
+// This must be improved
 const isBed	= _ => B.isABed(_);
 const isSign	= _ => _?.name.endsWith('_sign');
 const isTree	= _ => _?.name.endsWith('_log');
 const isDirt	= _ => _?.name.endsWith('dirt');
+const isAir	= _ => _?.name === 'air' || _?.name.endsWith('_air');
 
 const isChesty	= _ => ChestType[_?.name];
 const isChestyFn= _ => { const c = isChesty(_); return !c || isString(c) ? () => c : c };
@@ -488,6 +493,7 @@ class CTX
       this.fromJ	= fromJ;
       this.toJ		= toJ;
       this.OB		= OB;
+      this.isAir	= isAir;
 
       // XXX TODO XXX: THIS SHOULD GO INTO SOME AUTOLOADED LIB!
       this.itemFilter	= function*(_)
@@ -1217,9 +1223,10 @@ class Abi	// per spawn instance for bot
     {
       const p	= yield* (c[0].locate ? c[0] : new Pos(...c[0])).locate();
 //      console.error('Block', p, c[0].toString());
-      if (c.length === 1) return new Block(this.B.blockAt(p.vec()));
+      const q	= _ => new Block(this.B.blockAt(_));
+      if (c.length === 1) return q(p.vec());
 
-      const delta = (...d) => d.map(_ => new Block(this.B.blockAt(p.vec(_.x, _.y, _.z))));
+      const delta = (...d) => d.map(_ => q(p.vec(_.x, _.y, _.z)));
       if (c.length === 2)
         {
           if (c[1] instanceof My)
@@ -1232,12 +1239,12 @@ class Abi	// per spawn instance for bot
                   for (const x of inner(f.x, t.x))
                     for (const y of inner(f.y, t.y))
                       for (const z of inner(f.z, t.z))
-                         yield new Block(B.blockAt(v3(x,y,z)));
+                         yield q(v3(x,y,z));
                 }
             }
           switch (c[1])
             {
-            default:	throw `Block ${c}???`;
+            default:	return Array.from(c[1]).map(_ => q(p.dir(_)));
             case 6:	return delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
             case 7:	return delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
             case 27:	return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
@@ -1251,7 +1258,7 @@ class Abi	// per spawn instance for bot
        for (let a=-x; a<=x; a++)
          for (let b=-y; b<=y; b++)
            for (let c=-z; c<=z; c++)
-             r.push(new Block(this.B.blockAt(p.vec(a,c,b))));
+             r.push(q(p.vec(a,c,b)));
         return r;
     }
 //  async *Copenchest(c)	{ return new Container(await this.B.openChest(c[0]._)) }
@@ -1272,6 +1279,13 @@ class Abi	// per spawn instance for bot
   *Cslot(c)		{ return (this.B.currentWindow || this.B.inventory).slots[c[0]] }
   async *Cput([w,i,n])	{ return await w.put(i, n) }
   // place at block p with the given vector, by default onto the block below
+  async *Cplacer([p,dir])
+    {
+      const d	= DIR(dir??'d');
+      const l	= (yield* (p ?? new Pos(this.B.entity.position)).locate()).vec(d);
+      const b	= this.B.blockAt(l);
+      return await this.B._genericPlace(b, INV(d), { swingArm: 'right' });
+    }
   async *Cplace([p,dir])
     {
       const d	= DIR(dir??'d');
@@ -1429,9 +1443,7 @@ class Abi	// per spawn instance for bot
               console.log('copy', x,y);
               await tell(`set ${a}:${x} +${y.join(' +')}`);
               await tell(`set ${a}:${x} +${y.join(' +')}`);
-              await tell(`set ${a}:${x} +${y.join(' +')}`);
-              await tell(`set ${a}:${x} +${y.join(' +')}`);
-              await tell(`set ${a}:${x} +${y.join(' +')}`);
+              await this.B.waitForTicks(1);
             }
         }
     }
@@ -1521,7 +1533,7 @@ class Abi	// per spawn instance for bot
   // This shall vanish ASAP
   ////////////////////////////////////////////////////////////////////////////////////////////////
 
-  *Cmove(c)		{ this._.goNear((yield* c[0].locate())._, c[1]|0) }
+  *Cmove(c)		{ this._.goNear((yield* c[0].locate()).vec(0,0.6,0), c[1]|0) }
   *Carrive(c)		{ return this._.MOVE() }		// automatically awaited
 
 
