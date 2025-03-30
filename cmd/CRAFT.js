@@ -105,8 +105,11 @@ function* autocraft()
 
 function* craftin()
 {
+  const cc = yield ['CHEST', 'craftin'];
+  if (!cc) return;
+
   let ok = false;
-  for (const c of yield ['CHEST', 'craftin'])
+  for (const c of cc)
     {
       const to	= {};
       const w	= yield ['OPEN',c];
