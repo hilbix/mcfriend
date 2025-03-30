@@ -625,6 +625,7 @@ class Sign extends My
   get _vec()		{ return this._.pos }
   get valid()		{ return this._?.valid }
   get text()		{ return this._.text }
+  get dim()		{ return this._.dim }
   };
 
 class Container extends My
@@ -1150,7 +1151,7 @@ class Abi	// per spawn instance for bot
     }
   *Centities(c)		// list all entities of a given match (like: {type:'hostile'})
     {
-      const me	= this.B.entity;
+//      const me	= this.B.entity;
       const match = this.matcher(c) // , _ => _.type !== 'player');
 
       const r = [];
