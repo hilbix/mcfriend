@@ -7,7 +7,7 @@ this.wait ??= 0;
 function* nearest(_) { const e = yield ['nearest', _]; if (e.id) return e }
 function* find(...a) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}); if (e !== void 0) return e } }
 
-const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','slime','ghat','magma_cube']));
+const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
 
 if (!e)
   {
