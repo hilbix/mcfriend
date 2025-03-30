@@ -19,3 +19,4 @@ for (let retry=2;; retry--)
   }
 
 throw `missing ${tool}`;
+
