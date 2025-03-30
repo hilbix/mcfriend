@@ -8,5 +8,8 @@ try {
 }
 if (!_.length)
   yield ['in 50 craft'];
+
+yield ['home'];
+
 return ['act craft end', _];
 
