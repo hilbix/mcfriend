@@ -43,7 +43,7 @@ for (const x of r)
 
             yield yield err;
             yield yield ['act to craft', itm];
-            break outer;
+            continue outer;
           }
       }
 
