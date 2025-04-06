@@ -11,7 +11,7 @@ yield yield ['stop'];
 yield yield ['PUT'];
 
 // enter the right dimension
-for (const dim = (yield [`set conf:bot:${ME}:dim`]) || 'world'; yield ['PORT', dim]; yield ['wait 100']);
+for (const dim = (yield [`set conf:bot:${ME}:dim`]); dim && (yield ['PORT', dim]); yield ['wait 100']);
 
 yield yield ['home'];
 yield yield ['drop'];
@@ -23,7 +23,7 @@ yield yield ['drop'];
 if (yield ['set conf:stop'])
   yield 'AUTOSTART disabled (conf:stop)';
 else
-  for (const _ of (yield ['set auto:']).split(' '))
+  for (const _ of (yield ['set auto:'])?.split(' ') ?? [])
     if ((yield [`set auto:${_}:bot:${ME}`]) && !(yield [`set auto:${_}:stop`]))
       yield [`in auto:${_}:start ${_}`];
 
