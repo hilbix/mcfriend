@@ -11,7 +11,7 @@ const have = [];
 
 //if (!_.length)
 
-return (yield* check(_)) || (yield* check(['store', 'get', 'overflow', 'toomuch', 'destroy', 'note'], _)) || (yield* sel()) || ['act not found', _];
+return (yield* check(_)) || (yield* check(['note', 'store', 'get', 'overflow', 'toomuch', 'destroy'], _)) || (yield* sel()) || ['act not found', _];
 
 function* sel()
 {
