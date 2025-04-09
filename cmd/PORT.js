@@ -41,12 +41,12 @@ for (const nether of p)
     return ['act entering', nether, 'failed'];
   }
 
-return ['no suitable portal to', _, 'found'];
+return ['act no suitable portal to', _, 'found'];
 
 function* scan(b, x,y,z, what)
 {
   let l	= b;
-  for (let t; t=(yield ['block', l.pos(x,y,z)]) && t?.name === what; l=t);
+  for (let t; (t=(yield ['block', l.pos(x,y,z)])) && t?.name === what; l=t);
   return l;
 }
 
