@@ -613,7 +613,7 @@ class Item extends My	// no _pos
 
 class Block extends My
   {
-  toString()		{ return this._ ? `Block ${this._.name}` : `(no block)` }
+  toString()		{ return this._ ? `Block ${this._.name} ${POS(this._.position)}` : `(no block)` }
   get _vec()		{ return this._.position }
   get container()	{ return CONTAINER[this.id] }
   };
