@@ -4,10 +4,12 @@
 this.last ??= void 0;
 this.wait ??= 0;
 
-function* nearest(_) { const e = yield ['nearest', _]; if (e.id) return e }
-function* find(...a) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}); if (e !== void 0) return e } }
+const nolava = fn => _ => !__ABI__.B.blockAt(_.position.offset(0,-1,0)).name.includes('lava');
+function* nearest(..._) { const e = yield ['nearest', nolava, _]; if (e.id) return e }
+function* find(a, ..._) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}, ..._); if (e !== void 0) return e } }
+function find2(...a) { return find(a) }
 
-const e = yield* find(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
+const e = yield* find2(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
 
 if (!e)
   {
