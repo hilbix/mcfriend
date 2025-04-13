@@ -5,8 +5,9 @@
 
 this.cache	??= {};
 
-const cmd	= _.shift();
-const tag	= _.shift();
+const	cmd	= _.shift();
+const	tag	= _.shift();
+let	id	= _.shift();
 
 switch (cmd)
   {
@@ -14,15 +15,14 @@ switch (cmd)
   case 'clear':	return cache={};
   }
 
-const id = (yield ['locate', _]).id;
-
-//yield ['act CACHE', tag, id, cache[id]?.[tag]];
+if (isMy(id))
+  id = (yield ['locate', id]).id;
 
 switch (cmd)
   {
   default:		throw `unknown ${cmd}`;
   case 'get':		return cache[tag]?.[id];
-  case 'set':		(cache[tag] ??= {})[id] = true; return;
+  case 'set':		(cache[tag] ??= {})[id] = _; return;
   case 'del':		delete cache[tag]?.[id]; return;
   }
 
