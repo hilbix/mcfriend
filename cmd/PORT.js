@@ -5,7 +5,10 @@
 
 const D	= { world:'overworld', nether:'the_nether' };
 const E = { overworld:'the_nether', the_nether:'overworld' };
-_[0]	= _.length ? D[_[0]] ?? c[0] : E[dimension];
+_[0]	= _.length ? D[_[0]] ?? _[0] : E[dimension];
+
+yield ['CACHE set current dim', _];
+
 if (dimension === _[0]) return;
 
 yield ['act I am in', dimension, 'and go to', _];
@@ -41,12 +44,11 @@ for (const nether of p)
     return ['act entering', nether, 'failed'];
   }
 
-return ['act no suitable portal to', _, 'found'];
+return ['act no suitable portal found to', _];
 
 function* scan(b, x,y,z, what)
 {
-  let l	= b;
-  for (let t; (t=(yield ['block', l.pos(x,y,z)])) && t?.name === what; l=t);
-  return l;
+  for (let t=b; (t=yield ['block', t.pos(x,y,z)])?.name === what; b=t);
+  return b;
 }
 
