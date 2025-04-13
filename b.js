@@ -494,6 +494,7 @@ class CTX
       this.toJ		= toJ;
       this.OB		= OB;
       this.isAir	= isAir;
+      this.isMy		= isMy;
 
       // XXX TODO XXX: THIS SHOULD GO INTO SOME AUTOLOADED LIB!
       this.itemFilter	= function*(_)
@@ -530,6 +531,8 @@ class Pos extends My
   constructor(x,y,z)	{ super(x instanceof My ? this._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
   };
+
+const isMy	= _ => _ instanceof My;
 
 const HOSTILE = { hostile:true, mob:true };
 class Entity extends My
