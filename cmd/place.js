@@ -5,8 +5,6 @@
 //console.log(__ABI__.B.game.dimension);
 //console.error(__ABI__.B.world);
 
-this.cache	??= {};
-
 for (const a of yield ['AREA place'])
   yield yield* area(a);
 
