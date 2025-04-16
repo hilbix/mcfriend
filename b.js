@@ -16,7 +16,7 @@ const first = (arr,match,...a) =>
         if (r !== void 0) return r;
       }
   };
-const notEmpty = a => a.length ? a : void 0;
+const nonVoidFlat = a => { const b=a.flat().filter(_ => _ !== void 0); return b.length ? b : void 0 };
 function* range(a,b) { a = a|0; b = b|0; if (a < b) for (let _=a; _ <= b; yield _++); else for (let _=b; _ <= a; yield _++); }
 function* inner(a,b) { a = a|0; b = b|0; if (a > b) [a,b] = [b,a]; if (a+1>=b) a--, b++; for (let _=a; ++_ < b; yield _); }
 
@@ -1187,13 +1187,9 @@ class Abi	// per spawn instance for bot
     {
       const type = c.shift();
       const find = _ => this.find_sign(type, (({text,pos}, d) => { if (patternMatch(text[3])(_)) return _ }));
-      const findMatch =_ => { const t = find(_); return t.length ? t : notEmpty(this._.match(_).map(find).flat()) };
+      const findMatch = _ => nonVoidFlat([find(_)]) ?? nonVoidFlat(this._.match(_).map(find));
       const signs = !c.length ? this.find_sign(type) :
-        first(c, _ =>
-          {
-            const t = findMatch(_);
-            return t ?? notEmpty(this.findList(_).map(findMatch).flat());
-          });
+        first(c, _ => findMatch(_) ?? nonVoidFlat(this.findList(_).map(findMatch)));
 
       // (distance) sorted list:
       // .id	this.state.sign[.id] (id is stringified position)
