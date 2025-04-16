@@ -17,12 +17,8 @@ function* sel()
 {
   // TODO create selector of options
   // for now just jump to the first thing found
-  console.log('HAVE', have);
-  while (have.length)
-    {
-      const s = have.shift();
-      return yield* jump(s[0]);
-    }
+  if (have.length)
+    return yield* jump(have.shift());
 }
 
 function* check(t, ..._)
@@ -30,12 +26,15 @@ function* check(t, ..._)
   for (const a of t)
     {
       const s	= yield ['sign', a, ..._];
-      if (!s?.length) continue;
+      if (!s) continue;
 
 //      if (s.length === 1) return yield* jump(s[0]);
 
-      console.log('CHECK', s);
-      have.push(s);
+      for (const x of s)
+        {
+          have.push(x);
+          yield ['act', have.length, x];
+        }
     }
 }
 
