@@ -8,7 +8,6 @@ yield ['wait 20'];
 yield ['hide Error: destination full'];
 
 yield yield ['stop'];
-yield yield ['PUT'];
 
 // enter the right dimension
 if (yield ['CACHE get current dim'])
@@ -16,6 +15,7 @@ if (yield ['CACHE get current dim'])
 else
   for (const dim = (yield [`set conf:bot:${ME}:dim`]); dim && (yield ['PORT', dim]); yield ['wait 100']);
 
+yield yield ['PUT'];
 yield yield ['home'];
 yield yield ['drop'];
 
