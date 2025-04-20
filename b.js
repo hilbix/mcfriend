@@ -175,24 +175,6 @@ const patternMatch = m =>
         for await (const x of this.doSleep())
          this.chat(x);
     }
-  async *doDigBlock(b)
-    {
-      D('do dig');
-//      const b = B.blockAt(p);
-//      if (!b) return yield `location not loaded: ${p}`;
-
-      goNear(b.position);
-      await MOVE();
-
-      const ok = B.canDigBlock(b);
-      if (!ok) return yield `cannot dig ${b.displayName} at ${POS(b.position)}`;
-
-      console.warn('dig', b);
-//      const x = PO();
-//      this.digs[POS(b.position)] = x;
-      await B.dig(b);
-//      await x.p;
-    }
 
   async *doSleep()
     {
