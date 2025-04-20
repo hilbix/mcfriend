@@ -60,24 +60,23 @@ function* area(a)
 
 function* place(item, x,y,z)
 {
-  for (const d of 'ewns')
+  const d = yield ['SPOT', [[x,y,z]]];
+  if (d === void 0) return;
+  if (!(yield ['have', item]))
+    yield [`get ${item.id}=${item.max}`];
+  if (!(yield ['have', item]))
+    return yield ['act out of', item];
+
+  yield yield ['equip hand', item.type];
+  if (d)
     {
-      const b	= yield ['block', [[x, y, z]], d];
-      if (isAir(b[0])) continue;
-
-      if (!(yield ['have', item]))
-        yield [`get ${item.id}=${item.max}`];
-      if (!(yield ['have', item]))
-        return yield ['act out of', item];
-
-      yield yield ['equip hand', item.type];
-      yield ['Move', yield ['block', b, 'u']];
-
-      try {
-        yield ['placer', b, `${d}r`];
-        yield yield ['wait'];
-	return;
-      } catch {};
+      yield ['act place', x,y,z];
+      yield ['Move', d];
     }
+
+  try {
+    yield ['placer', [[x,y,z]]];
+    yield yield ['wait'];
+  } catch {};
 }
 
