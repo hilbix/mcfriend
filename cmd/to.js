@@ -9,7 +9,11 @@ this.hist	??= [];
 
 const have = [];
 
-//if (!_.length)
+let last = _[_.length-1];
+if (last === `${parseInt(last)}`)
+  last = _.pop()|0;
+else
+  last = void 0;
 
 return (yield* check(_)) || (yield* check(['note', 'get', 'store', 'overflow', 'toomuch', 'destroy'], _)) || (yield* sel()) || ['act not found', _];
 
@@ -17,8 +21,13 @@ function* sel()
 {
   // TODO create selector of options
   // for now just jump to the first thing found
-  if (have.length)
-    return yield* jump(have.shift());
+  if (!have.length) return;
+  if (last !== void 0 && have[last])
+    return yield* jump(have[last]);
+  for (const s of have)
+    if (s.valid)
+      return yield* jump(s);
+  return yield* jump(have.shift());
 }
 
 function* check(t, ..._)
@@ -32,8 +41,8 @@ function* check(t, ..._)
 
       for (const x of s)
         {
+          yield ['act', have.length, x.valid ? 'O' : '?', x];
           have.push(x);
-          yield ['act', have.length, x];
         }
     }
 }
