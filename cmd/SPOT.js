@@ -98,7 +98,7 @@ const unsafe = {lava:true, water:true};
 
 const mypos = yield ['pos'];
 
-const dist = (_.shift()|0) || 1;
+const dist = (_.shift()|0) || 2;
 for (const b of _.length ? _ : [mypos])
   {
     if (_.length && b.dist(mypos) <= dist) return false;
@@ -119,7 +119,7 @@ for (const b of _.length ? _ : [mypos])
         if (!d || isAir(d) || unsafe[d.id]) continue;
 
         const e = d.dist(b);
-        if (e < 1) continue;
+        if (e < 0.1) continue;
         if (min && e > min) continue;
 
         candid	= v;
