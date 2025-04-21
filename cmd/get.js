@@ -22,7 +22,7 @@ let ok = 0;
 
 for (const [k,v] of l)
   {
-    const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
+    const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'craft', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
         yield ['act no sign found for', _];
