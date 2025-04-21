@@ -148,7 +148,7 @@ else
     try {
       if (!((yield* craftin()) || (yield* autocraft())))
         return;
-    } catch (e) {}
+    } catch (e) { console.error(e) }
     //yield ['craft'];
   }
 
