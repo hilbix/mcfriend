@@ -20,9 +20,8 @@ function* area(a)
   
   // currently only one material is supported
   // in future we perhaps place it multi things randomly
-  const it = item[0];
 
-  console.error('AREA', it.id, aa);
+  console.error('AREA', item.map(_ => _.id), aa);
 
   // find all the positions to place things to
   const pos	= OB();
@@ -33,20 +32,20 @@ function* area(a)
     {
       if (!isAir(b))
         switch (b.id)
-	  {
-	  default: continue;
+          {
+          default: continue;
 
-	  case 'water':
-	  case 'lava':
-	    break;
-	  }
+          case 'water':
+          case 'lava':
+            break;
+          }
 
       const v = b.vec();
       (pos[v.y|0] ??= new Set()).add([v.x|0,v.z|0]);
       cnt++;
     }
   if (!cnt)
-    return 'nothing to do';
+    yield ['act nothing to do', aa];
 
   const sw = Object.keys(pos)[0]|0;
   const [min,max] = Object.keys(pos).reduce(([a,b],c) => { c=c|0; return [a>c ? a : c, b<c ? b : c] }, [sw,sw]);
@@ -55,28 +54,35 @@ function* area(a)
 
   for (let y=min; y<=max; y++)
     for (const [x,z] of pos[y])
-      yield yield* place(it, x,y,z);
+      yield yield* place(item, x,y,z);
 }
 
-function* place(item, x,y,z)
+function* place(items, x,y,z)
 {
-  const d = yield ['SPOT', [[x,y,z]]];
-  if (d === void 0) return;
-  if (!(yield ['have', item]))
-    yield [`get ${item.id}=${item.max}`];
-  if (!(yield ['have', item]))
-    return yield ['act out of', item];
-
-  yield yield ['equip hand', item.type];
-  if (d)
+  for (const d of 'ewns')
     {
-      yield ['act place', x,y,z];
-      yield ['Move', d];
-    }
+      const b	= yield ['block', [[x, y, z]], d];
+      if (isAir(b[0])) continue;
 
-  try {
-    yield ['placer', [[x,y,z]]];
-    yield yield ['wait'];
-  } catch {};
+      const p = yield ['SPOT', 3, (yield ['block', [[x,y,z]]])];
+      if (p === void 0) return;
+
+      const item	= yield ['getsome', items];
+      if (!item)
+        throw `out of ${items.map(_ => _.id)}`;
+
+      if (p)
+        {
+          yield ['act place', x,y,z];
+          yield ['Move', p];
+        }
+
+      try {
+        yield yield ['equip hand', item.type];
+        yield ['placer', b, `${d}r`];
+        yield yield ['wait'];
+        return;
+      } catch {};
+    }
 }
 
