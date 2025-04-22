@@ -15,5 +15,6 @@ for (const a of b)
   {
     const iter = yield ['block', a[0], a[1]];
     yield yield ['DIG', iter, a[0].text[3]];
+    yield ['act DUG', a];
   }
 
