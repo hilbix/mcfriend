@@ -45,7 +45,7 @@ function* area(a)
       cnt++;
     }
   if (!cnt)
-    yield ['act nothing to do', aa];
+    return yield ['act nothing to do', aa];
 
   const sw = Object.keys(pos)[0]|0;
   const [min,max] = Object.keys(pos).reduce(([a,b],c) => { c=c|0; return [a>c ? a : c, b<c ? b : c] }, [sw,sw]);
