@@ -15,7 +15,7 @@ if (!items || !items.length) throw `WTF? no items ${_}`;
   
 const want = Object.fromEntries(items.map(_ => [_.id,true]));
 
-const nix = { air:1, cobblestone_slab:1, cave_air:1, torch:1, wall_torch:1 };
+const nix = { air:1, cave_air:1, torch:1, wall_torch:1 };
 
 //console.error({want,keep});
 
@@ -29,9 +29,13 @@ let maxy = Number.NEGATIVE_INFINITY;
 let minz = Number.POSITIVE_INFINITY;
 let maxz = Number.NEGATIVE_INFINITY;
 
+let t = 0, s = 0;
 for (const b of iter())
   {
     const v = b.vec();
+
+    if (++t > 10000) { yield ['act thinking', v.y, s, ko.length]; yield ['wait']; t=0 }
+
     if (minx > v.x) minx	= v.x|0;
     if (maxx < v.x) maxx	= v.x|0;
     if (maxy < v.y) maxy	= v.y|0;
@@ -39,7 +43,10 @@ for (const b of iter())
     if (maxz < v.z) maxz	= v.z|0;
 
     if (want[b.id])
-      ((ok[v.y|0] ??= {})[v.x|0] ??= {})[v.z|0] = true;
+      {
+        ((ok[v.y|0] ??= {})[v.x|0] ??= {})[v.z|0] = true;
+	s++;
+      }
     else if (keep[b.id])
       ko.push(b.vec());
 
@@ -72,7 +79,7 @@ for (const k of ko)
     const x = k.x;
     const y = k.y;
     const z = k.z;
-    for (const [a,b,c] of [[-1,0,0],[1,0,0],[0,-1,0],[0,0,-1],[0,0,1]])
+    for (const [a,b,c] of [[-1,0,0],[0,1,0],[0,-1,0],[0,0,-1],[0,0,1]])	// y first
       if (ok[y+a]?.[x+b]?.[z+c])
         delete ok[y+a][x+b][z+c];
     // We should place blockers there if it is flowing out
