@@ -11,6 +11,8 @@ for (const a of yield ['AREA place'])
 // Process an area A..B
 function* area(a)
 {
+  yield ['act placing', a];
+
   // go one lower than the signs
   const aa = [ a[0].pos(0,-1,0), a[1].pos(0,-1,0) ];
 
