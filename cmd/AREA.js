@@ -46,5 +46,6 @@ for (const x of Object.values(order))
       } while (x.length > 1);
   }
 
+console.error('ALL', order);
 return r;
 
