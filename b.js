@@ -254,7 +254,7 @@ const DIR	= _ =>				// Minecraft directions
     for (const a of _)
       switch (a)
         {
-	case 'r':	x= -x; y= -y; z= -z; continue;	// reverse
+        case 'r':	x= -x; y= -y; z= -z; continue;	// reverse
         case 'u':	y += 1; continue;	// up
         case 'd':	y -= 1; continue;	// down
         case 'w':	x -= 1; continue;	// west
@@ -275,6 +275,7 @@ class Q
       this.c	= 0;
       return this.q.length;
     }
+  toString()		{ return `${this.name}:${this.length}` }
 
   get length()		{ return this.q.length }
   get trace()		{ this.dump = true; return this }
@@ -606,7 +607,7 @@ class Block extends My
 class Sign extends My
   {
   get id()		{ return this._?.block?.name }
-  toString()		{ return this._ ? `Sign ${this._.text.slice(2,4).join(':')} ${POS(this._.pos)}` : '(no sign)' }
+  toString()		{ return this._ ? `Sign ${POS(this._.pos)} ${this._.text[0]}:${this._.text.slice(2,4).join(':')}` : '(no sign)' }
   get _vec()		{ return this._.pos }
   get valid()		{ return this._?.valid }
   get text()		{ return this._.text }
@@ -868,6 +869,7 @@ class Abi	// per spawn instance for bot
           v.unshift([id,s,d,r,e, src._, toJ(c)]);
           return v.map(_ => _.filter(_ => _ !== void 0).join(' '));
         });
+
       try {
         const r = await this.yielder(inf, await this.cmdload(src, c));
       } catch (e) {
@@ -954,6 +956,7 @@ class Abi	// per spawn instance for bot
             iter.state	= 'wait';
             iter._	= _;
             _		= await _;
+            X(',');
             iter.state	= 'run';
             iter._	= _;
 
@@ -1064,6 +1067,7 @@ class Abi	// per spawn instance for bot
         c.shift();
       if (c.length)
         {
+          // XXX TODO XXX inject current command
         }
       for (const _ of Survey.dump())
         src.tell(`#B ${_}`);
@@ -1071,6 +1075,7 @@ class Abi	// per spawn instance for bot
       src.tell(`#A ${this._.late.length} ${time}`);
       for (const x of this._.late.iter())
         src.tell(`#A ${x[0] - time} ${toJ(x[1])}`);
+      src.tell(`#Q ${this._.queues.join(' ')}`);
       return;
     }
   *Chide(c,src)		{ this._hide[c.join(' ')] = true }
@@ -1201,14 +1206,25 @@ class Abi	// per spawn instance for bot
   // notyet 19:	as 18 but with the block
   // notyet 26:	get all surrounding blocks
   // 27:	get the full cube
+  async *block(_)
+    {
+      // how to ensure the chunk is loaded?
+      const b = this.B.blockAt(_);
+      if (b) return new Block(b);
+      // return NULL if not loaded
+      D(`noblock ${_}: ${b}`);
+    }
   async *Cblock(c)
     {
+      const self= this;
       const p	= yield* (c[0].locate ? c[0] : new Pos(...c[0])).locate();
 //      console.error('Block', p, c[0].toString());
-      const q	= _ => new Block(this.B.blockAt(_));
-      if (c.length === 1) return q(p.vec());
+      async function* q(_) { return yield* self.block(_) }
 
-      const delta = (...d) => d.map(_ => q(p.vec(_.x, _.y, _.z)));
+      if (c.length === 1)
+        return yield* q(p.vec());
+
+      async function* m(a,f) { const r=[]; for (const b of a) { const c = yield* q(f(b)); if (c) r.push(c)} return r }
       if (c.length === 2)
         {
           if (c[1] instanceof My)
@@ -1216,23 +1232,30 @@ class Abi	// per spawn instance for bot
               const f	= p.vec();
               const t	= (yield* c[1].locate()).vec();
               const B	= this.B;
-              return function*()
+              return async function*()
                 {
                   for (const x of inner(f.x, t.x))
                     for (const y of inner(f.y, t.y))
                       for (const z of inner(f.z, t.z))
-                         yield q(v3(x,y,z));
+                        {
+                          const b	= yield* q(v3(x,y,z));
+                          if (b)
+                            yield b;
+                        }
                 }
             }
+          // these should yield, too?
+          const delta	= (...d) => m(d, _ => p.vec(_.x, _.y, _.z));
           switch (c[1])
             {
-            default:	return Array.from(c[1]).map(_ => q(p.dir(_)));
-            case 6:	return delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
-            case 7:	return delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
-            case 27:	return delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
+            default:	return yield* m(Array.from(c[1]), _ => p.dir(_));
+            case 6:	return yield* delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+            case 7:	return yield* delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
+            case 27:	return yield* delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
             }
         }
 
+       // these should never yield!!
        const x	= c[1]|0;
        const y	= c[2]|0;
        const z	= c[3]|0;
@@ -1240,7 +1263,7 @@ class Abi	// per spawn instance for bot
        for (let a=-x; a<=x; a++)
          for (let b=-y; b<=y; b++)
            for (let c=-z; c<=z; c++)
-             r.push(q(p.vec(a,c,b)));
+             r.push(await q(p.vec(a,c,b)));
         return r;
     }
 //  async *Copenchest(c)	{ return new Container(await this.B.openChest(c[0]._)) }
@@ -1939,6 +1962,7 @@ class Bot	// global instance for bot
           on.on(k.substring(2), (..._) => { D(k, _); this[k](..._) });
         }
     }
+  get queues()	{ return [this.in, this.run, this.say, this.out, this.chunk, this.scan] }	// .in must be first, followed by .run
 
   ////////////////////////////////////
   // get a qualified src object
@@ -2068,6 +2092,7 @@ class Bot	// global instance for bot
   M_chunkColumnLoad(_)		{ this.chunk.add(_.x|0, _.z|0) }
   M_whisper(src, cmd)
     {
+      X('x');
 //      console.error('WHISPER', src, cmd);
 //      if (src === this.B.player.username) return;
       const c = cmd.split(' ').filter(_ => _);
@@ -2128,7 +2153,7 @@ class Bot	// global instance for bot
       const abi	= this.abi	= new Abi(this);
 
       // XXX TODO XXX: Queues should be autodetected
-      const r	= [this.in, this.run, this.say, this.out, this.chunk, this.scan];	// .in must be first, followed by .run
+      const r	= this.queues;
       const x	= [], y = [];
       let p = 65;
       // XXX TODO XXX: Priorities shall be implicite
