@@ -8,7 +8,7 @@ for (const t of (yield ['sign', 'craft']).filter(_ => !_.text[3]))
     if (d.length !== 1)
       {
         yield ['act #crafting? ', s];
-	continue;
+        continue;
       }
     table	= d[0];
     break;
@@ -46,20 +46,20 @@ for (const x of t)
     if (!r.length)
       {
         yield ['act no recipe for', i0, 'from', m];
-	continue;
+        continue;
       }
     for (const y of r)
       {
         const a = y.input[0].count;
         const l = ((n/a)|0) * y.output[0].count;
-	if (!l) continue;
+        if (!l) continue;
 
-	yield ['act', table, x, l];
+        yield ['act', table, x, l];
 
-        yield yield ['Move', table];
+        yield ['Move', table];
         yield yield ['craft', table, y, l];
-	yield ['wait', 20];
-	had++;
+        yield ['wait', 20];
+        had++;
       }
   }
 
