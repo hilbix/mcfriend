@@ -15,7 +15,7 @@ if (last === `${parseInt(last)}`)
 else
   last = void 0;
 
-return (yield* check(_)) || (yield* check(['note', 'get', 'store', 'overflow', 'toomuch', 'destroy'], _)) || (yield* sel()) || ['act not found', _];
+return (yield* check(_)) || (yield* check(['note', 'get', 'store', 'overflow', 'craft', 'made', 'toomuch', 'destroy'], _)) || (yield* sel()) || ['act not found', _];
 
 function* sel()
 {
