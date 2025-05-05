@@ -30,7 +30,7 @@ try {
 
           cnt++;
 
-          yield yield ['Move', c];
+          yield ['Move', c];
           yield yield ['dig', d];
         }
       yield ['act CHOP', cnt, trg];
