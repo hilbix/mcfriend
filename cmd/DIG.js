@@ -30,8 +30,16 @@ let minz = Number.POSITIVE_INFINITY;
 let maxz = Number.NEGATIVE_INFINITY;
 
 let t = 0, s = 0;
-for (const b of iter())
+for await (const bb of iter())
   {
+    let b;
+    try {
+      b = await bb;
+    } catch (e) {
+      yield ['act NO BLOCK'];
+      break;
+    }
+
     const v = b.vec();
 
     if (++t > 10000) { yield ['act thinking', v.y, s, ko.length]; yield ['wait']; t=0 }
@@ -45,7 +53,7 @@ for (const b of iter())
     if (want[b.id])
       {
         ((ok[v.y|0] ??= {})[v.x|0] ??= {})[v.z|0] = true;
-	s++;
+        s++;
       }
     else if (keep[b.id])
       ko.push(b.vec());
@@ -68,7 +76,7 @@ for (const b of iter())
 // Look into the layer above
 // XXX TODO XXX build-maxheight?
 if (minx < maxx)
-  for (const b of (yield ['block', (yield ['block', [[minx,maxy-1,minz]]]), (yield ['block', [[maxx,maxy-1,maxz]]])])())
+  for await (const b of (yield ['block', (yield ['block', [[minx,maxy-1,minz]]]), (yield ['block', [[maxx,maxy-1,maxz]]])])())
     if (keep[b.id])
       ko.push(b.vec());
 
