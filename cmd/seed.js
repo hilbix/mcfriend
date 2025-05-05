@@ -28,14 +28,14 @@ try {
       yield yield ['equip hand', c[0].type];
 
       const iter = yield ['block', a,b];
-      for (const c of iter())
+      for await (const c of iter())
         {
           if (c.id !== 'air') continue;
 
           const d = yield ['block', c.pos(0,-1,0)];
           if (d.id !== 'farmland') continue;
 
-          yield yield ['Move', c.pos(0,0.1,0)];
+          yield ['Move', c.pos(0,0.1,0)];
           yield yield ['wait'];		// relax a bit
           yield yield ['click', d];
           yield yield ['wait'];		// relax a bit
