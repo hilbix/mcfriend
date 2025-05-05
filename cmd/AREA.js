@@ -10,7 +10,13 @@ const order	= {};
 
 for (const s of signs)
   {
-    if (!s.valid) continue;
+    if (!s.valid)
+      {
+        yield ['act looking at', s];
+        yield ['Move', s];
+        yield ['wait', 10];
+        continue;
+      }
     const n = `${s.text[0]}\t${s.text[3]}`;
     (order[n] ??= []).push(s);
   }
@@ -46,6 +52,6 @@ for (const x of Object.values(order))
       } while (x.length > 1);
   }
 
-console.error('ALL', order);
+//console.error('ALL', order);
 return r;
 
