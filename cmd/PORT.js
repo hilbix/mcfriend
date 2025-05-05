@@ -22,7 +22,7 @@ for (const nether of p)
     const b	= (yield ['block', nether, 6]).filter(_ => _.name === 'obsidian');
     if (b.length !== 1)
       {
-        yield ['act invalid', nether];
+        yield ['act invalid', nether, b];
         continue;
       }
     // find lowest portal block
@@ -35,10 +35,10 @@ for (const nether of p)
     const l	= yield* scan(p[0], 0,-1,0, 'nether_portal');
     if ((yield ['dist', l]) < 3)
       {
-        yield yield ['Move', l.pos(3,0,3)];
+        yield ['Move', l.pos(3,0,3)];
         yield yield ['wait', 10];
       }
-    yield yield ['Move', l];
+    yield ['Move', l];
     // now check we are in nether
     yield ['wait', 200];	// this does not return as we get a new Spawn event
     return ['act entering', nether, 'failed'];
