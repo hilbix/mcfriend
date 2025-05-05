@@ -35,7 +35,7 @@ try {
 
           yield yield ['PUT'];
           yield yield ['supply', `${i}=${l*l}`];
-          yield yield ['Move', s];
+          yield ['Move', s];
 
           const c	= Array.from(yield ['invs']).filter(_ => _.id === i);
           if (c.reduce((a,_) => a + _.count, 0) < l*l) throw `WTF? out of ${i}`;
@@ -48,13 +48,13 @@ try {
                 const u	= yield ['block', yield ['pos', x+a, y, z+b]];
                 if (u.id === i) continue;
 
-                had	= true;
                 if (u.id !== 'air')
                   {
                     // XXX TODO XXX break block?
                     continue;
                   }
 
+                had	= true;
                 yield yield ['equip hand', j];
                 yield yield ['place', u];
               }
@@ -89,13 +89,14 @@ try {
 
       yield yield ['PUT'];
       yield yield ['axe'];
-      yield yield ['Move', s];
+      yield ['Move', s];
 
       yield yield ['setSign', s, 0, x[0], z[0], l.length, type];
       yield yield ['dig', l[0]];
 
   //    yield yield ['PUT'];
 
+//      yield ['AGAIN tree'];
       yield yield ['in 1 tree'];
       return ['act tree harvest', s];
     }
