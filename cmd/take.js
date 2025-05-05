@@ -16,7 +16,7 @@ for (const [c,s] of a)
     const t = c.container;
     if (!t) continue;
 
-    yield yield ['Move', s, 1];
+    yield ['Move', s, 1];
     const r	= yield ['OPEN', c];
     if (!r) continue;
 
