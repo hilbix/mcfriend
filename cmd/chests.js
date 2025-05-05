@@ -12,6 +12,6 @@ for (const s of signs)
     if (d.length === 1)
       yield ['act sign', s, 'at', yield ['locate', s], s.valid];
     else
-      yield ['act invalid sign', s, 'at', yield ['locate', s], s.valid];
+      yield ['act invalid:', s, s.valid];
   }
 
