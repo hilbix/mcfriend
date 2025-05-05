@@ -296,7 +296,6 @@ class Q
   };
 
 // This must be improved
-const isBed	= _ => B.isABed(_);
 const isSign	= _ => _?.name.endsWith('_sign');
 const isTree	= _ => _?.name.endsWith('_log');
 const isDirt	= _ => _?.name.endsWith('dirt');
@@ -461,8 +460,25 @@ class CTX
   {
   #abi; #filename;
 
+  block(_)		{ return _ instanceof My ? _.block : x instanceof v3.Vec3 ? this.#abi.B.blockAt(_) : _ }
+
+  // These must be getters, as without getters the current context (this) vanishes within the VM
   get dimension()	{ return this.#abi.B?.game?.dimension }
   get ME()		{ return this.#abi._.botname }
+
+  get isBed()		{ return _ => this.#abi.B.isABed(this.block(_)) }
+  // Apparenty there is no replacement for B.isBreathable
+  //get isBreath()	{ return _ =>
+  //  {
+  //    const b = this.block(_);
+  //    if (isAir(b)) return true;
+
+  //    console.error('BR', b.name);
+  //    if (b.name === 'torch' || b.name.endsWith('sign'))
+  //      console.error('BR', b);
+  //    return false;
+  //    return this.#abi.B.isBreathable(this.block(_))
+  //  } }
 
   constructor(abi, filename)
     {
@@ -501,9 +517,10 @@ class My
   get name()		{ return this._?.name }
 
   vec(x,y,z)		{ return x instanceof My ? this._vec.plus(x._vec) : x instanceof v3.Vec3 ? this._vec.plus(x) : this._vec.offset(x|0,y|0,z|0) }
+  sub(x,y,z)		{ return x instanceof My ? this._vec.minus(x._vec) : x instanceof v3.Vec3 ? this._vec.minus(x) : this._vec.offset(-(x|0),(-y|0),(-z|0)) }
   dist(_)		{ return this._vec.distanceTo(_._vec) }
   dir(_)		{ return this.vec(DIR(_)) }
-  pos(x,y,z)		{ return new Pos(this._vec.offset(x??0,y??0,z??0)) }
+  pos(x,y,z)		{ return new Pos(this.vec(x??0,y??0,z??0)) }
   *locate()		{ return this._pos ??= new Pos(this._vec) }
   };
 class Pos extends My
@@ -602,6 +619,7 @@ class Block extends My
   toString()		{ return this._ ? `Block ${this._.name} ${POS(this._.position)}` : `(no block)` }
   get _vec()		{ return this._.position }
   get container()	{ return CONTAINER[this.id] }
+  get block()		{ return this._ }
   };
  
 class Sign extends My
@@ -612,6 +630,7 @@ class Sign extends My
   get valid()		{ return this._?.valid }
   get text()		{ return this._.text }
   get dim()		{ return this._.dim }
+  get block()		{ return this._.block }
   };
 
 class Container extends My
@@ -631,6 +650,8 @@ class Container extends My
         console.error('WITHDRAW', e);
       }
     }
+
+  //get block()		{ return this._.block }		// must be tested
   };
 
 class Recipe extends My
@@ -1210,16 +1231,17 @@ class Abi	// per spawn instance for bot
     {
       // how to ensure the chunk is loaded?
       const b = this.B.blockAt(_);
-      if (b) return new Block(b);
-      // return NULL if not loaded
-      D(`noblock ${_}: ${b}`);
+      if (!b) return //D(`noblock ${_}: ${b}`);		// return NULL if not loaded
+//      D(`BBBBBBBBBBBBBBBBBBBBBBB ${b._vec}`);
+      return new Block(b);
     }
   async *Cblock(c)
     {
       const self= this;
       const p	= yield* (c[0].locate ? c[0] : new Pos(...c[0])).locate();
 //      console.error('Block', p, c[0].toString());
-      async function* q(_) { return yield* self.block(_) }
+//      async function* q(_) { return yield* self.block(_) }
+      const q = _ => this.block(_);
 
       if (c.length === 1)
         return yield* q(p.vec());
@@ -1231,17 +1253,24 @@ class Abi	// per spawn instance for bot
             {
               const f	= p.vec();
               const t	= (yield* c[1].locate()).vec();
+              D(`scanning ${f} to ${t}`);
               const B	= this.B;
               return async function*()
                 {
+		  let n = 0;
                   for (const x of inner(f.x, t.x))
                     for (const y of inner(f.y, t.y))
                       for (const z of inner(f.z, t.z))
                         {
                           const b	= yield* q(v3(x,y,z));
                           if (b)
-                            yield b;
+                            {
+//                              DD('BBBBBBBBBBBBBBBBBBBBBBBB', b);
+                              n++;
+                              yield b;
+                            }
                         }
+                  D(`scanning ${f} to ${t} found ${n}`);
                 }
             }
           // these should yield, too?
