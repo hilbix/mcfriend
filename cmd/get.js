@@ -35,7 +35,7 @@ for (const [k,v] of l)
 //        const p = yield ['locate', s];
 //        yield ['act', p];
         const d = (yield ['block', s, 6]).filter(_ => _.container);
-        if (d.length !== 1) return ['act invalid sign', s, d.length];
+        if (d.length !== 1) return ['act invalid', d.length, s, s.valid];
 
         // move to the chest
         //yield yield ['Move', s];
