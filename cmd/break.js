@@ -15,6 +15,7 @@ for (const a of b)
   {
     yield ['act breaking', a];
     const iter = yield ['block', a[0], a[1]];
+    console.error('break.sh:', iter);
     yield yield ['DIG', iter, a[0].text[3]];
   }
 
