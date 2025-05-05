@@ -49,7 +49,7 @@ for (const x of r)
 
     yield ['act', table, itm, cnt];
 
-    yield yield ['Move', table];
+    yield ['Move', table];
     yield yield ['craft', table, x, cnt];
     yield ['wait', 20];
 
