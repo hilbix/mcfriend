@@ -20,13 +20,18 @@ function* scan_todo(s)
 {
   const what	= s.text[3];
   const items	= {};
-  for (const i of yield ['item', what])
-    {
-      i.free	= 0;
-      i.have	= 0;
-      i.slots	= 0;
-      items[i.id] = i;
-    }
+  try {
+    for (const i of yield [`item`, what])
+      {
+        i.free	= 0;
+        i.have	= 0;
+        i.slots	= 0;
+        items[i.id] = i;
+      }
+  } catch (e) {
+    console.error(e);
+    return yield ['say cannot craft', s];
+  }
 
   const b	= (yield ['block', s, 6]).filter(_ => _.container);
   const r	= [0, items, b];
@@ -69,9 +74,13 @@ function* autocraft()
 
   for (const s of signs)
     {
-      if (!s.text[3])
-        continue;
-      const [free,items,chest] = yield* scan_todo(s);
+      if (!s.text[3]) continue;
+      if (!s.valid) continue;
+
+//      console.error(`CRAFT ${s}`);
+
+      const [free,items,chest] = (yield* scan_todo(s)) || [];
+      if (!free) continue;
 
       // try to put some equal number of everything into the box
       //const k	= Object.keys(items);
