@@ -16,7 +16,7 @@ for (const [c,s] of a)
   {
     if (c.container !== true) continue;	// cannot use slotted containers
 
-    yield yield ['Move', s, 1];
+    yield ['Move', s, 1];
     const r	= yield ['OPEN', c];
     if (!r) continue;
 
@@ -28,18 +28,18 @@ for (const [c,s] of a)
     for (const x of r.items())
       {
         if (x.empty)
-	  {
-	    e++;
-	    continue;
-	  }
-	if (!filt(x)) continue;
-	need[x.id] = (need[x.id]|0) + x.max - x.n;
+          {
+            e++;
+            continue;
+          }
+        if (!filt(x)) continue;
+        need[x.id] = (need[x.id]|0) + x.max - x.n;
       }
     const item = {};
     for (const x of yield ['item', s.text[3]])
       {
         item[x.id] = x;
-	const n = need[x.id]|0;
+        const n = need[x.id]|0;
         need[x.id] = e ? Math.min(e,5) * x.max : n>x.max ? x.max : n <= x.max/4 ? 0 : n;
       }
     const m = Object.entries(need).filter(([k,v]) => v);
@@ -49,16 +49,16 @@ for (const [c,s] of a)
       for (const [k,v] of m)
         {
           yield ['AGAIN fill 0'];	// reset backoff
-	  yield ['act GET',k,v];
+          yield ['act GET',k,v];
           yield yield [`get ${k}=${v}`];
         }
-       yield yield ['Move', s, 1];
+       yield ['Move', s, 1];
        const r = yield ['OPEN', c];
        for (const [k,v] of m)
          {
-	   yield ['act FILL', item[k], v];
-	   yield yield ['put', r, item[k], v];
-	 }
+           yield ['act FILL', item[k], v];
+           yield yield ['put', r, item[k], v];
+         }
     } catch (e) {
       console.error('FILL', e);
       yield yield ['act ERROR', e];
