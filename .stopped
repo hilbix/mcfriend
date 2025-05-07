@@ -1,0 +1,101 @@
+#!/bin/bash
+#
+# vim: ft=bash
+
+export LC_ALL=C.UTF-8
+
+# At my server Bots only have a single letter name
+BOTS='a b c d e f g h i j k l m n o p q r s t u v w x y z'
+
+away()
+{
+  while	read -ru$I -t0.1 x; do "${@-:}" "${x%$'\r'}"; done
+}
+
+CON()
+{
+  away printf '%q\n';
+  printf '%s\n' "$@" >&$O;
+}
+
+# popupates r, the return string
+GET()
+{
+  local a x
+
+  while	read -ru$I x
+  do
+	x="${x%$'\r'}"
+	x="${x#'['[0-9][0-9]:[0-9][0-9]:[0-9][0-9]'] '}"
+	x="${x#'[Server thread/INFO]: '}"
+	x="${x#'[Not Secure] '}"
+	r="$x"
+	for a
+	do
+		r="${r#"$a"}";
+	done
+#	printf '/%q\n' "$x"; printf '\%q\n' "$r";
+	[ ".$r" = ".$x" ] || return 0;
+  done;
+  return 1;
+}
+
+# get status of bot
+pingbot()
+{
+  CON "tell $1 !"
+  GET "<$1> #Q " 'No player was found'
+  case "$r" in
+  ('I:0 R:0 T:0 O:0 C:0 S:'*)	return 0;;		# bot stopped
+  ('')				return 1;;		# bot missing
+  (*)				return 2;;		# bot busy
+  esac
+}
+
+# Wait for bot being stopped
+stopbot()
+{
+  CON "tell $1 stop"
+  sleep 2	# give bot time to process the command
+  pingbot "$@" && return
+  [ 1 = $? ] && return 1
+
+  printf 'NO %q\n' "$r";
+  sleep 3;
+  stopbot "$@";
+}
+
+doit()
+{
+  local a r I O C="$1"
+
+  shift
+
+  coproc con -
+  I=${COPROC[0]}
+  O=${COPROC[1]}
+
+  away
+
+  BOT=()
+  for a in $BOTS
+  do
+	"$C" "$a" && "$@" "$a"
+  done
+
+  exec {I}<&-
+  exec {O}>&-
+  wait $COPROC_PID
+}
+
+out()
+{
+  local x
+  printf -vx "$@"
+  CON "$x"
+}
+
+stopped()	{ doit stopbot "$@"; }
+tell()		{ doit pingbot out "tell %s $*"; }
+run()		{ doit pingbot "$@"; }
+
