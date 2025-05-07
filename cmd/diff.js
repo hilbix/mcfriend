@@ -46,5 +46,5 @@ for (const _ of Object.keys(all).sort())
       yield yield ['act +', _];
   }
 
-return yield ['act', diff, 'differences to', t];
+return yield ['act DIFF:', diff, 'differences to', t];
 
