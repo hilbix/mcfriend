@@ -74,22 +74,47 @@ const K =
   , crimson_fungus		: 1
   , warped_fungus		: 1
   , sea_pickle			: 1
+  , sea_grass			: 1
+  , tall_sea_grass		: 1
+  , short_grass			: 1
+  , glow_lichen			: 1
+  , oak_leaves			: 1
+  , birch_leaves		: 1
 
+  , brown_mushroom		: 1
   , vine			: 1
+
   , jungle_trapdoor		: 3
 
   , dirt			: 4
   , grass_block			: 4
   , tuff			: 4
-  , deepslate_redstone_ore	: 4
-  , deepslate_copper_ore	: 4
-  , copper_ore			: 4
   , coal_ore			: 4
+  , cobblestone_slab		: 4
 
   , gravel			: 5
   , sand			: 5
-
   , water			: 6
+
+  , cobblestone			: 4
+  , clay			: 4
+
+  , deepslate_diamond_ore	: 4
+  , deepslate_gold_ore		: 4
+  , deepslate_redstone_ore	: 4
+  , deepslate_copper_ore	: 4
+  , deepslate_lapis_ore		: 4
+
+  , diamond_ore			: 4
+  , gold_ore			: 4
+  , redstone_ore		: 4
+  , copper_ore			: 4
+  , lapis_ore			: 4
+  , iron_ore			: 4
+
+  , birch_log			: 4
+  , oak_log			: 4
+
   , stone			: 4
   , granite			: 4
   , polished_granite		: 4
@@ -276,7 +301,8 @@ for (const b of _.length ? _ : [mypos])
     const a = yield ['block', b.pos(-dist, -dist-1, -dist), b.pos(+dist, +dist+1, +dist)];
     const aa = [];
     for await (const _ of a())
-      aa.push(_);
+      if (_.dist(mypos)>1)		// must not be our current position
+        aa.push(_);
     const c = new MultiDimArray(_ => { const v = _._vec; if (v) return [v.x, v.y, v.z] }).append(aa);
 
     let candid;
