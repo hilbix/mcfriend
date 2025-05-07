@@ -20,7 +20,7 @@ switch (dimension)
   {
     case 'the_nether':
       end	= home;
-      mix	= home;
+//      mix	= home;
       break;
 
     case 'overworld':
