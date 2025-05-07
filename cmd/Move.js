@@ -15,6 +15,7 @@ function* check(k,l)
   const p	= yield ['SPOT', l, k];
   if (!p) return;
 
+  // this moves at least distance 1, hence we have progress
   yield yield ['TP', p];
   return d	= delta;
 }
@@ -27,7 +28,7 @@ function* miss(n,d)
   console.error('miss', p,v);
   // do a binary search
 
-  let	l	= 0;
+  let l	= 0;
   let h	= n - 1;
   let x;
 
@@ -36,7 +37,7 @@ function* miss(n,d)
       const m	= ((n+l) / 2) | 0;
       const k	= dest.pos(v.scale(m));
       if (yield* check(k, n))
-        return;
+        return;						// there is progress
       l	= m + 1;
     }
   return true;
