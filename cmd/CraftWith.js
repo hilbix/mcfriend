@@ -24,6 +24,7 @@ const craftable =
   , bamboo:		['bamboo_block']
   , bamboo_block:	['bamboo_planks']
   , wheat:		['hay_block']
+  , nether_brick:	['nether_bricks']
   };
 
 const m = _[0];
