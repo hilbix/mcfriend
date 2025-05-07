@@ -1,0 +1,19 @@
+#!/bin/bash
+#
+# vim: ft=bash
+
+. "$(dirname -- "$0")/.stopped"
+
+TRG="${1:-${BOTS%% *}}"                                                                                                                                                                                                                                       
+
+mycopy()
+{
+  [ ".$TRG" = ".$1" ] && return
+  CON "tell $TRG copy $1"
+  GET "<$TRG> COPY done $1"
+}
+
+tell stop
+run mycopy
+stopped mycopy
+
