@@ -1,0 +1,13 @@
+#!/bin/bash
+#
+# vim: ft=bash
+
+. "$(dirname -- "$0")/.stopped"
+
+mystart()
+{
+  CON "tell $1 autostart"
+}
+
+run mystart
+
