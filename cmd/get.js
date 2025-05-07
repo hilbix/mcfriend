@@ -49,7 +49,7 @@ for (const [k,v] of l)
         const v = r.items().filter(yield* itemFilter(k));
         if (!v.length) 
           {
-            yield ['act', k, 'not in', c]
+            //yield ['act', k, 'not in', c]
             yield ['OPEN'];
             continue;
           }
