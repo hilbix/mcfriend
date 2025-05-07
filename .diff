@@ -1,0 +1,21 @@
+#!/bin/bash
+#
+# vim: ft=bash
+
+. "$(dirname -- "$0")/.stopped"
+
+TRG="${1:-${BOTS%% *}}"
+
+diffs=()
+mydiff()
+{
+  [ ".$TRG" = ".$1" ] && return
+  CON "tell $TRG diff $1"
+  GET "<$TRG> DIFF: "
+  diffs+=("$r")
+}
+
+tell stop
+run mydiff
+
+printf 'DIFF: %s\n' "${diffs[@]}"
