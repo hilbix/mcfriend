@@ -148,8 +148,8 @@ if (_.length)
       for (const i of yield ['item', k[0]])
         {
           const n = yield ['CraftItem', i, (k[1]|0)||1];
-          yield ['act crafted', n|0, i];
           yield yield ['PUT'];
+          yield ['act crafted', n|0, i];
         }
     }
 else
