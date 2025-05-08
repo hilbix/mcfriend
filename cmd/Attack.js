@@ -9,7 +9,7 @@ function* nearest(..._) { const e = yield ['nearest', nolava, _]; if (e.id) retu
 function* find(a, ..._) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}, ..._); if (e !== void 0) return e } }
 function find2(...a) { return find(a) }
 
-const e = yield* find2(...(_.length ? _ : ['phantom','witch','pillager','creeper','zombie','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
+const e = yield* find2(...(_.length ? _ : ['phantom','silverfish','witch','pillager','creeper','zombie','zombie_villager','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
 
 if (!e)
   {
