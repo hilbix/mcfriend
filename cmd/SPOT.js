@@ -83,8 +83,52 @@ const K =
 
   , brown_mushroom		: 1
   , vine			: 1
+  , jungle_wall_sign		: 1
+  , redstone_wire		: 1
+  , repeater			: 1
+  , comparator			: 1
+  , redstone_wall_torch		: 1
+  , lever			: 1
+  , rail			: 1
+  , cobweb			: 1
+  , oak_fence			: 1
+  , bamboo			: 1
+  , jungle_leaves		: 1
+  , spruce_fence		: 1
+  , cocoa			: 1
+  , lightning_rod		: 1
 
+// UNKLAR
+
+  , hopper			: 4
+  , redstone_lamp		: 4
+  , dispenser			: 4
+  , dropper			: 4
+  , jukebox			: 4
+  , cobblestone_wall		: 4
+  , farmland			: 4
+  , composter			: 4
+
+  ,  seagrass: 1,
+  tall_seagrass: 1,
+  tall_grass: 1, 
+  acacia_leaves: 1,                                                                                                                                                                                                                                           
+  acacia_log: 4                                                                                                                                                                                                                                               
+  , sugar_cane			: 1
+  , raw_copper_block		: 4
+
+
+// UNKLAR end
   , jungle_trapdoor		: 3
+  , amethyst_cluster		: 4
+  , budding_amethyst		: 4
+
+  , oak_planks			: 4
+  , deepslate_coal_ore		: 4
+  , emerald_ore			: 4
+  , coarse_dirt 		: 4
+
+  , jungle_log			: 4
 
   , dirt			: 4
   , grass_block			: 4
@@ -94,6 +138,7 @@ const K =
 
   , gravel			: 5
   , sand			: 5
+
   , water			: 6
 
   , cobblestone			: 4
@@ -104,6 +149,14 @@ const K =
   , deepslate_redstone_ore	: 4
   , deepslate_copper_ore	: 4
   , deepslate_lapis_ore		: 4
+  , deepslate_iron_ore		: 4
+
+  , infested_deepslate		: 4
+  , infested_stone		: 4
+
+  , smooth_basalt		: 4
+  , calcite			: 4
+  , hopper			: 4
 
   , diamond_ore			: 4
   , gold_ore			: 4
