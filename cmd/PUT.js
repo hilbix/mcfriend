@@ -10,24 +10,36 @@ function* put(item, ...where)
   for (const [c,s] of (yield ['CHEST', where]) || [])
     {
       if (!c) continue;
-      hadsign |= s.text[3] === item.id;
+
+      const i = s.text[3];
+      const items = yield ['item', i];
+      hadsign |= items?.filter(_ => _.id === item.id).length;
+
       if (yield ['CACHE get in', c]) continue;
 
       yield ['OPEN'];
 
-      const h = (yield ['have', item]) - (parseInt(keep[item.id])|0);
+      const h = (yield ['have', item.id]) - (parseInt(keep[item.id])|0);
+//      console.error(`PUT have ${h} ${keep[item.id]}`, yield ['have', item.id], hadsign);
+//      console.error(`PUT have ${h} ${keep[item.id]}`, toJ(item));
+//      console.error(`PUT have ${h} ${keep[item.id]}`, item.id);
       //yield ['act have', h, item];
       if (h <= 0) return true;
 
+      console.log(`PUT ${item} ${c} ${h}`);
       const r = yield ['OPEN', c];
       if (!r) continue;
       try {
         yield yield ['put', r, item, h];
-        //yield ['act putted', h, item];
+        yield ['act put', h, item, c];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
-          yield yield ['CACHE set in', c];
+          {
+            yield ['OPEN'];	// take item out of your hand!
+            yield ['wait'];
+            yield yield ['CACHE set in', c];
+          }
         else
           yield ['act OOPS', e.message, c, s];
       } finally {
@@ -78,7 +90,7 @@ for (const i of more)
 for (const i of much)
   (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
-  yield* put(i, 'overflow', 'MISC');
+  (yield* put(i, 'overflow', 'MISC')) || (yield ['act cannot put', i]);
 
 yield ['OPEN'];	// close everything
 
