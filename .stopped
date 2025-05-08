@@ -1,6 +1,18 @@
 #!/bin/bash
 #
 # vim: ft=bash
+#
+# Note that the coproc
+#	con -
+# below basically does
+#	socat - unix:/path/to/console/socket/of/minecraft.sock
+# so it directly talks to the console of the Minecraft server.
+#
+# Note that I start the server like this (see https://github.com/hilbix/ptybuffer):
+#	ptybuffer -cf /path/to/console/socket/of/minecraft.sock java -Xmx4096M -Xms4096M -jar minecraft_server.jar
+# which is a bit more easy and safe to use than something like
+#	rm -f /path/to/console/socket/of/minecraft.sock
+# 	socat unix
 
 export LC_ALL=C.UTF-8
 
