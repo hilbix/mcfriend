@@ -12,8 +12,12 @@ function* put(item, ...where)
       if (!c) continue;
 
       const i = s.text[3];
-      const items = yield ['item', i];
-      hadsign |= items?.filter(_ => _.id === item.id).length;
+      try {
+        const items = yield ['item', i];
+        hadsign |= items?.filter(_ => _.id === item.id).length;
+      } catch(e) {
+        if (i !== 'MISC') throw e;		// ignore MISC
+      }
 
       if (yield ['CACHE get in', c]) continue;
 
