@@ -4,7 +4,7 @@
 yield ['act CHOP start'];
 
 try {
-  for (const [a,b] of yield ['AREA chop'])
+  for await (const [a,b] of yield ['AREA chop'])
     {
       if (a.vec().y !== b.vec().y)
         {
@@ -21,7 +21,7 @@ try {
       yield ['tool axe'];
 
       const it	= yield ['block', a,b];
-      for (const c of it())
+      for await (const c of it())
         {
           if (!itm[c.id]) continue;
 
