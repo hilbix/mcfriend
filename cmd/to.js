@@ -9,7 +9,7 @@ this.hist	??= [];
 
 const have = [];
 
-const isi = _ => _ => _ === `${parseInt(_)}`;
+const isi = _ => _ === `${parseInt(_)}`;
 
 if (_.length === 3 && isi(_[0]) && isi(_[1]) && isi(_[2]))
   return yield* jump(yield ['block', [_]]);
