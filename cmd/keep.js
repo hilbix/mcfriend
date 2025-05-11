@@ -13,7 +13,7 @@ yield* check_area();
 async function* check_area()
 {
   const x = yield ['block', keep.map(_ => _.pos(0,-1,0))];
-  for await (const b of x)
+  for await (const b of x())
     {
       ;
     }
