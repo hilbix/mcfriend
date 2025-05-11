@@ -1,5 +1,7 @@
 //
 
+yield yield ['PUT'];
+
 try {
   const r = yield ['CRAFT', _];
   if (r) return ['act craft ok', r, _];
