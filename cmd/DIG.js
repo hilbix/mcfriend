@@ -76,9 +76,15 @@ for await (const bb of iter())
 // Look into the layer above
 // XXX TODO XXX build-maxheight?
 if (minx < maxx)
-  for await (const b of (yield ['block', (yield ['block', [[minx,maxy-1,minz]]]), (yield ['block', [[maxx,maxy-1,maxz]]])])())
-    if (keep[b.id])
-      ko.push(b.vec());
+  {
+    const k = yield ['block', [[minx,maxy-1,minz]]];
+    const l = yield ['block', [[maxx,maxy-1,maxz]]];
+    const i = yield ['block', k, l];
+    console.error('MINMAX', k,l,i);
+    for await (const b of i())
+      if (keep[b.id])
+        ko.push(b.vec());
+  }
 
 console.log('DIG', Object.values(ok).reduce((a,k) => a+Object.values(k).reduce((a,k) => a+Object.keys(k).length, 0), 0));
 
