@@ -36,7 +36,7 @@ try {
           const d = yield ['block', c.pos(0,-1,0)];
           if (d.id !== 'farmland') continue;
 
-          yield ['Move', c.pos(0,0.1,0)];
+          yield ['tp', c.pos(0,0.1,0)];
           yield yield ['wait'];		// relax a bit
           yield yield ['click', d];
           yield yield ['wait'];		// relax a bit
