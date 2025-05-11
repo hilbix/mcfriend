@@ -92,8 +92,8 @@ function* getBlock(x,y,z)
 // XXX TODO XXX build-maxheight?
 if (minx < maxx)
   {
-    const k = yield* getBlock(minx,maxy-1,minz);
-    const l = yield* getBlock(maxx,maxy-1,maxz);
+    const k = yield ['BLOCK', minx, maxy-1, minz];
+    const l = yield ['BLOCK', maxx, maxy-1, maxz];
     const i = yield ['block', k, l];
     for await (const b of i())
       if (keep[b.id])
@@ -122,7 +122,7 @@ yield ['act DIG', max, min];
 
 for (const [x,_] of Object.entries(ok[max]||{}))
   for (const z of Object.keys(_))
-    if (keep[yield ['block' [[x|0,max+1,z|0]]].id])
+    if (keep[(yield ['BLOCK', x|0, max+1, z|0]).id])
       delete ok[max][x][z];
 
 const cnt = Object.values(ok).reduce((a,k) => a+Object.values(k).reduce((a,k) => a+Object.keys(k).length, 0), 0);
@@ -144,7 +144,7 @@ for (let y=max; y>=min; y--)
 
 function* breaker(x,y,z)
 {
-  const p = yield ['block', [[x,y,z]]];
+  const p = yield ['BLOCK', x,y,z];
   if ((yield ['dist', p])>5)
     {
       const b	= yield ['SPOT', 5, p];
