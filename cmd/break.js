@@ -5,9 +5,6 @@
 //
 // Note:  This might break blocks the sign is on!
 
-const keep = {lava:true, water:true};
-const nix = { air:1, cobblestone_slab:1, cave_air:1, torch:1, wall_torch:1 };
-
 const b = yield ['AREA break'];
 if (!b) return 'act no area yet';
 
