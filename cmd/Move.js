@@ -29,13 +29,6 @@ function* miss(n,d)
   const p	= yield ['pos'];
   const v	= p.sub(dest).scale(1/n);		// f(x) := dest + x * (post - dest) / n  --   0..[n-1]
 
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-  console.error('V', `${v} ${p} ${dest}`, n, d);
-
   //console.error('miss', p,v);
   // do a binary search
 
