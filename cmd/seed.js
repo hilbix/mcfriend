@@ -5,6 +5,7 @@ yield ['act SEED start'];
 yield yield ['PUT'];
 
 try {
+  yield yield ['drop'];
   for (const [a,b] of yield ['AREA seed'])
     {
       const av = a.vec(), bv = b.vec();
