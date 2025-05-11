@@ -9,8 +9,13 @@ this.hist	??= [];
 
 const have = [];
 
+const isi = _ => _ => _ === `${parseInt(_)}`;
+
+if (_.length === 3 && isi(_[0]) && isi(_[1]) && isi(_[2]))
+  return yield* jump(yield ['block', [_]]);
+
 let last = _[_.length-1];
-if (last === `${parseInt(last)}`)
+if (isi(last))
   last = _.pop()|0;
 else
   last = void 0;
@@ -49,7 +54,8 @@ function* check(t, ..._)
 
 function* jump(_)
 {
-  yield yield ['say /tp', src._, (yield ['locate', _]).id];
+  const b = yield ['SPOT', 2, _];
+  yield yield ['say /tp', src._, (yield ['locate', b || _]).id];
   return ['act to', _, have.flat().length];
 }
 
