@@ -1,5 +1,7 @@
 // harvest area and prepare it for seeding
 // Needs two "harvest"-signs
+//
+// Currently cannot use Move as this creates jump damage
 
 yield ['act HARVEST start'];
 
@@ -23,7 +25,7 @@ try {
               case 'grass_block':
               case 'dirt':
                 yield yield ['tool hoe'];
-                yield ['Move', c, 1];
+                yield ['tp', c];
                 yield yield ['click', d];
                 continue;
               }
@@ -33,7 +35,7 @@ try {
               const st0 = st.states?.[0];
               if (st0?.name === 'age' && st0.values[st0.values.length-1] == c.meta)
                 {
-                  yield ['Move', c.pos(0,0.1,0), 1];
+                  yield ['tp', c.pos(0,0.1,0)];
                   yield yield ['dig', c];
                 }
 //              else return console.error('HARVEST', c.id, st);
@@ -50,5 +52,4 @@ yield ['act HARVEST done'];
 yield yield ['AGAIN harvest'];
 
 return ['seed'];
-
 
