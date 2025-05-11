@@ -10,7 +10,7 @@ const order	= {};
 
 for (const s of signs)
   {
-    if (!s.valid)
+    if (validSign(s))
       {
         yield ['act looking at', s];
         yield ['Move', s];
