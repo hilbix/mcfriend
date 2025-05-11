@@ -73,20 +73,28 @@ for await (const bb of iter())
         }
     }
 
-console.error('HERE');
-console.error('HERE');
-console.error('HERE');
-console.error('HERE');
-console.error('HERE');
-console.error('HERE');
+// There should be a way to foribly load a block!
+function* getBlock(x,y,z)
+{
+  for (let i=100; --i>0; )
+    {
+      const p	= yield ['pos', x,y,z];
+      const b	= yield ['block', p];
+      if (b) return b;
+
+      yield ['Move', p];
+      yield ['wait 10'];
+    }
+  trap `cannot location block ${x} ${y} ${z}`;
+}
+
 // Look into the layer above
 // XXX TODO XXX build-maxheight?
 if (minx < maxx)
   {
-    const k = yield ['block', [[minx,maxy-1,minz]]];
-    const l = yield ['block', [[maxx,maxy-1,maxz]]];
+    const k = yield* getBlock(minx,maxy-1,minz);
+    const l = yield* getBlock(maxx,maxy-1,maxz);
     const i = yield ['block', k, l];
-    console.error('MINMAX', k,l,i);
     for await (const b of i())
       if (keep[b.id])
         ko.push(b.vec());
