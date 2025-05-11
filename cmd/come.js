@@ -16,5 +16,5 @@ const pos	= yield ['locate',loc];
 const dist	= yield ['dist', pos];
 if (3 > dist) return ['act I am only', Math.ceil(dist), 'blocks away at', pos];
 
-return ['Move', pos.pos(0,0.6,0), 2];
+return ['Move', pos.pos(0,1,0), 2];
 
