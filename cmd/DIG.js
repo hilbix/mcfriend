@@ -73,6 +73,12 @@ for await (const bb of iter())
         }
     }
 
+console.error('HERE');
+console.error('HERE');
+console.error('HERE');
+console.error('HERE');
+console.error('HERE');
+console.error('HERE');
 // Look into the layer above
 // XXX TODO XXX build-maxheight?
 if (minx < maxx)
