@@ -9,7 +9,7 @@ for (const a of yield ['AREA place'])
   yield yield* area(a);
 
 // Process an area A..B
-function* area(a)
+async function* area(a)
 {
   yield ['act placing', a];
 
@@ -30,7 +30,7 @@ function* area(a)
   let cnt = 0;
 
   const iter = yield ['block', aa];
-  for (const b of iter())
+  for await (const b of iter())
     {
       if (!isAir(b))
         switch (b.id)
