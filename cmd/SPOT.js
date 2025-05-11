@@ -97,9 +97,17 @@ const K =
   , spruce_fence		: 1
   , cocoa			: 1
   , lightning_rod		: 1
+  , fire			: 6
 
 // UNKLAR
 
+  , cauldron			: 5
+  , ancient_debris		: 4
+
+  , diorite_slab		: 4
+  , nether_gold_ore		: 4
+  , nether_quartz_ore		: 4
+  , blackstone_slab 		: 4
   , hopper			: 4
   , redstone_lamp		: 4
   , dispenser			: 4
