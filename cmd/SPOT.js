@@ -90,6 +90,7 @@ const K =
   , redstone_wall_torch		: 1
   , lever			: 1
   , rail			: 1
+  , powered_rail		: 1
   , cobweb			: 1
   , oak_fence			: 1
   , bamboo			: 1
@@ -98,9 +99,13 @@ const K =
   , cocoa			: 1
   , lightning_rod		: 1
   , fire			: 6
+  , red_mushroom		: 1
+  , ladder			: 2
+  , nether_portal		: 1
 
 // UNKLAR
 
+  , glowstone			: 4
   , cauldron			: 5
   , ancient_debris		: 4
 
@@ -164,7 +169,6 @@ const K =
 
   , smooth_basalt		: 4
   , calcite			: 4
-  , hopper			: 4
 
   , diamond_ore			: 4
   , gold_ore			: 4
