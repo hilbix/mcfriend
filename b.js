@@ -463,7 +463,7 @@ class CTX
   block(_)		{ return _ instanceof My ? _.block : x instanceof v3.Vec3 ? this.#abi.B.blockAt(_) : _ }
 
   // These must be getters, as without getters the current context (this) vanishes within the VM
-  get dimension()	{ return this.#abi.B?.game?.dimension }
+  get dimension()	{ return this.#abi.dimension }
   get ME()		{ return this.#abi._.botname }
 
   get isBed()		{ return _ => this.#abi.B.isABed(this.block(_)) }
@@ -493,6 +493,8 @@ class CTX
       this.toJ		= toJ;
       this.OB		= OB;
       this.isAir	= isAir;
+      this.isSign	= isSign;
+      this.validSign	= _ => abi.validSign(_);
       this.isMy		= isMy;
 
       // XXX TODO XXX: THIS SHOULD GO INTO SOME AUTOLOADED LIB!
@@ -1605,19 +1607,21 @@ class Abi	// per spawn instance for bot
 
               const x = self.rem.sign[k];
 
-              const v = p2v(k);
-              const b = this.B.blockAt(v);
+              const pos	= p2v(k);
 
-              let ok=false;
-              if (isSign(b))
-                {
-                  const t = b.signText.split('\n');
-                  ok	= t[0] === s[1] && t[1] === s[2] && t[2] === s[3] && d === s[4];
-                }
-              yield { id:k, text:s, stat:x, valid:ok, pos:v, block:b, dim:s[4] }
+              const r = { id:k, text:s, stat:x, pos, block:this.B.blockAt(pos), d }
+              r.valid = this.validSign(r);
+              yield r;
             }
         }
     }
+  validSign(_)
+    {
+      if (!isSign(_.block)) return;
+      const t = _.block.signText.split('\n');
+      return t[0] === _.text[1] && t[1] === _.text[2] && t[2] === _.text[3] && this.dimension === _.text[4];
+    }
+  get dimension()	{ return this.B?.game?.dimension }
   // find sign with given type and optional match type
   // returns:
   // .id	this.state.sign[.id] (id is stringified position)
