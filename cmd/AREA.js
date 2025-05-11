@@ -10,9 +10,9 @@ const order	= {};
 
 for (const s of signs)
   {
-    if (validSign(s))
+    if (!validSign(s))
       {
-        yield ['act looking at', s];
+//        yield ['act looking at', s];
         yield ['Move', s];
         yield ['wait', 10];
         continue;
