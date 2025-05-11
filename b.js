@@ -1257,7 +1257,7 @@ class Abi	// per spawn instance for bot
               const B	= this.B;
               return async function*()
                 {
-		  let n = 0;
+                  let n = 0;
                   for (const x of inner(f.x, t.x))
                     for (const y of inner(f.y, t.y))
                       for (const z of inner(f.z, t.z))
@@ -1292,7 +1292,7 @@ class Abi	// per spawn instance for bot
        for (let a=-x; a<=x; a++)
          for (let b=-y; b<=y; b++)
            for (let c=-z; c<=z; c++)
-             r.push(await q(p.vec(a,c,b)));
+             r.push(yield* q(p.vec(a,c,b)));
         return r;
     }
 //  async *Copenchest(c)	{ return new Container(await this.B.openChest(c[0]._)) }
