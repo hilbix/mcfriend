@@ -25,24 +25,34 @@ switch (dimension)
 
     case 'overworld':
       mix	= torch;
+      end	= home;
       break;
   }
+
+const s = yield ['sign attack'];
 
 yield yield ['PUT'];
 
 for (let cnt=0;; cnt++)
   {
-    if (!(yield ['have *sword']))
+//    if (!(yield ['have *sword']))
+    if (!(yield ['have torch']))
       {
         yield yield ['drop'];
+        yield yield ['home'];
         yield yield ['supply'];
-        yield (yield ['have *sword']) || (yield ['CRAFT stone_sword']);
+//        yield (yield ['have *sword']) || (yield ['CRAFT stone_sword']);
       }
     const x = yield ['Attack', _];
     if (x !== void 0)
       {
         yield* end();
-        return ['act ATTACK done', cnt, x];
+        yield ['act ATTACK done', cnt, x];
+        const g = s.pop();
+        if (!g) break;
+        yield ['Move', g];
+        yield ['wait 100'];
+        continue;
       }
     yield ['wait'];
     yield yield* mix();
