@@ -1,0 +1,17 @@
+#!/bin/bash
+
+for a in Individulas a b c d e f g h
+do
+#	echo attribute $a minecraft:generic.armor base set 10000
+#	echo attribute $a minecraft:generic.armor_toughness base set 10000
+	echo attribute $a minecraft:generic.attack_speed base set 1000
+	echo attribute $a minecraft:generic.attack_damage base set 10000
+	echo attribute $a minecraft:generic.max_absorption base set 30
+	echo attribute $a minecraft:generic.max_health base set 100
+done | con - >/dev/null
+
+for a in resistance regeneration fire_resistance night_vision #absorption
+do
+	echo effect give @a minecraft:$a infinite 255 true
+done | con - >/dev/null
+
