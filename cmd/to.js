@@ -27,6 +27,9 @@ function* sel()
   // TODO create selector of options
   // for now just jump to the first thing found
   if (!have.length) return;
+  for (const s of have)
+    console.error(`# ${s}`);
+
   if (last !== void 0 && have[last])
     return yield* jump(have[last]);
   for (const s of have)
