@@ -25,6 +25,7 @@ if (!e)
 
 yield ['AGAIN attack 0'];	// reset waiting backoff
 
+if (false)	// XXX deactivated
 if (!(yield ['hand']).weapon)
   {
     const w = Array.from(yield ['invs']).filter(_ => _.weapon).sort((a,b) => a.dur < b.dur);
