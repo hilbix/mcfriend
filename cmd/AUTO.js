@@ -13,7 +13,10 @@ yield yield ['stop'];
 if (yield ['CACHE get current dim'])
   yield ['CACHE del current dim'];
 else
-  for (const dim = (yield [`set conf:bot:${ME}:dim`]); dim && (yield ['PORT', dim]); yield ['wait 100']);
+  {
+    yield yield ['home'];
+    for (const dim = (yield [`set conf:bot:${ME}:dim`]); dim && (yield ['PORT', dim]); yield ['wait 100']);
+  }
 
 yield yield ['PUT'];
 yield yield ['home'];
