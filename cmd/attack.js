@@ -41,7 +41,7 @@ for (let cnt=0;; cnt++)
         yield yield ['drop'];
         yield yield ['home'];
         yield yield ['supply'];
-//        yield (yield ['have *sword']) || (yield ['CRAFT stone_sword']);
+        (yield ['have *sword']) || (yield yield ['CRAFT stone_sword']);
       }
     const x = yield ['Attack', _];
     if (x !== void 0)
