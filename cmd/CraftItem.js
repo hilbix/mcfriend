@@ -11,7 +11,7 @@ for (const t of (yield ['sign', 'craft']).filter(_ => !_.text[3]))
     const d	= (yield ['block', t, 6]).filter(_ => _.id === 'crafting_table');
     if (d.length !== 1)
       {
-        yield ['act #crafting? ', s];
+        yield ['act #crafting? ', t, d];
         continue;
       }
     table	= d[0];
