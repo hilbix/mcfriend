@@ -17,20 +17,10 @@ for (const t of (yield ['sign', 'craft']).filter(_ => !_.text[3]))
 if (!table)
   throw 'missing sign: craft';
 
-const craftable =
-  { slime_ball:		['slime_block']
-  , sugar_cane:		['sugar', 'paper']
-  , bone_meal:		['bone_block']
-  , bamboo:		['bamboo_block']
-  , bamboo_block:	['bamboo_planks']
-  , wheat:		['hay_block']
-  , nether_brick:	['nether_bricks']
-  };
-
 const m = _[0];
 const n = _[1]|0;
 
-const t = craftable[m];
+const t = yield [`set craft:${m}`];
 if (!t)
   throw `do not know what to craft with ${m}`;
 
