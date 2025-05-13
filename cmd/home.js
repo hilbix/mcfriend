@@ -11,7 +11,10 @@ for (let i=0; ++i<=100; yield ['wait', i])
     // find a valid one
     const v = p.filter(_ => _.valid);
     if (v.length)
-      return yield ['Move', v[0]];
+      {
+        yield ['Move', v[0]];
+	return
+      }
 
     // else find a random one
     const d = p.filter(_ => _._.dim === dimension);
