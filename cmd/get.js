@@ -25,7 +25,7 @@ for (const [k,v] of l)
     const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'craft', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
-        yield ['act no sign found for', _];
+        //yield ['act no sign found for', _];
         continue;
       }
     const n = (v|0)||1;
@@ -39,7 +39,7 @@ for (const [k,v] of l)
 
         // move to the chest
         //yield yield ['Move', s];
-        yield yield ['TP', s];
+        yield ['Move', s];
 
         // open the chest
         const c = d[0];
