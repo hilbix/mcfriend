@@ -10,7 +10,7 @@ do
 	echo attribute $a minecraft:generic.max_health base set 100
 done | con - >/dev/null
 
-for a in resistance regeneration fire_resistance night_vision #absorption
+for a in resistance regeneration fire_resistance #night_vision #absorption
 do
 	echo effect give @a minecraft:$a infinite 255 true
 done | con - >/dev/null
