@@ -13,12 +13,12 @@ for (let i=0; ++i<=100; yield ['wait', i])
     if (v.length)
       {
         yield ['Move', v[0]];
-	return
+        return
       }
 
     // else find a random one
     const d = p.filter(_ => _._.dim === dimension);
-    if (!d.length) return yield 'no known home in this dimension';
+    if (!d.length) break;
 
     // else try to move to a random (nearest?) one
     console.log('no valid home yet', d.map(_ => _.vec));
@@ -26,5 +26,7 @@ for (let i=0; ++i<=100; yield ['wait', i])
     yield ['Move', d[0]];
   }
 
-return yield 'missing valid home';
+yield ['Move', yield ['pos', 0,64,0]];
+
+return yield ['act no valid home in this', dimension];
 
