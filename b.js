@@ -1863,7 +1863,7 @@ class Bot	// global instance for bot
           const m = _.metadata[8];
           item = ` ${m.itemCount}x${m.itemId} ${toJ(this.B.mcData.items[m.itemId].displayName)}`;
         }
-      return `${POS(_.position)} ${_.entityType} ${toJ(_.displayName)}${item}`;
+      return `${POS(_.position)} ${_.entityType ?? _.type} ${toJ(_.displayName ?? _.username)}${item}`;
     }
   isWeapon(item)
     {
@@ -2093,8 +2093,10 @@ class Bot	// global instance for bot
       if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
       if (orig.name !== now.name) this.log('U', orig.name, now.name);
     }
+  M_entityDead(x)		{ this.log('D', this.ENTITY(x)) }
+  M_entityEffect(x,e)		{ console.error('Effect', this.ENTITY(x), e) }
+  M_entityHurt(x)		{ console.error('hurt', this.ENTITY(x)); if (x.username && x.username === this.botname) console.error('HURT', x) }
 //  M_entityGone(x)		{ this.log('G', this.ENTITY(x)) }
-    M_entityDead(x)		{ this.log('D', this.ENTITY(x)) }
 
   ////////////////////////////////////////////////////
   // Signals which are specially processed
