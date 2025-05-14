@@ -17,7 +17,8 @@ for (const x of _)
         const h = yield ['have', t];
         if (h >= n) break;
         const d = n-h + n/2;
-        yield [`get ${x.id}=${d|0}`]
+        if (yield [`get ${x.id}=${d|0}`])
+          yield ['home'];
       }
   }
 
