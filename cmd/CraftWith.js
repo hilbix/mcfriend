@@ -27,7 +27,7 @@ if (!t)
 let had = 0;
 
 for (const x of t)
-  {
+  try {
     const i = yield ['item', x];
     if (i.length !== 1)
       throw `internal error ${x}`;
@@ -52,6 +52,8 @@ for (const x of t)
         yield ['wait', 20];
         had++;
       }
+  } catch (e) {
+    console.error(e, x);
   }
 
 return had;
