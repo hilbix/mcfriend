@@ -515,6 +515,7 @@ class My
 
   get id()		{ return this._?.name }
   get meta()		{ return this._?.metadata }
+  get nbt()		{ return this._?.nbt }
   get type()		{ return this._?.type }
   get name()		{ return this._?.name }
 
@@ -643,7 +644,7 @@ class Container extends My
   items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
 
   close()		{ return this._.close() }
-  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null) }
+  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null, i.nbt) }
   async take(i,n)
     {
       try {
@@ -1917,6 +1918,19 @@ class Bot	// global instance for bot
         })(patternMatch(m));
     }
 
+  #emitQ	= OB();
+  emitWrapper()
+    {
+      const log = LogOnce('emit');	// DEBUG to see what emit() are available
+      Wrap(this.B, 'emit', (..._) =>
+        {
+          log(..._);
+          for (const q of (this.#emitQ[_[0]] ??= []))
+            q(_);
+          return _;
+        });
+    }
+
   // XXX TODO XXX  cleanup!
   constructor(username, host, port)
     {
@@ -1924,16 +1938,16 @@ class Bot	// global instance for bot
       this.#match	= new Map();
 
       // Setup Bot (=us)
-      username ??= 'Bot';
-      host ??= '127.0.0.1';
-      port ??= 25565;
+      username	??= 'Bot';
+      host	??= '127.0.0.1';
+      port	??= 25565;
 
-      this.botname		= username;;
+      this.botname	= username;;
 
-      const B = this.B = mineflayer.createBot({ host, port, username, hideErrors:false });
+      const B	= this.B = mineflayer.createBot({ host, port, username, hideErrors:false });
+      this.emitWrapper();
 
       // DEBUG
-      Wrap(B, 'emit', LogOnce('emit'));		// DEBUG to see what emit() are available
       //B.settings.enableServerListing = false;		// does not work
       DEBUG.split(' ').forEach(_ => B.on(_, (...a) => this.log('D', _, ...(a.map(_ => DUMP(_, 2))))));
 
@@ -2081,18 +2095,19 @@ class Bot	// global instance for bot
       console.error('PATH', a)
     }
 
-  // XXX TODO XXX are these still needed?
-  M_soundEffectHeard(n,p,v,s)	{ this.log('ESND', n,p,v,s) }
-  M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ this.log('HSND', i,c,p,v,s) }
-  M_time()			{ D('time') }				// each second
-  M_physicsTick()		{ D('tick') }				// each tick (20 per second)
-  M_blockPlaced(orig, now)	{ this.log('P', orig.name, now.name) }
   M_blockUpdate(orig, now)
     {
       if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
       if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
       if (orig.name !== now.name) this.log('U', orig.name, now.name);
     }
+
+  // XXX TODO XXX are these still needed?
+  M_soundEffectHeard(n,p,v,s)	{ this.log('ESND', n,p,v,s) }
+  M_hardcodedSoundEffectHeard(i,c,p,v,s)	{ this.log('HSND', i,c,p,v,s) }
+  M_time()			{ D('time') }				// each second
+  M_physicsTick()		{ D('tick') }				// each tick (20 per second)
+  M_blockPlaced(orig, now)	{ this.log('P', orig.name, now.name) }
   M_entityDead(x)		{ this.log('D', this.ENTITY(x)) }
   M_entityEffect(x,e)		{ console.error('Effect', this.ENTITY(x), e) }
   M_entityHurt(x)		{ console.error('hurt', this.ENTITY(x)); if (x.username && x.username === this.botname) console.error('HURT', x) }
