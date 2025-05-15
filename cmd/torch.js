@@ -10,7 +10,7 @@ switch (_[0])
   }
 
 const w = Array.from(yield ['invs']).filter(_ => _.id === 'torch');
-if (!w.length) return 'no torch';
+if (!w.length) return yield ['say NO TORCH'];
 
 const p = yield ['pos'];
 const b = yield ['block', p, 27];
@@ -38,7 +38,6 @@ for (const a of b)
 if (!pos.length)
   return; //'no space to place torch';
 
-
 this.torches++;
 this.torched.push(pos[0]._.position);
 if (torched.length>100)
@@ -48,7 +47,8 @@ yield ['equip', 'hand', w[0]];
 try {
   yield ['place', pos[0]];
 } catch (e) {
-  return //'placing torch failed';
+  return 'placing torch failed';
 }
-return //'placed torch';
+
+return ['say placed torch', pos[0]];
 
