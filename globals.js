@@ -14,10 +14,10 @@ globalThis.DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entit
 // CONFIG
 
 //globalThis.CHAT = (..._) => console.error('CHAT', _);
-globalThis.FLW = [];
-globalThis.D = (..._) => { FLW.push(_); if (FLW.length>40) FLW.shift() };
-globalThis.DD = (..._) => { console.log(_); D(..._) }
-globalThis.ERR = _ => (...e) => { D('ERR', e); console.error(...e) }
+globalThis.FLW	= [];
+globalThis.D	= (..._) => { FLW.push(_); if (FLW.length>40) FLW.shift() };
+globalThis.DD	= (..._) => { console.log(_); D(..._) }
+globalThis.ERR	= _ => (...e) => { D('ERR', e); console.error(...e) }
 
 module.exports =
   { NAME	: process.argv[6] || process.argv[1].split('/').pop().split('.').shift()
@@ -50,11 +50,11 @@ globalThis.fsCB	= (fn,a,b) =>	// FS promises (my Node is too old)
     b ??= [];
     return (..._) => new Promise((o,k) => f.call(fs, ...a, ..._, ...b, (e,_) => e ? k(e) : o(_)));
   };
-globalThis.Read	= fsCB('readFile', [], ['utf8']);
+globalThis.Read		= fsCB('readFile', [], ['utf8']);
 globalThis.Write	= fsCB('writeFile');
 globalThis.Rename	= fsCB('rename');
 
-globalThis.isFunction= _ => 'function' === typeof _;
+globalThis.isFunction	= _ => 'function' === typeof _;
 globalThis.isArray	= Array.isArray;
 globalThis.isObject	= o => typeof o === 'object' && (Object.getPrototypeOf(o || 0) || Object.prototype) === Object.prototype;
 globalThis.isObjectOrNull = _ => isObject(_ ?? {});
