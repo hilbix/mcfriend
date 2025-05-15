@@ -19,30 +19,34 @@ function* put(item, ...where)
         if (i !== 'MISC') throw e;		// ignore MISC
       }
 
-      if (yield ['CACHE get in', c]) continue;
-
-      yield ['OPEN'];
+      if (yield ['CACHE get full', c]) continue;
 
       const h = (yield ['have', item.id]) - (parseInt(keep[item.id])|0);
 //      console.error(`PUT have ${h} ${keep[item.id]}`, yield ['have', item.id], hadsign);
 //      console.error(`PUT have ${h} ${keep[item.id]}`, toJ(item));
 //      console.error(`PUT have ${h} ${keep[item.id]}`, item.id);
       //yield ['act have', h, item];
-      if (h <= 0) return true;
+      if (h <= 0)
+        {
+          yield ['OPEN'];
+          return true;
+        }
 
       console.log(`PUT ${item} ${c} ${h}`);
       const r = yield ['OPEN', c];
       if (!r) continue;
       try {
         yield yield ['put', r, item, h];
-        yield ['act put', h, item, c];
+	// There is a bug in r.put(item,h),
+	// as it tries to merge unmergable things
+        yield ['act put', h, item, s];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
           {
             yield ['OPEN'];	// take item out of your hand!
             yield ['wait'];
-            yield yield ['CACHE set in', c];
+            yield yield ['CACHE set full', c];
           }
         else
           yield ['act OOPS', e.message, c, s];
@@ -94,7 +98,7 @@ for (const i of more)
 for (const i of much)
   (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
-  (yield* put(i, 'overflow', 'MISC')) || (yield ['act cannot put', i]);
+  (yield* put(i, 'overflow', 'MISC')) || (yield * put(o, 'destroy', 'MISC')) || (yield ['act cannot put', i]);
 
 yield ['OPEN'];	// close everything
 
