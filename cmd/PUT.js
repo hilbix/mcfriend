@@ -98,7 +98,7 @@ for (const i of more)
 for (const i of much)
   (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
-  (yield* put(i, 'overflow', 'MISC')) || (yield * put(o, 'destroy', 'MISC')) || (yield ['act cannot put', i]);
+  (yield* put(i, 'overflow', 'MISC')) || (yield * put(i, 'destroy', 'MISC')) || (yield ['act cannot put', i]);
 
 yield ['OPEN'];	// close everything
 
