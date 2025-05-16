@@ -2,8 +2,8 @@
 
 
 const keep = {};
-
 let hadsign;
+
 function* put(item, ...where)
 {
   // this is not correct in case the put chest is full we shall fallback to store
@@ -32,14 +32,13 @@ function* put(item, ...where)
           return true;
         }
 
-      console.log(`PUT ${item} ${c} ${h}`);
+      console.log(`PUT ${item} ${c} ${h}`, yield ['hand', item]);
       const r = yield ['OPEN', c];
       if (!r) continue;
       try {
-        yield yield ['put', r, item, h];
-	// There is a bug in r.put(item,h),
-	// as it tries to merge unmergable things
-        yield ['act put', h, item, s];
+        const cnt = item.n || h;
+        yield yield ['put', r, item, cnt];
+        yield ['act put', cnt, item, s];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
@@ -49,7 +48,10 @@ function* put(item, ...where)
             yield yield ['CACHE set full', c];
           }
         else
-          yield ['act OOPS', e.message, c, s];
+          {
+            yield ['act OOPS', e.message, c, s, item];
+//            yield ['list inv'];
+          }
       } finally {
         yield ['wait', 5];
       }
