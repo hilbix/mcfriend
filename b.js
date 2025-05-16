@@ -644,7 +644,16 @@ class Container extends My
   items()		{ return this._.slots.slice(0, this._.inventoryStart).map(_ => new Item(_)) }
 
   close()		{ return this._.close() }
-  put(i,n)		{ return this._.deposit(i.type, i.meta, n||null, i.nbt) }
+  put(i,n)
+    {
+      try {
+        return this._.deposit(i.type, i.meta, n||null, i.nbt);
+      } catch (e) {
+        if (e.message === 'destination full')
+          throw e;
+        return this._.deposit(i.type, i.meta, n||null);
+      }
+    }
   async take(i,n)
     {
       try {
