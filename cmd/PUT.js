@@ -62,8 +62,8 @@ function* valid(i)
 {
   const id	= i.id;
   if (!id)		return;		// nothing is not valid
-  const _	= keep[id];
-  if (_ !== void 0)	return;		// ignore already seen
+//  const _	= keep[id];
+//  if (_ !== void 0)	return;		// ignore already seen
   const k	= keep[id]	??= ((yield [`set item:${i.id}:keep`]) ?? true);
 //  yield ['act PUT', i, i.id, keep[i.id]];
   if (`${k}` !== `${k|0}`) return k;
