@@ -1314,6 +1314,7 @@ class Abi	// per spawn instance for bot
   async *Copene(c)	{ return new Container(await this.B.openEntity(c[0]._)) }
   async *Cclose(c)	{ return await c[0].close() }
   async *Cj(c)		{ return toJ(c) }
+  async *Cconsume()	{ return await this.B.consume() }
   // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
   *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+this.B.inventory.count(i.type, i.meta), 0) }
   *Citem(c)		{ return c.map(_ => Array.from(this.items(_))).flat() }
