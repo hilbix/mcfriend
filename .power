@@ -1,0 +1,10 @@
+#!/bin/bash
+#
+# vim ft=bash
+
+# timeout is needed as sometimes things hang, dunno why
+while	timeout 1000 ./.max
+	timeout 1000 ./.start
+	date && ! read -t1000
+do :; done
+
