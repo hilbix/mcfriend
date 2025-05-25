@@ -2,7 +2,7 @@
 //	what [value]
 // if value 0 then stop the backoff
 
-this.backoff = {};
+this.backoff ??= {};
 
 const w	= _.shift();
 if (!w) return;
