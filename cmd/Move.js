@@ -22,6 +22,7 @@ function* check(k,l)
 
   // this moves at least distance 1, hence we have progress
   yield yield ['TP', p];
+  yield ['wait'];
 }
 
 function* miss(n,d)
@@ -40,7 +41,7 @@ function* miss(n,d)
     {
       const m	= ((n+l) / 2)|0 || 1;
       const k	= dest.pos(v.scaled(m));
-      if (yield* check(k, n>30 ? 30 : n))
+      if (yield* check(k, n>15 ? 15 : n))
         return;						// there is progress
       l	= m + 1;
     }
