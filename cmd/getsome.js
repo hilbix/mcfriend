@@ -13,3 +13,11 @@ for (const item of _)
        return item;
   }
 
+for (const item of _)
+  {
+    yield yield ['CraftItem', item, 1];
+    yield ['wait'];
+    if (yield ['have', item])
+       return item;
+  }
+
