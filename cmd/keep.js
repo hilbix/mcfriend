@@ -24,7 +24,7 @@ if (!input?.length)
 const keep	= area.shift();
 
 const keepcache	= OB();
-let cache	= [];
+let cache	= [], empties = [], stacks;
 
 // First check if the floor still is stable.
 while ((yield* check_floor(keep.map(_ => _.pos(0,-1,0)))));
@@ -129,11 +129,8 @@ async function* filler(stacks, empties, empty)
   return ret;
 }
 
-
 async function* barrels(keep, y)
 {
-  let empties	= [];
-  let stacks;
   let	next;
 
   const x	= yield ['block', keep.map(_ => _.pos(0,y,0))];
@@ -141,7 +138,6 @@ async function* barrels(keep, y)
     {
       if (empties.length>20)
         {
-	  console.error('HERE');
           if (yield* filler(stacks, empties))
             return;		// finished
           yield ['AGAIN keep 0'];
@@ -177,7 +173,7 @@ async function* barrels(keep, y)
           next		= cache;	// rescan everything
           cache		= [];
           empties	= [];
-	  stacks	= {};
+          stacks	= {};
         }
       next.push(b);
 
@@ -200,6 +196,7 @@ async function* barrels(keep, y)
 
 //      yield ['OPEN'];
     }
+  return true;
 }
 
 function* check_barrel(b)
