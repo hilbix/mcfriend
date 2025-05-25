@@ -25,7 +25,7 @@ try {
               case 'grass_block':
               case 'dirt':
                 yield yield ['tool hoe'];
-                yield ['tp', c];
+                yield ['Move', c];
                 yield yield ['click', d];
                 continue;
               }
@@ -35,7 +35,7 @@ try {
               const st0 = st.states?.[0];
               if (st0?.name === 'age' && st0.values[st0.values.length-1] == c.meta)
                 {
-                  yield ['tp', c.pos(0,0.1,0)];
+                  yield ['Move', c.pos(0,0.1,0)];
                   yield yield ['dig', c];
                 }
 //              else return console.error('HARVEST', c.id, st);
