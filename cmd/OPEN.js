@@ -20,10 +20,7 @@ last = pos;
 
 if (!box) return;
 
-const dist = yield ['dist', box];
-if (dist > 3)
-  yield yield ['TP', box];
-
+yield ['Move', box, 3];
 
 for (let i=10; --i>=0; )
   try {
