@@ -1,4 +1,4 @@
-//	fill chests marked 'put' with inventory items
+// empty chests marked 'take'
 
 this.track ??= {};
 
