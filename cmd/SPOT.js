@@ -381,7 +381,7 @@ for (const b of _.length ? _ : [mypos])
 
         if (!d || isAir(d) || unsafe[d.id]) continue;
 
-        const e = d.dist(b);
+        const e = d.dist(mypos);
         if (e < 0.1) continue;
         if (min && e > min) continue;
 
