@@ -36,13 +36,16 @@ for (const x of r)
         if (z.id<=0) continue;
         for (const i of yield ['item', z.id])
           {
+            const n = yield ['have', i];
+            if (n > cnt * z.count) continue;
+
 //            console.error('CraftItem:', i.map(_ => _.name), z.id, z.count);
 // This is wrong, we must accumulate
             const err = yield [`get ${i.name}=${cnt * z.count}`];
             if (!err) continue;
 
-            yield yield err;
-            yield yield ['act to craft', itm];
+//            yield yield err;
+//            yield yield ['act to craft', itm];
             continue outer;
           }
       }
@@ -57,6 +60,9 @@ for (const x of r)
     if ((yield ['have', itm]) >= cnt)
       break;
   }
+
+if (!tot)
+  yield yield ['failed to craft', itm];
 
 return tot;
 
