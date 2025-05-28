@@ -20,20 +20,20 @@ if (!table)
 const m = _[0];
 const n = _[1]|0;
 
-const t = yield [`set craft:${m}`];
+const t = yield [`set craft:${m.name}`];
 if (!t)
   throw `do not know what to craft with ${m}`;
 
 let had = 0;
 
-for (const x of t)
+for (const x of [t].flat(1))
   try {
     const i = yield ['item', x];
     if (i.length !== 1)
       throw `internal error ${x}`;
     const i0 = i[0];
 
-    const r = (yield ['recipe', table, i0, 1]).filter(_ => _.input.length === 1 && _.input[0].id === m);
+    const r = (yield ['recipe', table, i0, 1]).filter(_ => _.input.length === 1 && _.input[0].id === m.id);
     if (!r.length)
       {
         yield ['act no recipe for', i0, 'from', m];
