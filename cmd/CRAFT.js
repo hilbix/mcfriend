@@ -126,14 +126,15 @@ function* craftin()
         {
           if (!i.id) continue;
           console.error('TAKE', yield ['take', w, i, i.n]);
-          to[i.name] = (to[i.name]|0) + i.n;
+          to[i.name] = 1;
         }
       yield yield ['OPEN'];
       yield yield ['wait'];
-      for (const [k,v] of Object.entries(to))
-        ok	|= yield ['CraftWith', k, v];
-      yield yield ['PUT'];
+      for (const i of yield ['invs'])
+        if (to[i.name])
+          ok	|= yield ['CraftWith', i, i.n];
     }
+  yield yield ['PUT'];
   return ok && 'CRAFT done';
 }
 
