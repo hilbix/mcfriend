@@ -34,6 +34,7 @@ try {
   for (let y=0; yield* barrels(keep,y); y++);
 } catch(e) {
   yield [`act ERROR ${e}`];
+  console.error(e);
 }
 
 yield ['OPEN'];
