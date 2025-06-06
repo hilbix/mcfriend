@@ -155,10 +155,7 @@ if (_.length)
     }
 else
   {
-    try {
-      if (!((yield* craftin()) || (yield* autocraft())))
-        return;
-    } catch (e) { console.error(e) }
-    //yield ['craft'];
+    try { yield* craftin()   } catch (e) { console.error(e) }
+    try { yield* autocraft() } catch (e) { console.error(e) }
   }
 
