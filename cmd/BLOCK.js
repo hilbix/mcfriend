@@ -12,7 +12,7 @@ for (let i=100;; )
     if (b || --i<0)
       {
         old && (yield ['tp', old]);
-        if (!b) trap `cannot locate block ${p}`;
+        if (!b) throw `cannot locate block ${p}`;
         return b;
       }
 
