@@ -14,9 +14,9 @@ try {
       count++;
 
       const g	= yield ['locate', s];
-      const q	= (yield ['block', g, 3, 3]);
+      const q	= (yield ['block', g, 3, 3, 3]);
       const l	= q.filter(_ => _.id?.endsWith('_log'));	// logs
-      const k	= q.filter(_ => _.id?.endsWith('_sapling'));	// saplings
+      const k	= q.filter(_ => _.id?.endsWith('_sapling') && _._vec.y == g._vec.y);	// saplings
 
       if (!l.length)
         {
@@ -71,7 +71,7 @@ try {
           const r = yield ['block', _.pos(0, -1, 0)];
           switch (r.id)
             {
-            default: 	throw `tree ${_} ${_.pos()} not rooted: ${r.id}`;
+            default: 	continue;
             case 'dirt':	break;
             case 'coarse_dirt':	break;
             }
