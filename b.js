@@ -18,7 +18,7 @@ const first = (arr,match,...a) =>
   };
 const nonVoidFlat = a => { const b=a.flat().filter(_ => _ !== void 0); return b.length ? b : void 0 };
 function* range(a,b) { a = a|0; b = b|0; if (a < b) for (let _=a; _ <= b; yield _++); else for (let _=b; _ <= a; yield _++); }
-function* inner(a,b) { a = a|0; b = b|0; if (a > b) [a,b] = [b,a]; if (a+1>=b) a--, b++; for (let _=a; ++_ < b; yield _); }
+function* inner(a,b,rev) { a = a|0; b = b|0; if (a > b) [a,b] = [b,a]; if (a+1>=b) a--, b++; if (rev) for (let _=b; --_> a; yield _); else for (let _=a; ++_ < b; yield _); }
 
 // 'chat message messagestr'	// last ist best
 const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entityEquip' //entityMoved' //'blockUpdate' //blockUpdate itemDrop'
@@ -1269,10 +1269,10 @@ class Abi	// per spawn instance for bot
               const B	= this.B;
               return async function*()
                 {
-                  let n = 0;
+                  let n = 0, dy=0, dz=0;
                   for (const x of inner(f.x, t.x))
-                    for (const y of inner(f.y, t.y))
-                      for (const z of inner(f.z, t.z))
+                    for (const y of inner(f.y, t.y, (dy = 1-dy)))
+                      for (const z of inner(f.z, t.z, (dz = 1-dz)))
                         {
                           const b	= yield* q(v3(x,y,z));
                           if (b)
@@ -2120,7 +2120,7 @@ class Bot	// global instance for bot
   M_blockPlaced(orig, now)	{ this.log('P', orig.name, now.name) }
   M_entityDead(x)		{ this.log('D', this.ENTITY(x)) }
   M_entityEffect(x,e)		{ console.error('Effect', this.ENTITY(x), e) }
-  M_entityHurt(x)		{ console.error('hurt', this.ENTITY(x)); if (x.username && x.username === this.botname) console.error('HURT', x) }
+//  M_entityHurt(x)		{ console.error('hurt', this.ENTITY(x)); if (x.username && x.username === this.botname) console.error('HURT', x) }
 //  M_entityGone(x)		{ this.log('G', this.ENTITY(x)) }
 
   ////////////////////////////////////////////////////
