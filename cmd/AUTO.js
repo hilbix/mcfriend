@@ -29,9 +29,14 @@ yield yield ['drop'];
 if (yield ['set conf:stop'])
   yield 'AUTOSTART disabled (conf:stop)';
 else
-  for (const _ of (yield ['set auto:'])?.split(' ') ?? [])
-    if ((yield [`set auto:${_}:bot:${ME}`]) && !(yield [`set auto:${_}:stop`]))
-      yield [`in auto:${_}:start ${_}`];
+  { // old
+    for (const _ of (yield ['set auto:'])?.split(' ') ?? [])
+      if ((yield [`set auto:${_}:bot:${ME}`]) && !(yield [`set auto:${_}:stop`]))
+        yield [`in auto:${_}:start ${_}`];
+    for (const _ of (yield [`set bot:${ME}:auto:`])?.split(' ') ?? [])
+      if (!(yield [`set auto:${_}:stop`]))
+        yield [`in auto:${_}:start ${_}`];
+  }
 
 return 'AUTOSTART ok';
 
