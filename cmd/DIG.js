@@ -17,6 +17,8 @@ const want = Object.fromEntries(items.map(_ => [_.id,true]));
 
 const nix = { air:1, cave_air:1, torch:1, wall_torch:1 };
 
+let lx, ly, lz;
+
 //console.error({want,keep});
 
 // find all the positions to place things to
@@ -73,7 +75,7 @@ for await (const bb of iter())
         }
     }
 
-// There should be a way to foribly load a block!
+// There should be a way to forcibly load a block!
 function* getBlock(x,y,z)
 {
   for (let i=100; --i>0; )
@@ -151,7 +153,9 @@ function* breaker(x,y,z)
       if (b === void 0) return;
       if (b)
         {
-          yield ['act break', x,y,z];
+          if ( (lx != x) + (ly != y) + (lz != z) > 1 )
+            yield ['act break', x,y,z];
+          lx = x; ly = y; lz = z;
           yield ['Move', b];
         }
     }
