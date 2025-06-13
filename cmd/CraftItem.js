@@ -62,7 +62,7 @@ for (const x of r)
   }
 
 if (!tot)
-  yield yield ['failed to craft', itm];
+  yield yield ['act failed to craft', itm];
 
 return tot;
 
