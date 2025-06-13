@@ -11,7 +11,7 @@ for (let i=100;; )
     const b	= yield ['block', p];
     if (b || --i<0)
       {
-        old && (yield ['tp', old]);
+        old && (yield ['TP', old]);
         if (!b) throw `cannot locate block ${p}`;
         return b;
       }
