@@ -37,8 +37,13 @@ async function* area(a)
           {
           default: continue;
 
+          case 'torch':
+          case 'brown_mushroom':
+          case 'red_mushroom':
+
           case 'water':
           case 'lava':
+          case 'vine':
             break;
           }
 
