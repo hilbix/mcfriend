@@ -50,7 +50,7 @@ for (const [k,v] of l)
         if (!v.length) 
           {
             //yield ['act', k, 'not in', c]
-            yield ['OPEN'];
+            //yield ['OPEN'];
             continue;
           }
 
@@ -63,7 +63,6 @@ for (const [k,v] of l)
             yield ['take', t];
         } catch (e) {
         }
-        yield ['OPEN'];
 
         // check that I have enough from this item
         const h = yield ['have', v[0]];
@@ -75,6 +74,8 @@ for (const [k,v] of l)
           }
       }
   }
+
+//yield ['OPEN'];
 
 if (l.length !== ok)
   return ['act unable to get', l];
