@@ -49,7 +49,7 @@ for (const [c,s] of a)
       console.error('TAKE', e);
       yield yield ['act ERROR', e];
     }
-    yield yield ['OPEN'];			// close r
+    yield ['OPEN'];			// close r
     yield yield ['wait', 10];
     yield yield [ok];
   }
