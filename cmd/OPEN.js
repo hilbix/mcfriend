@@ -6,9 +6,8 @@ this.open ??= void 0;
 this.last ??= void 0;
 
 const box = _[0];
-const pos = box && (yield ['locate', box])?.id;
 
-if (pos === last && open) return open;
+if (box === last && open) return open;
 
 try {
   if (open)
@@ -16,7 +15,7 @@ try {
 } catch (e) { console.error(e) }
 
 open = void 0;
-last = pos;
+last = void 0;
 
 if (!box) return;
 
@@ -25,7 +24,9 @@ yield ['Move', box, 3];
 for (let i=10; --i>=0; )
   try {
     yield yield ['wait'];
-    return open = yield ['open', _];
+    open = yield ['open', _];
+    last = box;
+    return open;
   } catch (e) {
     yield ['act open', e];
     console.error('open fail', _);
