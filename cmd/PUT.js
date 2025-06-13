@@ -28,7 +28,7 @@ function* put(item, ...where)
       //yield ['act have', h, item];
       if (h <= 0)
         {
-          yield ['OPEN'];
+//          yield ['OPEN'];
           return true;
         }
 
