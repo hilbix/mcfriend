@@ -53,6 +53,8 @@ for (;;)
     const d	= yield ['dist', dest];
     if (d <= delta+1) return ['act arrived', ((d*1000)|0)/1000, 'at', dest];
 
+    yield ['OPEN'];	// close chests before moving
+
     for (let n=delta || 1; yield* miss(n, d); n *= 2)
       if (n * 3 > d)
         {
