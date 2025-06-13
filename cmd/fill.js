@@ -63,7 +63,7 @@ for (const [c,s] of a)
       console.error('FILL', e);
       yield yield ['act ERROR', e];
     }
-    yield yield ['OPEN'];		// close r
+    yield ['OPEN'];		// close r
     yield yield ['wait', 10];
   }
 
