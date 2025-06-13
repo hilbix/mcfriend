@@ -1,6 +1,6 @@
 //
 
-yield yield ['PUT'];
+_.length || (yield yield ['PUT']);
 
 try {
   const r = yield ['CRAFT', _];
