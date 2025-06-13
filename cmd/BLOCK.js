@@ -17,7 +17,7 @@ for (let i=100;; )
       }
 
     old ??= yield ['pos'];
-    yield ['SPOT', 10, p];
+    yield ['tp', (yield ['SPOT', 10, p]) ?? p];
     yield ['wait 10'];
   }
 
