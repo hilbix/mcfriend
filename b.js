@@ -634,6 +634,7 @@ class Sign extends My
   get text()		{ return this._.text }
   get dim()		{ return this._.dim }
   get block()		{ return this._.block }
+  cmp(_)		{ }
   };
 
 class Container extends My
@@ -1205,11 +1206,13 @@ class Abi	// per spawn instance for bot
     }
   *Csign(c)
     {
-      const type = c.shift();
-      const find = _ => this.find_sign(type, (({text,pos}, d) => { if (patternMatch(text[3])(_)) return _ }));
-      const findMatch = _ => nonVoidFlat([find(_)]) ?? nonVoidFlat(this._.match(_).map(find));
-      const signs = !c.length ? this.find_sign(type) :
-        first(c, _ => findMatch(_) ?? nonVoidFlat(this.findList(_).map(findMatch)));
+      const type	= c.shift();
+      if (isMy(type))	return new Sign(this.mkSign(POS(type._vec)));
+      const find	= _ => this.find_sign(type, (({text,pos}, d) => { if (patternMatch(text[3])(_)) return _ }));
+      const findMatch	= _ => nonVoidFlat([find(_)]) ?? nonVoidFlat(this._.match(_).map(find));
+      const signs	= !c.length
+                        ? this.find_sign(type)
+                        : first(c, _ => findMatch(_) ?? nonVoidFlat(this.findList(_).map(findMatch)));
 
       // (distance) sorted list:
       // .id	this.state.sign[.id] (id is stringified position)
@@ -1616,15 +1619,17 @@ class Abi	// per spawn instance for bot
               if (!match(s[2])) continue;
               if (s[4] !== d) continue;
 
-              const x = self.rem.sign[k];
-
-              const pos	= p2v(k);
-
-              const r = { id:k, text:s, stat:x, pos, block:this.B.blockAt(pos), d }
-              r.valid = this.validSign(r);
-              yield r;
+              yield self.mkSign(k, s);
             }
         }
+    }
+  mkSign(k)
+    {
+      const pos	= p2v(k);
+      const x	= this.rem.sign[k];
+      const r	= { id:k, text:this.state.sign[k], stat:this.rem.sign[k], pos, block:this.B.blockAt(pos), d:this.B.game.dimension }
+      r.valid	= this.validSign(r);
+      return r;
     }
   validSign(_)
     {
