@@ -128,7 +128,7 @@ function* craftin()
           console.error('TAKE', yield ['take', w, i, i.n]);
           to[i.name] = 1;
         }
-      yield yield ['OPEN'];
+      yield ['OPEN'];
       yield yield ['wait'];
       for (const i of yield ['invs'])
         if (to[i.name])
