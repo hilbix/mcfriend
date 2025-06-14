@@ -11,7 +11,7 @@ yield ['CACHE set current dim', _];
 
 if (dimension === _[0]) return;
 
-yield ['act I am in', dimension, 'and go to', _];
+yield ['verbose I am in', dimension, 'and go to', _];
 
 const p	= yield ['sign portal', _];
 if (!p)
@@ -41,7 +41,7 @@ for (const nether of p)
     yield ['Move', l];
     // now check we are in nether
     yield ['wait', 200];	// this does not return as we get a new Spawn event
-    return ['act entering', nether, 'failed'];
+    return ['note entering', nether, 'failed'];
   }
 
 return ['act no suitable portal found to', _];
