@@ -3,7 +3,7 @@
 
 this.track ??= {};
 
-yield ['act FILL start'];
+yield ['note FILL start'];
 
 yield ['CACHE clear'];
 yield ['PUT'];
@@ -49,14 +49,14 @@ for (const [c,s] of a)
       for (const [k,v] of m)
         {
           yield ['AGAIN fill 0'];	// reset backoff
-          yield ['act GET',k,v];
+          yield ['verbose GET',k,v];
           yield yield [`get ${k}=${v}`];
         }
        yield ['Move', s, 1];
        const r = yield ['OPEN', c];
        for (const [k,v] of m)
          {
-           yield ['act FILL', item[k], v];
+           yield ['verbose FILL', item[k], v];
            yield yield ['put', r, item[k], v];
          }
     } catch (e) {
@@ -67,5 +67,5 @@ for (const [c,s] of a)
     yield yield ['wait', 10];
   }
 
-return ['act FILL done', yield ['AGAIN fill']];
+return ['note FILL done', yield ['AGAIN fill']];
 
