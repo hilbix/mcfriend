@@ -46,7 +46,7 @@ const p = yield [`locate`, e];
 if ((yield ['dist', e]) >= 2)
   yield ['Move', p, 1, e.id !== last ? e : null];
 if (e.name !== last)
-  yield yield ['act ATTACK', e, p];
+  yield yield ['note ATTACK', e, p];
 last = e.name;
 yield yield ['attack', e];
 
