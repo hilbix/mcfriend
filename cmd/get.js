@@ -70,18 +70,18 @@ for (const [k,v] of l)
         const h = yield ['have', v[0]];
         if ((h|0) >= n)
           {
-            yield ['act got', h, v[0]];
+            yield ['verbose got', h, v[0]];
             ok++;
             break;
           }
-        yield ['act only', h, v[0]];
+        yield ['verbose only', h, v[0]];
       }
   }
 
 //yield ['OPEN'];
 
 if (l.length !== ok)
-  return ['act unable to get', l];
+  return ['note unable to get', l];
 
 //console.error('GET', signs);
 
