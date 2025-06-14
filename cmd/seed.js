@@ -1,7 +1,7 @@
 // seed area
 // Needs two "seed"-signs, 3rd line is what to plant
 
-yield ['act SEED start'];
+yield ['note SEED start'];
 yield yield ['PUT'];
 
 try {
@@ -42,13 +42,13 @@ try {
           yield yield ['wait'];		// relax a bit
         }
     }
-  yield ['act SEED ok'];
+  yield ['note SEED ok'];
 } catch (e) {
   yield [`act SEED fail: ${e}`];
   throw e;
 }
 
-yield ['act SEED done'];
+yield ['note SEED done'];
 return ['PUT']
 
 
