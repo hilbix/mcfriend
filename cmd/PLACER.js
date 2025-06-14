@@ -20,7 +20,7 @@ for (const d of 'dewnsu')
     if (p)
       yield ['Move', p];
 
-    yield ['act place', item.type, b];
+    yield ['verbose place', item.type, b];
     try {
       yield yield ['equip hand', item.type];
       yield ['placer', b, `${d}r`];
