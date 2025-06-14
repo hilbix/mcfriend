@@ -14,10 +14,19 @@ for (const s of signs)
       {
         yield ['act checking', s];
         yield ['Move', s];
-        yield ['wait', 20];
+        yield ['wait', 30];
 
         const b = yield ['sign', s];				// fetch the sign again
-        if (!b.valid || toJ(s.text) !== toJ(b.text)) continue;	// changed
+        if (!b.valid)
+          {
+            yield ['act invalid', s];
+            continue;
+          }
+        if (toJ(s.text) !== toJ(b.text))
+          {
+            yield ['act changed', s];
+            continue;	// changed
+          }
       }
     const n = `${s.text[0]}\t${s.text[3]}`;
     (order[n] ??= []).push(s);
