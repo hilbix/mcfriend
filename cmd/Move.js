@@ -5,7 +5,7 @@
 
 const dest	= _[0];
 const delta	= (_[1]|0)+0.5;
-if (delta >= (yield ['dist', dest])) return ['act already there!'];
+if (delta >= (yield ['dist', dest])) return ['note already there!'];
 
 //console.error('Move', dest);
 let d	= delta;
@@ -51,7 +51,7 @@ function* miss(n,d)
 for (;;)
   {
     const d	= yield ['dist', dest];
-    if (d <= delta+1) return ['act arrived', ((d*1000)|0)/1000, 'at', dest];
+    if (d <= delta+1) return ['note arrived', ((d*1000)|0)/1000, 'at', dest];
 
     yield ['OPEN'];	// close chests before moving
 
@@ -59,7 +59,7 @@ for (;;)
       if (n * 3 > d)
         {
           yield ['tp', dest];
-          return ['act sorry no way found', d, n];
+          return ['note sorry no way found', d, n];
         }
   }
 
