@@ -12,19 +12,19 @@ for (const s of signs)
   {
     if (!s.valid)
       {
-        yield ['act checking', s];
+        yield ['verbose checking', s];
         yield ['Move', s];
         yield ['wait', 30];
 
         const b = yield ['sign', s];				// fetch the sign again
         if (!b.valid)
           {
-            yield ['act invalid', s];
+            yield ['verbose invalid', s];
             continue;
           }
         if (toJ(s.text) !== toJ(b.text))
           {
-            yield ['act changed', s];
+            yield ['verbose changed', s];
             continue;	// changed
           }
       }
@@ -42,7 +42,7 @@ for (const x of Object.values(order))
         const a	= x.shift();
         if (!x.length)
           {
-            yield ['act missing second sign for', a.text[1], a];
+            yield ['note missing second sign for', a.text[1], a];
             break;
           }
         // find the nearest other sign
