@@ -1,7 +1,7 @@
 // chop something (break only part)
 // Needs two "chop"-signs to define the area
 
-yield ['act CHOP start'];
+yield ['note CHOP start'];
 
 try {
   for await (const [a,b] of yield ['AREA chop'])
@@ -33,12 +33,12 @@ try {
           yield ['Move', c];
           yield yield ['dig', d];
         }
-      yield ['act CHOP', cnt, trg];
+      yield ['verbose CHOP', cnt, trg];
     }
 } catch (e) {
   yield [`act CHOP fail: ${e}`];
 }
 
-yield ['act CHOP done'];
+yield ['note CHOP done'];
 return yield ['AGAIN chop'];
 
