@@ -367,7 +367,7 @@ for (const b of _.length ? _ : [mypos])
     const a = yield ['block', b.pos(-dist, -dist-1, -dist), b.pos(+dist, +dist+1, +dist)];
     const aa = [];
     for await (const _ of a())
-      if (_.dist(mypos)>1)		// must not be our current position
+      if (_?.dist(mypos)>1)		// must not be our current position
         aa.push(_);
     const c = new MultiDimArray(_ => { const v = _._vec; if (v) return [v.x, v.y, v.z] }).append(aa);
 
@@ -382,7 +382,7 @@ for (const b of _.length ? _ : [mypos])
 
         if (!d || isAir(d) || unsafe[d.id]) continue;
 
-        const e = d.dist(mypos);
+        const e = d?.dist(mypos);
         if (e < 0.1) continue;
         if (min && e > min) continue;
 
