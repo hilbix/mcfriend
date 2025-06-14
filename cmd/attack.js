@@ -47,8 +47,8 @@ for (let cnt=0;; cnt++)
     if (x !== void 0)
       {
         yield* end();
-        yield ['act ATTACK done', cnt, x];
-        const g = s.pop();
+        yield ['note ATTACK done', cnt, x];
+        const g = s?.pop();
         if (!g) break;
         yield ['Move', g];
         yield ['wait 100'];
