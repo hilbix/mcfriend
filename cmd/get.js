@@ -64,6 +64,8 @@ for (const [k,v] of l)
         } catch (e) {
         }
 
+        yield ['OPEN'];		// have does not work with some open chest?!?
+
         // check that I have enough from this item
         const h = yield ['have', v[0]];
         if ((h|0) >= n)
@@ -72,6 +74,7 @@ for (const [k,v] of l)
             ok++;
             break;
           }
+        yield ['act only', h, v[0]];
       }
   }
 
