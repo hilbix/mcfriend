@@ -44,7 +44,7 @@ for await (const bb of iter())
 
     const v = b.vec();
 
-    if (++t > 10000) { yield ['act thinking', v.y, s, ko.length]; yield ['wait']; t=0 }
+    if (++t > 10000) { yield ['verbose thinking', v.y, s, ko.length]; yield ['wait']; t=0 }
 
     if (minx > v.x) minx	= v.x|0;
     if (maxx < v.x) maxx	= v.x|0;
@@ -120,7 +120,7 @@ for (const k of ko)
 const sw = Object.keys(ok)[0]|0;
 const [min,max] = Object.keys(ok).reduce(([a,b],c) => { c=c|0; return [a<c ? a : c, b>c ? b : c] }, [sw,sw]);
 
-yield ['act DIG', max, min];
+yield ['verbose DIG', max, min];
 
 for (const [x,_] of Object.entries(ok[max]||{}))
   for (const z of Object.keys(_))
@@ -129,9 +129,9 @@ for (const [x,_] of Object.entries(ok[max]||{}))
 
 const cnt = Object.values(ok).reduce((a,k) => a+Object.values(k).reduce((a,k) => a+Object.keys(k).length, 0), 0);
 if (!cnt)
-  return ko.length ? ['act only keeps', ko.length] : ['act nothing to do'];
+  return ko.length ? ['act only keeps', ko.length] : ['note nothing to do'];
 
-yield ['act', cnt, 'to break', ko.length, 'to keep'];
+yield ['verbose', cnt, 'to break', ko.length, 'to keep'];
 
 let n = 1000;
 for (let y=max; y>=min; y--)
@@ -154,7 +154,7 @@ function* breaker(x,y,z)
       if (b)
         {
           if ( (lx != x) + (ly != y) + (lz != z) > 1 )
-            yield ['act break', x,y,z];
+            yield ['verbose break', x,y,z];
           lx = x; ly = y; lz = z;
           yield ['Move', b];
         }
