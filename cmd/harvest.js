@@ -3,7 +3,7 @@
 //
 // Currently cannot use Move as this creates jump damage
 
-yield ['act HARVEST start'];
+yield ['note HARVEST start'];
 
 //const grown 
 
@@ -42,13 +42,13 @@ try {
             }
         }
     }
-  yield ['act HARVEST ok'];
+  yield ['verbose HARVEST ok'];
 } catch (e) {
   yield [`act HARVEST fail: ${e}`];
 //  throw e;
 }
 
-yield ['act HARVEST done'];
+yield ['note HARVEST done'];
 yield yield ['AGAIN harvest'];
 
 return ['seed'];
