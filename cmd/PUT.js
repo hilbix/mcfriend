@@ -38,7 +38,7 @@ function* put(item, ...where)
       try {
         const cnt = item.n || h;
         yield yield ['put', r, item, cnt];
-        yield ['act put', cnt, item, s];
+        yield ['verbose put', cnt, item, s];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
@@ -49,7 +49,7 @@ function* put(item, ...where)
           }
         else
           {
-            yield ['act OOPS', e.message, c, s, item];
+            yield ['note OOPS', e.message, c, s, item];
 //            yield ['list inv'];
           }
       } finally {
@@ -100,7 +100,7 @@ for (const i of more)
 for (const i of much)
   (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
-  (yield* put(i, 'overflow', 'MISC')) || (yield * put(i, 'destroy', 'MISC')) || (yield ['act cannot put', i]);
+  (yield* put(i, 'overflow', 'MISC')) || (yield * put(i, 'destroy', 'MISC')) || (yield ['note cannot put', i]);
 
 yield ['OPEN'];	// close everything
 
