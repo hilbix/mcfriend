@@ -2,7 +2,7 @@
 
 this.track ??= {};
 
-yield ['act TAKE start'];
+yield ['note TAKE start'];
 
 yield ['CACHE clear'];
 yield ['PUT'];
@@ -54,5 +54,5 @@ for (const [c,s] of a)
     yield yield [ok];
   }
 
-return ['act TAKE done', yield ['AGAIN take']];
+return ['note TAKE done', yield ['AGAIN take']];
 
