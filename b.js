@@ -1093,8 +1093,8 @@ class Abi	// per spawn instance for bot
       this.actcache.push(t);
       src.tell(t);
     }
-  *Cverbose(..._)	{ if (this.state.set.conf?.verbose) return Cact(..._) }
-  *Cnote(..._)		{ if (!this.state.set.conf?.quiet)  return Cact(..._) }
+  *Cverbose(..._)	{ if (this.state.set.conf?.verbose) return yield* this.Cact(..._) }
+  *Cnote(..._)		{ if (!this.state.set.conf?.quiet)  return yield* this.Cact(..._) }
   running(src, c)
     {
       if (c[0][0] === '!')
@@ -1112,7 +1112,6 @@ class Abi	// per spawn instance for bot
       for (const x of this._.late.iter())
         src.tell(`#A ${x[0] - time} ${toJ(x[1])}`);
       src.tell(`#Q ${this._.queues.join(' ')}`);
-      return;
     }
   *Chide(c,src)		{ this._hide[c.join(' ')] = true }
   *Cstop(c,src)
@@ -1688,7 +1687,7 @@ class Abi	// per spawn instance for bot
       const s	= c.join(' ')
       const w	= this.addwant(10000,e);
       this.chat(`/execute unless player ${e} run tellraw ${this._.botname} "return ${w.t} - 0 #not found: ${e}"`);
-      this.chat(`/execute if entity ${e} run tell ${e} return ${w.t} - 0 ${s}`);
+      this.chat(`/execute if entity ${e} run tell ${e} return ${w.t} ${s}`);	// cmd/return.js
       return await w.p;
     }
   // help	shows all help keywords
