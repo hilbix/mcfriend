@@ -27,6 +27,8 @@ if (!r.length)
 
 let tot = 0;
 
+const fail = {};
+
 outer:
 for (const x of r)
   {
@@ -37,15 +39,24 @@ for (const x of r)
         for (const i of yield ['item', z.id])
           {
             const n = yield ['have', i];
-            if (n > cnt * z.count) continue;
+            const m = cnt * z.count;
+            if (n > m)
+              {
+                yield ['act have', m, i];
+                continue;
+              }
+
+            if (fail[i.name]) continue outer;
 
 //            console.error('CraftItem:', i.map(_ => _.name), z.id, z.count);
 // This is wrong, we must accumulate
-            const err = yield [`get ${i.name}=${cnt * z.count}`];
-            if (!err) continue;
+            const err = yield [`get ${i.name}=${m}`];
+            if (!err)
+              continue;
 
+            fail[i.name] = true;
 //            yield yield err;
-//            yield yield ['act to craft', itm];
+//            yield yield ['act no', i];
             continue outer;
           }
       }
@@ -62,7 +73,10 @@ for (const x of r)
   }
 
 if (!tot)
-  yield yield ['act failed to craft', itm];
+  {
+    yield yield ['act failed to craft', itm];
+    yield yield ['PUT'];
+  }
 
 return tot;
 
