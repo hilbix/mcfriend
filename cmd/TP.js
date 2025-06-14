@@ -12,7 +12,7 @@ try {
         return;
     }
 
-  yield ['act teleport to', p, 'failed', yield ['pos']];
+  yield ['note teleport to', p, 'failed', yield ['pos']];
 } finally {
 //  yield yield ['say /gamemode survival'];
 }
