@@ -13,6 +13,9 @@ const loc = yield [
   ];
 
 const pos	= yield ['locate',loc];
+if (!pos)
+  return ['act cannot locate', loc];
+
 const dist	= yield ['dist', pos];
 if (3 > dist) return ['act I am only', Math.ceil(dist), 'blocks away at', pos];
 
