@@ -1,7 +1,7 @@
 // locate trees, cut and replant them
 // Needs a sign: "tree"
 
-yield ['act TREE start'];
+yield ['note TREE start'];
 
 try {
   const signs = yield ['sign tree'];
@@ -60,7 +60,7 @@ try {
               }
           if (!had) continue;
           yield yield ['in 1 tree'];
-          return ['act tree plant', s];
+          return ['verbose tree plant', s];
         }
 
       const type	= l[0].id.slice(0,-4);
@@ -98,9 +98,9 @@ try {
 
 //      yield ['AGAIN tree'];
       yield yield ['in 1 tree'];
-      return ['act tree harvest', s];
+      return ['verbose tree harvest', s];
     }
-  yield ['act TREE done:', count];
+  yield ['note TREE done:', count];
 } catch (e) {
   yield [`act TREE fail: ${e}`];
 }
