@@ -46,7 +46,7 @@ console.warn('full', Object.values(stock).filter(_ => _.full).length);
 console.warn('empty', Object.values(stock).filter(_ => _.empty).length);
 console.warn('part', Object.values(stock).filter(_ => _.stack).length);
 
-return ['act keep done'];
+return ['note keep done'];
 
 async function* filler(stacks, empties, empty)
 {
@@ -97,7 +97,7 @@ async function* filler(stacks, empties, empty)
           const r = yield ['OPEN', b];
           try {
             yield yield ['put', r, x, (m>n ? n : m)];
-            yield ['act fill', n, x, m, b];
+            yield ['verbose fill', n, x, m, b];
             n -= m;
             if (n<0)
               break;
@@ -119,7 +119,7 @@ async function* filler(stacks, empties, empty)
       const r	= yield['OPEN',s];
       try {
         yield yield ['put', r, x, n];
-        yield ['act put', n, x, s];
+        yield ['verbose put', n, x, s];
       } catch (e) {
         console.error('PUT err', e);
         yield ['act keep err', s, e];
@@ -242,7 +242,7 @@ async function* check_floor(area)
         case 'cobblestone':	continue;
 
         default:
-          yield ['act breaking', b];
+          yield ['note breaking', b];
           yield ['BREAKER', b];
         case 'air':
           break;
@@ -251,7 +251,7 @@ async function* check_floor(area)
       yield ['Move', b, 3];
       yield ['PLACER', b, 'stone cobblestone'];
     }
-  yield ['act floor ok'];
+  yield ['note floor ok'];
   return n;
 }
 
