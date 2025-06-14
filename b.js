@@ -550,7 +550,7 @@ class Entity extends My
 class Player extends My		// player can be out of sight, so it is initalized by name
   {
   get id()		{ return this._?.id }
-  toString()		{ return `Player ${this._} ${this._pos ?? ''}` }
+  toString()		{ return `Player ${this._} ${this._pos ?? '(unknown pos)'}` }
   async *locate(abi)
     {
       if (this._pos) return this._pos;
@@ -1093,6 +1093,8 @@ class Abi	// per spawn instance for bot
       this.actcache.push(t);
       src.tell(t);
     }
+  *Cverbose(..._)	{ if (this.state.set.conf?.verbose) return Cact(..._) }
+  *Cnote(..._)		{ if (!this.state.set.conf?.quiet)  return Cact(..._) }
   running(src, c)
     {
       if (c[0][0] === '!')
@@ -1319,7 +1321,7 @@ class Abi	// per spawn instance for bot
   async *Cj(c)		{ return toJ(c) }
   async *Cconsume()	{ return await this.B.consume() }
   // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
-  *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+this.B.inventory.count(i.type, i.meta), 0) }
+  *Chave(c)		{ return Array.from(this.items(c[0])).reduce((a,i) => a+(this.B.inventory.count(i.type, i.meta)|0), 0) }
   *Citem(c)		{ return c.map(_ => Array.from(this.items(_))).flat() }
   *Cblockdata(c)	{ return c.map(_ => Array.from(this._.match(_, 'blocks').map(_ => this.B.mcData.blocksByName[_]))).flat() }
   // take slot
@@ -1666,8 +1668,8 @@ class Abi	// per spawn instance for bot
   getas(entity, json)	// Get output of /execute as ENTITY tellraw bot [JSON]
     {
       const w	= this.addwant(2000, entity);
-      this.chat(`/execute unless entity ${entity} run tellraw ${this._.botname} "return ${w.t} not found"`);
-      this.chat(`/execute as ${entity} run tellraw ${this._.botname} ["return ${w.t} ",${toJ(json)}]`);
+      this.chat(`/execute unless entity ${entity} run tellraw ${this._.botname} "return ${w.t} - 0 not found"`);
+      this.chat(`/execute as ${entity} run tellraw ${this._.botname} ["return ${w.t} - 0 ",${toJ(json)}]`);
       return w.p;
     }
   addwant(timeout, ..._)
@@ -1675,6 +1677,7 @@ class Abi	// per spawn instance for bot
       const t	= this.token(_);
       const p	= this._want[t]	= PO();
       p.t	= t;
+      p.s	= [];
       const w	= setTimeout(p.k, timeout, `timeout: ${t}`);
       p.p.catch(console.error).finally(() => { clearTimeout(w); delete this._want[t] });
       return p;
@@ -1684,8 +1687,8 @@ class Abi	// per spawn instance for bot
       const e	= c.shift();
       const s	= c.join(' ')
       const w	= this.addwant(10000,e);
-      this.chat(`/execute unless player ${e} run tellraw ${this._.botname} "return ${w.t} #not found: ${e}"`);
-      this.chat(`/execute if entity ${e} run tell ${e} return ${w.t} ${s}`);
+      this.chat(`/execute unless player ${e} run tellraw ${this._.botname} "return ${w.t} - 0 #not found: ${e}"`);
+      this.chat(`/execute if entity ${e} run tell ${e} return ${w.t} - 0 ${s}`);
       return await w.p;
     }
   // help	shows all help keywords
@@ -2149,10 +2152,12 @@ class Bot	// global instance for bot
     {
       this.log('CHAT:', toJ(who), str);
       if (!str.startsWith('return ')) return;
-      const c = str.split(' ');
-      const _ = this.abi._want[c[1]];
-      if (_)
-        _.o(c.slice(2).join(' '));
+      const c		= str.split(' ');
+      const _		= this.abi._want[c[1]];
+      _.s[c[3]|0]	= c.slice(4).join(' ');
+      const t		= _.s.join('');
+      if (_ && (c[2] === '-' || t.length === (c[2]|0)))
+        _.o(t);
     }
   M_chunkColumnLoad(_)		{ this.chunk.add(_.x|0, _.z|0) }
   M_whisper(src, cmd)
