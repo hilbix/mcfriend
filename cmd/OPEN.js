@@ -28,9 +28,11 @@ for (let i=10; --i>=0; )
     last = box;
     return open;
   } catch (e) {
-    yield ['act open', e];
+    yield ['verbose open', e];
     console.error('open fail', _);
   }
+
+yield ['note OPEN FAILED', _];
 
 console.error('OPEN FAILED', _);
 console.error('OPEN FAILED', _);
