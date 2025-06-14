@@ -47,7 +47,7 @@ yield ['equip', 'hand', w[0]];
 try {
   yield ['place', pos[0]];
 } catch (e) {
-  return 'placing torch failed';
+  return ['note placing torch failed', pos[0]];
 }
 
 return ['say placed torch', pos[0]];
