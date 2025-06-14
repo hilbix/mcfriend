@@ -5,13 +5,18 @@
 //console.log(__ABI__.B.game.dimension);
 //console.error(__ABI__.B.world);
 
+let did;
+
 for (const a of yield ['AREA place'])
   yield yield* area(a);
+
+if (did)
+  return ['in 60 place'];
 
 // Process an area A..B
 async function* area(a)
 {
-  yield ['act placing', a];
+  yield ['note placing', a];
 
   // go one lower than the signs
   const aa = [ a[0].pos(0,-1,0), a[1].pos(0,-1,0) ];
@@ -52,7 +57,7 @@ async function* area(a)
       cnt++;
     }
   if (!cnt)
-    return yield ['act nothing to do', aa];
+    return yield ['note nothing to do', aa];
 
   const sw = Object.keys(pos)[0]|0;
   const [min,max] = Object.keys(pos).reduce(([a,b],c) => { c=c|0; return [a>c ? a : c, b<c ? b : c] }, [sw,sw]);
@@ -62,6 +67,8 @@ async function* area(a)
   for (let y=min; y<=max; y++)
     for (const [x,z] of pos[y])
       yield yield* place(item, x,y,z);
+
+  yield ['note PLACE done', a];
 }
 
 function* place(items, x,y,z)
@@ -80,7 +87,7 @@ function* place(items, x,y,z)
 
       if (p)
         {
-          yield ['act place', x,y,z];
+          yield ['verbose place', x,y,z];
           yield ['Move', p];
         }
 
@@ -88,6 +95,7 @@ function* place(items, x,y,z)
         yield yield ['equip hand', item.type];
         yield ['placer', b, `${d}r`];
         yield yield ['wait'];
+	did	= true;
         return;
       } catch {};
     }
