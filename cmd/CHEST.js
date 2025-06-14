@@ -14,7 +14,7 @@ for (const s of signs)
     if (d.length === 1)
       r.push([d[0],s]);
     else
-      yield ['act Invalid', s, s.valid];
+      yield ['note Invalid', s, s.valid];
   }
 return r;
 
