@@ -37,7 +37,7 @@ function* scan_todo(s)
   const r	= [0, items, b];
   if (b.length !== 1)
     {
-      yield ['act #container? ', s];
+      yield ['note #container? ', s];
       return r;
     }
 
@@ -60,7 +60,7 @@ function* scan_todo(s)
           continue;
         }
 
-      yield ['act something strange in', s, slot];
+      yield ['note something strange in', s, slot];
       // or auto take it out?
     }
   return r;
@@ -150,7 +150,7 @@ if (_.length)
         {
           const n = yield ['CraftItem', i, (k[1]|0)||1];
           yield yield ['PUT'];
-          yield ['act crafted', n|0, i];
+          yield ['verbose crafted', n|0, i];
         }
     }
 else
