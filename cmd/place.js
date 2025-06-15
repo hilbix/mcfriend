@@ -95,7 +95,7 @@ function* place(items, x,y,z)
         yield yield ['equip hand', item.type];
         yield ['placer', b, `${d}r`];
         yield yield ['wait'];
-	did	= true;
+        did	= true;
         return;
       } catch {};
     }
