@@ -123,14 +123,13 @@ const K =
   , farmland			: 4
   , composter			: 4
 
-  ,  seagrass: 1,
-  tall_seagrass: 1,
-  tall_grass: 1, 
-  acacia_leaves: 1,                                                                                                                                                                                                                                           
-  acacia_log: 4                                                                                                                                                                                                                                               
+  , seagrass			: 1
+  , tall_seagrass		: 1
+  , tall_grass			: 1 
+  , acacia_leaves		: 1
+  , acacia_log			: 4
   , sugar_cane			: 1
   , raw_copper_block		: 4
-
 
 // UNKLAR end
   , jungle_trapdoor		: 3
@@ -364,6 +363,7 @@ for (const b of _.length ? _ : [mypos])
     if (_.length && b.dist(mypos) <= dist) return false;
     let min;
 
+    // look at the destination in the dist range
     const a = yield ['block', b.pos(-dist, -dist-1, -dist), b.pos(+dist, +dist+1, +dist)];
     const aa = [];
     for await (const _ of a())
@@ -382,10 +382,12 @@ for (const b of _.length ? _ : [mypos])
 
         if (!d || isAir(d) || unsafe[d.id]) continue;
 
-        const e = d?.dist(mypos);
-        if (e < 0.1) continue;
-        if (min && e > min) continue;
+        const e = d?.dist(b);
+        if (e < 0.1) continue;		// do not step directly on the destination
+	if (min && e > min) continue;	// we already have a better candidate
 
+	if (e == min && d?.dist(mypos) > candid?.dist(mypos)) continue;	// further away from me
+	    
         candid	= v;
         min	= e;
       }
