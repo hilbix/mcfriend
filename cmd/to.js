@@ -49,7 +49,7 @@ function* check(t, ..._)
 
       for (const x of s)
         {
-          yield ['act', have.length, x.valid ? 'O' : '?', x];
+          yield ['act', have.length, x.valid ? 'O' : '?', x.text[0], x.text[2], x.text[3], x._vec];
           have.push(x);
         }
     }
