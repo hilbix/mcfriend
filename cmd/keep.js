@@ -1,8 +1,11 @@
-// test 'KEEP.js'
+// Keep pile of items in barrels
+// (This is stupid for now)
 
 const V=0;	// increment to reset things
 if (this.stock?.V !== V)
   this.stock		= {V};
+
+if (_?.length) return yield ['STOCK', stock, _];
 
 //console.error({stock});
 
