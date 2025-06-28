@@ -42,13 +42,14 @@ async function* area(a)
           {
           default: continue;
 
-          case 'torch':
-          case 'brown_mushroom':
-          case 'red_mushroom':
-
           case 'water':
           case 'lava':
           case 'vine':
+            break;
+
+          case 'torch':
+          case 'brown_mushroom':
+          case 'red_mushroom':
             break;
           }
 
@@ -60,7 +61,7 @@ async function* area(a)
     return yield ['note nothing to do', aa];
 
   const sw = Object.keys(pos)[0]|0;
-  const [min,max] = Object.keys(pos).reduce(([a,b],c) => { c=c|0; return [a>c ? a : c, b<c ? b : c] }, [sw,sw]);
+  const [max,min] = Object.keys(pos).reduce(([a,b],c) => { c=c|0; return [a>c ? a : c, b<c ? b : c] }, [sw,sw]);
 
   console.error(min, max, cnt, Object.entries(pos).map(([k,v]) => [k, v.size]));
 
