@@ -117,15 +117,20 @@ for (const k of ko)
 
 //  console.log('==', Object.values(ok));
 
-const sw = Object.keys(ok)[0]|0;
-const [min,max] = Object.keys(ok).reduce(([a,b],c) => { c=c|0; return [a<c ? a : c, b>c ? b : c] }, [sw,sw]);
+const sw	= Object.keys(ok)[0]|0;
+const [min,max]	= Object.keys(ok).reduce(([a,b],c) => { c=c|0; return [a<c ? a : c, b>c ? b : c] }, [sw,sw]);
 
 yield ['verbose DIG', max, min];
 
+// process the top layer
+
+let n = 1000;
 for (const [x,_] of Object.entries(ok[max]||{}))
   for (const z of Object.keys(_))
     if (keep[(yield ['BLOCK', x|0, max+1, z|0]).id])
       delete ok[max][x][z];
+    else if (yield* breaker(x|0,max,z|0))
+      n--;
 
 const cnt = Object.values(ok).reduce((a,k) => a+Object.values(k).reduce((a,k) => a+Object.keys(k).length, 0), 0);
 if (!cnt)
@@ -133,8 +138,7 @@ if (!cnt)
 
 yield ['verbose', cnt, 'to break', ko.length, 'to keep'];
 
-let n = 1000;
-for (let y=max; y>=min; y--)
+for (let y=max; --y>=min; )
   for (const [x,_] of Object.entries(ok[y]||{}))
     for (const z of Object.keys(_))
       if (yield* breaker(x|0,y|0,z|0))
