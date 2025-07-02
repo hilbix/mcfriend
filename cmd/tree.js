@@ -18,6 +18,7 @@ try {
       const l	= q.filter(_ => _.id?.endsWith('_log'));	// logs
       const k	= q.filter(_ => _.id?.endsWith('_sapling') && _._vec.y == g._vec.y);	// saplings
 
+      console.log('TREE', l.length, k.length);
       if (!l.length)
         {
           const _	= s._.block.getSignText()[0].split('\n')[3].split(' ');
@@ -26,12 +27,20 @@ try {
           const z	= _.shift()|0;
           const n	= _.shift()|0;	// not used
           const t	= _.join(' ');	// should not happen
-          if (!t) continue;
+          if (!t)
+            {
+              yield ['act TREE: unknown plant', s];
+              continue;
+            }
 
-          const l	= {jungle:2}[t]??1;
+          const l	= {jungle:2, spruce:2}[t]??1;
           const i	= `${t}_sapling`;
 
-          if (k.length >= l*l) continue;
+          if (k.length >= l*l)
+            {
+              console.log('TREE ok', i);
+              continue;
+            }
 
           yield yield ['PUT'];
           yield yield ['supply', `${i}=${l*l}`];
