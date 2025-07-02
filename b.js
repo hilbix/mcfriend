@@ -519,7 +519,7 @@ class My
   get type()		{ return this._?.type }
   get name()		{ return this._?.name }
 
-  vec(x,y,z)		{ return x instanceof My ? this._vec.plus(x._vec) : x instanceof v3.Vec3 ? this._vec.plus(x) : this._vec.offset(x|0,y|0,z|0) }
+  vec(x,y,z)		{ return x instanceof My ? this._vec.plus(x._vec)  : x instanceof v3.Vec3 ? this._vec.plus(x)  : this._vec.offset(x|0,y|0,z|0) }
   sub(x,y,z)		{ return x instanceof My ? this._vec.minus(x._vec) : x instanceof v3.Vec3 ? this._vec.minus(x) : this._vec.offset(-(x|0),(-y|0),(-z|0)) }
   dist(_)		{ return this._vec.distanceTo(_._vec) }
   dir(_)		{ return this.vec(DIR(_)) }
@@ -531,8 +531,11 @@ class Pos extends My
   get id()		{ const _ = this._; return _ ? `${_.x} ${_.y} ${_.z}` : '(unknown)' }
   toString()		{ return `Pos ${POS(this._)}` }
   get _vec()		{ return this._ }
-  constructor(x,y,z)	{ super(x instanceof My ? this._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
+  constructor(x,y,z)	{ super(x instanceof My ? x._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
+  get x()		{ return _.x }
+  get y()		{ return _.y }
+  get z()		{ return _.z }
   };
 
 const isMy	= _ => _ instanceof My;
