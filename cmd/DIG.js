@@ -132,6 +132,8 @@ for (const [x,_] of Object.entries(ok[max]||{}))
     else if (yield* breaker(x|0,max,z|0))
       n--;
 
+yield ['verbose DIG top', max];
+
 const cnt = Object.values(ok).reduce((a,k) => a+Object.values(k).reduce((a,k) => a+Object.keys(k).length, 0), 0);
 if (!cnt)
   return ko.length ? ['act only keeps', ko.length] : ['note nothing to do'];
@@ -142,11 +144,13 @@ for (let y=max; --y>=min; )
   for (const [x,_] of Object.entries(ok[y]||{}))
     for (const z of Object.keys(_))
       if (yield* breaker(x|0,y|0,z|0))
-        if (!--n)
+        if (--n < 0)
           {
             yield ['PUT'];	// interrupt the breaking to clean inventory
             n = 1000;
           }
+
+yield ['verbose DIG end', max, min];
 
 function* breaker(x,y,z)
 {
@@ -154,7 +158,10 @@ function* breaker(x,y,z)
   if ((yield ['dist', p])>5)
     {
       const b	= yield ['SPOT', 5, p];
-      if (b === void 0) return;
+      if (b === void 0)
+        {
+	  return;
+	}
       if (b)
         {
           if ( (lx != x) + (ly != y) + (lz != z) > 1 )
