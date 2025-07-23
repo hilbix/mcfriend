@@ -82,6 +82,7 @@ try {
             {
             default: 	continue;
             case 'dirt':	break;
+            case 'grass':	break;
             case 'coarse_dirt':	break;
             }
           d.push([yield ['dist',_], _]);
@@ -100,7 +101,8 @@ try {
       yield yield ['axe'];
       yield ['Move', s];
 
-      yield yield ['setSign', s, 0, x[0], z[0], l.length, type];
+      if (x.length && z.length)
+        yield yield ['setSign', s, 0, x[0], z[0], l.length, type];	// l.length not used above
       yield yield ['dig', l[0]];
 
   //    yield yield ['PUT'];
