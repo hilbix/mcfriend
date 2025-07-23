@@ -18,7 +18,7 @@ yield ['OPEN'];
 
 const area = yield ['AREA keep'];
 if (area?.length !== 1)
-  return yield ['act WTF keep-area', area];
+  return yield ['act WTF keep-area', area.length, area];
 
 const input	= yield ['CHEST keepin'];
 if (!input?.length)
