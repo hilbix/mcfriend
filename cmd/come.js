@@ -2,6 +2,8 @@
 // Player	run to the given player
 // sign Sign	run to the given sign
 // X Y Z	run to coordinates
+//
+// Player Dimension cannot be detected
 
 const loc = yield [
   { 0: 'who'
