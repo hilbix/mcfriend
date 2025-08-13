@@ -558,7 +558,7 @@ class Player extends My		// player can be out of sight, so it is initalized by n
     {
       if (this._pos) return this._pos;
 
-      const pos	= abi.B.players[this._]?.entity?.position;
+      const pos	= (this.__ = abi.B.players[this._])?.entity?.position;
       if (pos) return this._pos = new Pos(pos);
 
       yield `#cannot see ${this._}`;
