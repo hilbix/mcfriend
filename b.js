@@ -717,7 +717,7 @@ class Abi	// per spawn instance for bot
     {
       this._		= _;
       this.vmctx	= OB();
-      this.rem		= { sign:OB(), chest:OB() };
+      this.rem		= { sign:OB(), chest:OB(), osign:OB() };
 //      this.chg		= {};
       this.actcache	= [];
       //this.stat		= OB();
@@ -869,16 +869,20 @@ class Abi	// per spawn instance for bot
   Chest(d) { this.remember(d, 'chest', isChestyFn(d)) }
   Sign(d)
     {
-      this.remember(d, 'sign', d =>
-        {
-          if (!isSign(d)) return;
+      let sign, other;
 
+      if (isSign(d))
+        {
           const t = d.signText.split('\n');
           const n = t[0].split(' ');
 
           if (this.inList(n.shift(), this._.botname))
-            return [n.join(' '), t[0], t[1], t[2], this.B.game.dimension];
-        });
+	    sign	= [n.join(' '), t[0], t[1], t[2], this.B.game.dimension];
+	  else
+	    other	= this.B.game.dimension;
+	}
+      this.remember(d, 'sign',  d => sign);
+      this.remember(d, 'osign', d => other);
     }
 
   runcmd(c, src)
@@ -1196,17 +1200,33 @@ class Abi	// per spawn instance for bot
       const type = c[0];
       const r = [];
       for (const [id,v] of Object.entries(this.state.chest))
-        { console.error('chest', {id,v}, type, v===type);
+//        { console.error('chest', {id,v}, type, v===type);
         if (v === type)
           {
             const pos	= p2v(id);
             const block	= this.B.blockAt(pos);
             if (v !== isChestyFn(block)(block)) continue;
             r.push({block,dist:this.B.entity.position.distanceTo(pos)});
-        }
+//        }
         }
       console.error(r);
       return r.sort((a,b) => a.dist < b.dist).map(_ => new Block(_.block));
+    }
+  *Cosign(c)
+    {
+      const dim	= this.B.game.dimension;
+      const ent	= Object.entries(this.state.osign);
+      return (function*(B)
+        {
+	  for (const [id,d] of ent)
+	    {
+	      if (d !== dim) continue;
+              const pos		= p2v(id);
+              const block	= B.blockAt(pos);
+              if (!isSign(block)) continue;
+	      yield new Block(block);
+	    }
+	})(this.B);
     }
   *Csign(c)
     {
@@ -2197,6 +2217,7 @@ class Bot	// global instance for bot
 
       // Init State
       if (!state.sign)	state.sign	= {};
+      if (!state.osign)	state.osign	= {};
       if (!state.chest)	state.chest	= {};
       if (!state.set)	state.set	= {};
 
