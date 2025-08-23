@@ -631,10 +631,11 @@ class Block extends My
 class Sign extends My
   {
   get id()		{ return this._?.block?.name }
-  toString()		{ return this._ ? `Sign ${POS(this._.pos)} ${this._.text[0]}:${this._.text.slice(2,4).join(':')}` : '(no sign)' }
+  toString()		{ return this._ ? `Sign ${POS(this._.pos)} ${this._.text?.[0] ??''}:${this._.text?.slice(2,4).join(':') ??''}` : '(no sign)' }
   get _vec()		{ return this._.pos }
   get valid()		{ return this._?.valid }
   get text()		{ return this._.text }
+  get full()		{ return this._.full }
   get dim()		{ return this._.dim }
   get block()		{ return this._.block }
   cmp(_)		{ }
@@ -877,10 +878,10 @@ class Abi	// per spawn instance for bot
           const n = t[0].split(' ');
 
           if (this.inList(n.shift(), this._.botname))
-	    sign	= [n.join(' '), t[0], t[1], t[2], this.B.game.dimension];
-	  else
-	    other	= this.B.game.dimension;
-	}
+            sign	= [n.join(' '), t[0], t[1], t[2], this.B.game.dimension];
+          else
+            other	= this.B.game.dimension;
+        }
       this.remember(d, 'sign',  d => sign);
       this.remember(d, 'osign', d => other);
     }
@@ -1216,17 +1217,17 @@ class Abi	// per spawn instance for bot
     {
       const dim	= this.B.game.dimension;
       const ent	= Object.entries(this.state.osign);
+      const self= this;
       return (function*(B)
         {
-	  for (const [id,d] of ent)
-	    {
-	      if (d !== dim) continue;
-              const pos		= p2v(id);
-              const block	= B.blockAt(pos);
-              if (!isSign(block)) continue;
-	      yield new Block(block);
-	    }
-	})(this.B);
+          for (const [id,d] of ent)
+            {
+              if (d !== dim) continue;
+              const s	= self.mkSign(id);
+              if (!isSign(s.block)) continue;
+              yield new Sign(s);
+            }
+        })(this.B);
     }
   *Csign(c)
     {
@@ -1643,21 +1644,21 @@ class Abi	// per spawn instance for bot
               if (!match(s[2])) continue;
               if (s[4] !== d) continue;
 
-              yield self.mkSign(k, s);
+              yield self.mkSign(k);
             }
         }
     }
   mkSign(k)
     {
-      const pos	= p2v(k);
-      const x	= this.rem.sign[k];
-      const r	= { id:k, text:this.state.sign[k], stat:this.rem.sign[k], pos, block:this.B.blockAt(pos), d:this.B.game.dimension }
-      r.valid	= this.validSign(r);
+      const pos		= p2v(k);
+      const block	= this.B.blockAt(pos);
+      const r		= { id:k, text:this.state.sign[k], full:block?.getSignText?.(), stat:this.rem.sign[k], pos, block, d:this.B.game.dimension }
+      r.valid		= this.validSign(r);
       return r;
     }
   validSign(_)
     {
-      if (!isSign(_.block)) return;
+      if (!isSign(_.block) || !_.text) return;
       const t = _.block.signText.split('\n');
       return t[0] === _.text[1] && t[1] === _.text[2] && t[2] === _.text[3] && this.dimension === _.text[4];
     }
