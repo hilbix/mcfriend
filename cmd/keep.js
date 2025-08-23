@@ -5,10 +5,26 @@ const V=0;	// increment to reset things
 if (this.stock?.V !== V)
   this.stock		= {V};
 
-if (_?.length) return yield ['STOCK', stock, _];
+if (!this.stacks) this.stacks = OB();
+
+if (_?.length)
+  {
+    for (const [_,s] of Object.entries(stacks))
+      yield ['verbose', 'stack', _, s.length];
+
+    yield ['act', 'all',   Object.values(stock).length];
+    yield ['act', 'full',  Object.values(stock).filter(_ => _.full).length];
+    yield ['act', 'empty', Object.values(stock).filter(_ => _.empty).length];
+    yield ['act', 'part',  Object.values(stock).filter(_ => _.stack).length];
+
+    for (const x of _)
+      for (const s of stacks[x]||[])
+        yield ['act', x, s];
+
+    return;
+  }
 
 //console.error({stock});
-
 //yield yield ['home'];
 
 yield ['OPEN'];
@@ -27,7 +43,7 @@ if (!input?.length)
 const keep	= area.shift();
 
 const keepcache	= OB();
-let cache	= [], empties = [], stacks;
+let cache	= [], empties = [];
 
 // First check if the floor still is stable.
 while ((yield* check_floor(keep.map(_ => _.pos(0,-1,0)))));
@@ -44,14 +60,14 @@ yield ['OPEN'];
 yield ['AGAIN keep'];
 
 console.warn('end');
-console.warn('all', Object.values(stock).length);
-console.warn('full', Object.values(stock).filter(_ => _.full).length);
-console.warn('empty', Object.values(stock).filter(_ => _.empty).length);
-console.warn('part', Object.values(stock).filter(_ => _.stack).length);
+//console.warn('all', Object.values(stock).length);
+//console.warn('full', Object.values(stock).filter(_ => _.full).length);
+//console.warn('empty', Object.values(stock).filter(_ => _.empty).length);
+//console.warn('part', Object.values(stock).filter(_ => _.stack).length);
 
 return ['note keep done'];
 
-async function* filler(stacks, empties, empty)
+function* keepin(max)
 {
   let n = 0;
 
@@ -62,12 +78,15 @@ async function* filler(stacks, empties, empty)
         if (i.id)
           {
             yield ['take', w,i,i.n];
-            if (++n >= empties.length)
-              break;
+            if (++n > max)
+              return;
           }
-      if (n > empties.length)
-        break;
     }
+}
+
+async function* filler(stacks, empties)
+{
+  yield* keepin(empties.length);
 
   const keep	= OB();
   keep['barrel'] = 200;
@@ -89,18 +108,18 @@ async function* filler(stacks, empties, empty)
           continue;
         }
       keep[id]	= 0;
-      ret = void 0;
+      ret	= void 0;	// loop again below
 
       while (stacks[id]?.length)
         {
-          const [m,b] = stacks[id].shift();
+          const [m,b]	= stacks[id].shift();
 
           delete stock[b.pos()];	// rescan it
 
-          const r = yield ['OPEN', b];
+          const r	= yield ['OPEN', b];
           try {
             yield yield ['put', r, x, (m>n ? n : m)];
-            yield ['verbose fill', n, x, m, b];
+            yield ['act keep fill', n, x, m, b];
             n -= m;
             if (n<0)
               break;
@@ -112,11 +131,11 @@ async function* filler(stacks, empties, empty)
         }
       if (n<0) continue;
 
-      const s = empties.shift();
+      const s	= empties.shift();
       if (!s)
         {
           console.error('no more empties');
-          return;
+          return;	// loop again below
         }
       delete stock[s.pos()];		// rescan it
       const r	= yield['OPEN',s];
@@ -148,6 +167,7 @@ async function* barrels(keep, y)
           next	= void 0;
         }
 
+      // Place barrel if there is none yet
       if (b.id !== 'barrel')
         {
           //yield ['Move', b, 3];
@@ -177,7 +197,6 @@ async function* barrels(keep, y)
           next		= cache;	// rescan everything
           cache		= [];
           empties	= [];
-          stacks	= {};
         }
       next.push(b);
 
