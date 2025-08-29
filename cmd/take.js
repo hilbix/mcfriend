@@ -7,9 +7,10 @@ yield ['note TAKE start'];
 yield ['CACHE clear'];
 yield ['PUT'];
 
-//const a = yield ['chest', 'D'];
-const a = yield ['CHEST', 'take'];
-if (!a?.length) return yield 'no signs with "take"?';
+const a = yield ['CHEST', _.length ? _ : 'take'];
+if (!a?.length) return yield ['act no signs with', _];
+
+let had = false;
 
 for (const [c,s] of a)
   {
@@ -35,6 +36,7 @@ for (const [c,s] of a)
             //if (i.id.startsWith('wooden_') || i.id === 'stick') continue;	// safty issue, as wooden_* and sticks have other meaning at my server
             yield yield ['take', r, e, e.count];	// For unknown reason this crashes outside this sandbox
             yield ['AGAIN take 0'];	// reset backoff
+	    had = true;
           }
       else
         {
@@ -43,6 +45,7 @@ for (const [c,s] of a)
             {
               yield yield ['take', t];	// take out
               yield ['AGAIN take', 0];	// reset backoff
+	      had = true;
             }
         }
     } catch (e) {
@@ -54,5 +57,8 @@ for (const [c,s] of a)
     yield yield [ok];
   }
 
-return ['note TAKE done', yield ['AGAIN take']];
+if (!_.length)
+  return ['note TAKE done', yield ['AGAIN take']];
+if (had)
+  return ['in 10 take', _];
 
