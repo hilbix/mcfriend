@@ -16,30 +16,41 @@ let check	= function*(_) { return true }
 let tag		= '\n\n\n';
 let end		= function*(_) { return yield ['JUMP', _] };
 
+this.cache	??= {};
+
 switch (_[0])
   {
-  case 'bug':	check	= function*(_) { return !(yield* chest(_))	};
-                break;
-  case 'list':	end	= function*(_,c) { return yield ['act', _, yield* dump(c) ]	};
+  case 'list':	end	= function*(_,c) { return yield ['act', _, yield* dump(c), toJ(inf) ]	};
                 check	= function*(_) { return   yield* chest(_)	};
+  default:	cache	= void 0;
                 break;
-  case 'fix':	end	= function*(_) {				};
+  case 'fix':	end	= function*(_) { return ['act', _, toJ(inf)]	};
                 check	= fix;
+                break;
+  case 'bug':	check	= function*(_) { return !(yield* chest(_))	};
+                cache	= void 0;
                 break;
   }
 
 n ??= 0;
+this.cache	??= { };
+
+const inf	= { cache:Object.keys(cache).length};
 
 for await (const a of yield ['osign'])
   {
-    if (a.full[0] !== tag) continue;
+    if (a.full[0] !== tag || cache[a]) continue;
     const c = yield* check(a);
     if (!c) continue;
+
+    if (c === 1) cache[a] = true;
 
     // check for chest type
     //yield ['act', n, a, c];
     if (!n--) return yield* end(a,c);
   }
+
+return yield ['act', _, 'END'];
 
 function* chest(s)
 {
@@ -76,28 +87,47 @@ function* dump(c)
 
 function* fix(c)
 {
+  yield ['verbose signs fix', c];
   const b	= yield* chest(c);
-  if (!b) return;
+  if (!b)
+    {
+      yield ['verbose signs fail', c];
+      return;
+    }
 
   const i = yield* items(b);
-  if (!i) return true;
+  if (!i)
+    {
+      yield ['act signs items?', b];
+      return 1;
+    }
 
   const e	= Object.entries(i);
-  if (!e.length) return true;
+  if (!e.length)
+    {
+      inf.empty = 1+(inf.empty|0);
+      return 1;
+    }
 
   if (e.length > 1)
     {
+      inf.wtf = 1+(inf.wtf|0);
       yield ['act WTF?', c, e.length];
       return true;
     }
-  yield ['act labelling', c, _.slice(1), e[0][0]];
+  yield ['act', c, _.slice(1), e[0][0]];
   if (_.length === 3)
     {
+      inf.done = 1+(inf.done|0);
       const p = c._.pos;
       const l = [ _[1], _[2], e[0][0], ''];
       for (const k in l)
         yield ['say /data modify block', p.x,p.y,p.z, `front_text.messages[${k}] set value ${toJ(toJ({text:l[k]}))}`];
+//      yield ['close', yield ['open', c]];
+      yield ['click', c];
     }
+  else
+    inf.had = 1+(inf.had|0);
   return true;
 }
 
