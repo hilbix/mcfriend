@@ -53,5 +53,5 @@ async function State(name)
 State.saves	= [];
 State.save	= () => Promise.allSettled(State.saves.map(_ => _())).then(_ => _.filter(_ => _.status === 'rejected'));
 
-module.exports=State;
+export default State;
 
