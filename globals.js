@@ -5,7 +5,7 @@
 
 // imports
 
-const fs = require('fs');
+const fs = await import('fs');
 
 // 'chat message messagestr'	// last ist best
 globalThis.DEBUG	= 'goal_updated path_reset' //'blockUpdate' //'entityGone entityDead blockUpdate itemDrop'
@@ -19,7 +19,7 @@ globalThis.D	= (..._) => { FLW.push(_); if (FLW.length>40) FLW.shift() };
 globalThis.DD	= (..._) => { console.log(_); D(..._) }
 globalThis.ERR	= _ => (...e) => { D('ERR', e); console.error(...e) }
 
-module.exports =
+export default
   { NAME	: process.argv[6] || process.argv[1].split('/').pop().split('.').shift()
   , WEBPORT	: (process.argv[2]||0) || 8080
   , PORT	: (process.argv[3]|0) || 25565
