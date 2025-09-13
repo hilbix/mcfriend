@@ -3,7 +3,7 @@
 // This Works is placed under the terms of the Copyright Less License,
 // see file COPYRIGHT.CLL.  USE AT OWN RISK, ABSOLUTELY NO WARRANTY.
 
-const _PARM_ = require('./globals.js');
+const _PARM_ = (await import('./globals.js')).default;
 const CON = (..._) => { console.error(..._); console.error(..._); console.error(..._) };
 const CCON = (..._) => { CON(..._); return _[_.length-1] };
 
@@ -25,8 +25,8 @@ const DEBUG	= 'goal_updated' // entityUpdate entityAttributes entitySpawn entity
 'login spawn end kicked error whisper'
 const TRACE	= (...a) => { try { throw new Error() } catch (e) { console.error(a,e) } };
 
-const mineflayer	= require('mineflayer');
-const v3		= require('vec3');
+const mineflayer	= await import('mineflayer');
+const v3		= (await import('vec3')).default;
 //const pathfinder = require('mineflayer-pathfinder');
 //const pvp = require('mineflayer-pvp');
 //const autoeat = require('mineflayer-auto-eat');
@@ -941,7 +941,7 @@ class Abi	// per spawn instance for bot
 
       const {filename,code}	= await load(cmd);
 
-      const vm	= require('vm');
+      const vm	= (await import('vm')).default;
       const ctx	= this.vmctx[filename] ??= vm.createContext(new CTX(this, filename));
       try {
         const fn	= vm.runInContext(`(async function*(src,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1,displayErrors:true});
@@ -1870,7 +1870,7 @@ async function StartWeb(_)
   const host	= key(state.host) || '127.0.0.1';
   const port	= key(state.port) || 8080;
 
-  const viewer	= require('./Viewer.js');
+  const viewer	= (await import('./Viewer.js')).default;
   //const viewer	= require('prismarine-viewer').mineflayer;
   //return `URL http://${host}:${port}/`;
   return viewer(_.B,
@@ -1985,7 +1985,13 @@ class Bot	// global instance for bot
 
       this.botname	= username;;
 
-      const B	= this.B = mineflayer.createBot({ host, port, username, hideErrors:false });
+      this.startup({ host, port, username, hideErrors:false });
+
+
+    }
+  async startup(opt)
+    {
+      const B	= this.B = mineflayer.createBot(opt);
       this.emitWrapper();
 
       // DEBUG
@@ -1995,7 +2001,7 @@ class Bot	// global instance for bot
       //CURRENT.chat	= (..._) => this.Chat(..._);
 
       // keep (load) the state
-      const State = require('./State.js');
+      const State = (await import('./State.js')).default;
       this._save = () => State.save();
 
       this.state	= State(this.botname);		// No load state on spawn, the last write might be delayed
@@ -2009,8 +2015,8 @@ class Bot	// global instance for bot
 //          B.loadPlugin(pvp.plugin);
           await (await IMPORTS)(B); //.then(_ => console.log(`${_.length} asynchronous plugin(s)`));
 
-          B.mcData	= require('minecraft-data')(B.version);
-          B.ITEM	= require('prismarine-item')(B.version);
+          B.mcData	= (await import('minecraft-data')).default(B.version);
+          B.ITEM	= (await import('prismarine-item')).default(B.version);
 
           await this._inited.p;
           StartWeb(this);
