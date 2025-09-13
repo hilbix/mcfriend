@@ -1,8 +1,33 @@
 {
   "dependencies": {
     "mineflayer": "=4.25.0",
-    "mineflayer-auto-eat": "^5.0.0",
-    "mineflayer-pathfinder": "^2.4.5",
     "prismarine-viewer": "^1.28.0"
-  }
+  },
+  "name": "mcfriend",
+  "description": "> This starts to work as intended.  Currently it still is a bit chaotic. > > Not everything you see here is already implemented or working as advertized!   > Also it might be that features will change drastically.",
+  "version": "1.0.0",
+  "main": "bot.js",
+  "type": "module",
+  "directories": {
+    "bot": "bot"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hilbix/mcfriend.git"
+  },
+  "keywords": [
+    "minecraft",
+    "mineflayer",
+    "bot"
+  ],
+  "author": "Valentin Hilbig",
+  "license": "SEE LICENSE IN COPYRIGHT.CLL",
+  "bugs": {
+    "url": "https://github.com/hilbix/mcfriend/issues"
+  },
+  "homepage": "https://github.com/hilbix/mcfriend#readme"
 }
