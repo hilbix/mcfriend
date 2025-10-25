@@ -1335,6 +1335,20 @@ class Abi	// per spawn instance for bot
              r.push(yield* q(p.vec(a,c,b)));
         return r;
     }
+  async *Csql(c)
+    {
+      if (!this.sqlite)
+        {
+          this.sqlite	= (await import('sqlite3')).DatabaseSync('bot.sqlite3');
+          this.sql_q	= this.sqlite.prepare('SELECT v from kv where k=?');
+          this.sql_u	= this.sqlite.prepare('INSERT INTO kv values(?,?) ON CONFLICT(k) DO UPDATE SET v=?');
+        }
+      if (c.length === 1)
+	return this.sql_q.run(c[0]);
+      if (c.length === 2)
+        return this.sql_u.run(c[0],c[1],c[1]);
+      throw `unknown number of arguments ${c.length}: [k] v`;
+    }
 //  async *Copenchest(c)	{ return new Container(await this.B.openChest(c[0]._)) }
 //  async *Copenfurnace(c)	{ return new Container(await this.B.openFurnace(c[0]._)) }
 //  async *Copen(c)	{ return new Container(await this.B.openContainer(c[0]._)) }
