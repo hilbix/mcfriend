@@ -9,7 +9,7 @@ function* nearest(..._) { const e = yield ['nearest', nolava, _]; if (e.id) retu
 function* find(a, ..._) { for (const name of a) { const e = yield* nearest(name === '.' ? [] : {name}, ..._); if (e !== void 0) return e } }
 function find2(...a) { return find(a) }
 
-const e = yield* find2(...(_.length ? _ : ['phantom','silverfish','witch','pillager','creeper','zombie','zombie_villager','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
+const e = yield* find2(...(_.length ? _ : ['phantom','silverfish','witch','pillager','creeper','zombie','zombie_villager','drowned','skeleton','cave_spider','spider','ghast','magma_cube','slime']));
 
 if (!e)
   {
@@ -19,7 +19,7 @@ if (!e)
 
     const w = yield ['AGAIN attack'];
     yield yield ['home'];
-    return last=`no enemy ${w} ${_}`;
+    return last=['no enemy', w, _];
   }
 //if (!e.hostile) return ['act WTF? not hostile', e.id, e];
 
@@ -32,11 +32,11 @@ if (!(yield ['hand']).weapon)
     if (!w.length)
       {
         if (++wait>5)
-          return last='failed to fetch weapon';
+          return last=['failed to fetch weapon'];
         yield 'Need weapon';
         yield yield ['tool', 'sword'];
         yield ['in 5 attack']
-        return last='no weapon';
+        return last=['no weapon'];
       }
     yield yield ['equip hand', w[0]];
   }
@@ -48,5 +48,6 @@ if ((yield ['dist', e]) >= 2)
 if (e.name !== last)
   yield yield ['note ATTACK', e, p];
 last = e.name;
-yield yield ['attack', e];
+yield yield ['attack', e];	// calls Cattack in b.js, not attack.js
+return last
 
