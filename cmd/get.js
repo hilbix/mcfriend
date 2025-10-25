@@ -4,6 +4,8 @@
 
 //const i = Array.from(yield ['invs']);
 
+const nofill = _[0] === 'nofill' && _.shift();
+
 const l = _.length
   ? _.map(_ => _.split('=',2))		// arg: item=n
   : Object
@@ -22,7 +24,7 @@ let ok = 0;
 
 for (const [k,v] of l)
   {
-    const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'craft', k], yield ['sign', 'made', k]).filter(_ => _ && _.valid);
+    const signs = [].concat(yield ['sign', 'take', k], yield ['sign', 'get', k], yield ['sign', 'store', k], yield ['sign', 'craft', k], yield ['sign', 'made', k], nofill ? [] : yield ['sign', 'fill', k]).filter(_ => _ && _.valid);
     if (!signs?.length)
       {
         //yield ['act no sign found for', _];
