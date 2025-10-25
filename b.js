@@ -214,14 +214,6 @@ const patternMatch = m =>
   QWblockUpdate(..._)		{ console.log('WBU', _) }
 
   QBentityEatingGrass(x) { console.log('grass', ENTITY(x)) }
-  QBhealth(..._)
-    {
-      console.log('health', _);
-      if (B.food === 20)
-        B.autoEat.disableAuto();
-      else
-        B.autoEat.enableAuto();
-    }
 
   async *Bsleep()
     {
@@ -2161,6 +2153,16 @@ class Bot	// global instance for bot
       if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
       if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
       if (orig.name !== now.name) this.log('U', orig.name, now.name);
+    }
+
+  M_health()
+    {
+      if (!this.B.autoEat) return;
+
+      if (this.B.food === 20)
+        this.B.autoEat.disableAuto();
+      else
+        this.B.autoEat.enableAuto();
     }
 
   // XXX TODO XXX are these still needed?
