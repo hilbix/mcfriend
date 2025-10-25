@@ -2,9 +2,9 @@
 
 //yield ['act ATTACK start'];
 
-function* torch()
+function* torch(type)
 {
-  yield yield ['torch'];
+  yield yield ['torch', type === 'slime' ? 'jungle_button' : void 0];
   yield ['wait',2];
 }
 
@@ -36,15 +36,16 @@ yield yield ['PUT'];
 for (let cnt=0;; cnt++)
   {
 //    if (!(yield ['have *sword']))
-    if (!(yield ['have torch']))
+    if (!(yield ['have torch']) || !(yield ['have jungle_button']))
       {
         yield yield ['drop'];
         yield yield ['home'];
         yield yield ['supply'];
-        (yield ['have *sword']) || (yield yield ['CRAFT stone_sword']);
       }
+    (yield ['have *sword']) || (yield yield ['CRAFT stone_sword']);
+
     const x = yield ['Attack', _];
-    if (x !== void 0)
+    if (Array.isArray(x))
       {
         yield* end();
         yield ['note ATTACK done', cnt, x];
@@ -55,6 +56,6 @@ for (let cnt=0;; cnt++)
         continue;
       }
     yield ['wait'];
-    yield yield* mix();
+    yield yield* mix(x);
   }
 
