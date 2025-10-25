@@ -50,7 +50,7 @@ for (const [c,s] of a)
         {
           yield ['AGAIN fill 0'];	// reset backoff
           yield ['verbose GET',k,v];
-          yield yield [`get ${k}=${v}`];
+          yield yield [`get NOFILL ${k}=${v}`];
         }
        yield ['Move', s, 1];
        const r = yield ['OPEN', c];
