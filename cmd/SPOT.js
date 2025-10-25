@@ -38,6 +38,7 @@ const K =
   , cherry_sign			: 1
   , bamboo_sign			: 1
   , bamboo_button		: 1
+  , jungle_button		: 1
   , crimson_sign		: 1
   , warped_sign			: 1
   , oak_hanging_sign		: 1
