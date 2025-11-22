@@ -525,9 +525,9 @@ class Pos extends My
   get _vec()		{ return this._ }
   constructor(x,y,z)	{ super(x instanceof My ? x._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
-  get x()		{ return _.x }
-  get y()		{ return _.y }
-  get z()		{ return _.z }
+  get x()		{ return this._.x }
+  get y()		{ return this._.y }
+  get z()		{ return this._.z }
   };
 
 const isMy	= _ => _ instanceof My;
@@ -1346,7 +1346,8 @@ class Abi	// per spawn instance for bot
 //  async *Copen(c)	{ return new Container(await this.B.openContainer(c[0]._)) }
   async *Copen(c)	{ return new Container(await this.B.openBlock(c[0]._)) }
   async *Copene(c)	{ return new Container(await this.B.openEntity(c[0]._)) }
-  async *Cclose(c)	{ return await c[0].close() }
+  async *Cwindow(c)	{ return this.B.currentWindow }
+  async *Cclose(c)	{ return await (c[0] ?? this.B.currentWindow).close() }
   async *Cj(c)		{ return toJ(c) }
   async *Cconsume()	{ return await this.B.consume() }
   // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
