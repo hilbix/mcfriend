@@ -125,6 +125,11 @@ function* fix(c)
         yield ['say /data modify block', p.x,p.y,p.z, `front_text.messages[${k}] set value ${toJ(toJ({text:l[k]}))}`];
 //      yield ['close', yield ['open', c]];
       yield ['click', c];
+      yield ['wait', 5];
+      yield ['close'];
+      yield ['click', c];
+      yield ['wait', 5];
+      yield ['close'];
     }
   else
     inf.had = 1+(inf.had|0);
