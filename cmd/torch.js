@@ -22,16 +22,16 @@ const b = yield ['block', p, 27];
 const pos = [];
 for (const a of b)
   {
-    if (a.id === t) return;
+    if (a.id === t) continue;;
     if (a.id !== 'air') continue;
     if (a._.light > 10 && t === 'torch') return;
 
     // check block under torch is something we can place a torch
     const g = yield ['block', a.pos(0,-1,0)];
-    if (g.light > 10) return;
+    if (g.light > 10 && t === 'torch') return;
     switch (g.id)
       {
-      case t: return;
+      case t: if (t === 'torch') return;
       case 'air':
       case 'water': continue;
       }
