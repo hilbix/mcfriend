@@ -83,6 +83,7 @@ try {
             default: 	continue;
             case 'dirt':	break;
             case 'grass':	break;
+            case 'podzol':	break;
             case 'coarse_dirt':	break;
             }
           d.push([yield ['dist',_], _]);
