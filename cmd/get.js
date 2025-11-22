@@ -4,7 +4,7 @@
 
 //const i = Array.from(yield ['invs']);
 
-const nofill = _[0] === 'nofill' && _.shift();
+const nofill = (_[0] === 'nofill' || _[0] === 'NOFILL') && _.shift();
 
 const l = _.length
   ? _.map(_ => _.split('=',2))		// arg: item=n
