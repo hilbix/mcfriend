@@ -47,6 +47,11 @@ for (const x of r)
               }
 
             if (fail[i.name]) continue outer;
+            if (yield ['CACHE set missing', i.name, 2])
+              {
+                fail[i.name] = true;
+                continue outer;
+              }
 
 //            console.error('CraftItem:', i.map(_ => _.name), z.id, z.count);
 // This is wrong, we must accumulate
@@ -54,6 +59,7 @@ for (const x of r)
             if (!err)
               continue;
 
+            yield ['CACHE set missing', i.name, err];
             fail[i.name] = true;
 //            yield yield err;
 //            yield yield ['act no', i];
@@ -61,20 +67,25 @@ for (const x of r)
           }
       }
 
+    const before = yield ['have', itm];
     yield ['verbose', table, itm, cnt];
 
     yield ['Move', table];
     yield yield ['craft', table, x, cnt];
     yield ['wait', 20];
 
-    tot += cnt;
+    const after = yield ['have', itm];
+    if (after <= before)
+      continue;
+    tot += after - before;
+
     if ((yield ['have', itm]) >= cnt)
       break;
   }
 
 if (!tot)
   {
-    yield yield ['note failed to craft', itm];
+    yield yield ['act failed to craft', itm, 'no', Object.keys(fail).join(' ')];
     yield yield ['PUT'];
   }
 
