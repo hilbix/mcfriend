@@ -45,7 +45,7 @@ function* put(item, ...where)
           {
             yield ['OPEN'];	// take item out of your hand!
             yield ['wait'];
-            yield yield ['CACHE set full', c];
+            yield yield ['CACHE set full', c, e.message];
           }
         else
           {
