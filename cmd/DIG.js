@@ -160,8 +160,8 @@ function* breaker(x,y,z)
       const b	= yield ['SPOT', 5, p];
       if (b === void 0)
         {
-	  return;
-	}
+          return;
+        }
       if (b)
         {
           if ( (lx != x) + (ly != y) + (lz != z) > 1 )
