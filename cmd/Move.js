@@ -1,4 +1,4 @@
-// x,y,z delta: move to location
+// [x,y,z] delta: move to location
 // TODO: implement a working pathfinder (mineflayer-pathfinder has issues)
 
 //return yield ['TP', _];
