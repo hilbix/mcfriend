@@ -82,6 +82,7 @@ const K =
   , glow_lichen			: 1
   , oak_leaves			: 1
   , birch_leaves		: 1
+  , cherry_leaves		: 1
 
   , brown_mushroom		: 1
   , vine			: 1
@@ -105,7 +106,15 @@ const K =
   , ladder			: 2
   , nether_portal		: 1
 
+  , sticky_piston		: 4
+  , stone_slab			: 4
+
 // UNKLAR
+
+  , kelp			: 6
+  , kelp_plant			: 6
+  , muddy_mangrove_roots	: 4	// ???
+  , spawner			: 4	// ???
 
   , glowstone			: 4
   , cauldron			: 5
@@ -143,12 +152,14 @@ const K =
   , coarse_dirt 		: 4
 
   , jungle_log			: 4
+  , cherry_log			: 4
 
   , dirt			: 4
   , grass_block			: 4
   , tuff			: 4
   , coal_ore			: 4
   , cobblestone_slab		: 4
+  , sandstone			: 4
 
   , gravel			: 5
   , sand			: 5
@@ -158,6 +169,7 @@ const K =
   , cobblestone			: 4
   , clay			: 4
 
+  , deepslate_emerald_ore	: 4
   , deepslate_diamond_ore	: 4
   , deepslate_gold_ore		: 4
   , deepslate_redstone_ore	: 4
@@ -203,6 +215,7 @@ const K =
   , blackstone			: 4
   , basalt			: 4
   , packed_mud			: 4
+  , mud				: 4
   , mud_bricks			: 4
   , bricks			: 4
   , stone_bricks		: 4
