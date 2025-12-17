@@ -667,7 +667,7 @@ class Recipe extends My
   {
   #abi;
   constructor(abi,..._)	{ super(..._); this.#abi = abi }
-  get id()		{ return `Recipe ${this._.name}` }
+  get id()		{ return `Recipe ${this.#abi.itemByNr(this._.result.id).id}` }
   toString()		{ return this._ ? this.id : `(missing recipe)` }
   get input()	{ return this._.delta.filter(_ => _.count<0).map(_ => this.#abi.itemByNr(_.id, -_.count)) }
   get output()	{ return this._.delta.filter(_ => _.count>0).map(_ => this.#abi.itemByNr(_.id,  _.count)) }
@@ -1387,7 +1387,12 @@ class Abi	// per spawn instance for bot
     }
   async *Ccraft([table,recipe,count])
     {
-      return await this.B.craft(recipe._, (count|0)||1, table._);
+      try {
+        return await this.B.craft(recipe._, (count|0)||1, table._);
+      } catch (e) {
+        console.error(e);
+        return `failed craft ${recipe.id}=${count} fail: ${e}`;
+      }
     }
 
 
