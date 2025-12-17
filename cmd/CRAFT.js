@@ -14,7 +14,15 @@
 //
 // The bot only crafts until the chest is full.
 
-this.FAIL ??= {};
+this.NOTE ??= {};
+
+function note(how, what, ..._)
+{
+  const a = NOTE[how] ??= [];
+  a.unshift(what);
+  if (a.length>60)
+    a.pop();
+}
 
 function* scan_todo(s)
 {
@@ -40,6 +48,8 @@ function* scan_todo(s)
       yield ['note #container? ', s];
       return r;
     }
+  if (yield ['CACHE get full', b])
+    return r;
 
   const c = yield ['OPEN', b];
 
@@ -63,6 +73,8 @@ function* scan_todo(s)
       yield ['note something strange in', s, slot];
       // or auto take it out?
     }
+  if (!r)
+    yield ['CACHE set full', b, 2];
   return r;
 }
 
@@ -76,11 +88,24 @@ function* autocraft()
     {
       if (!s.text[3]) continue;
       if (!s.valid) continue;
+      const pos = `${s.text[3]}@${s.pos().id}`;
+
+      if (NOTE.full?.includes(pos))			// chest full
+        continue;
+      if (NOTE.fail?.includes(s.text[3]))		// item fails
+        continue;
 
 //      console.error(`CRAFT ${s}`);
 
       const [free,items,chest] = (yield* scan_todo(s)) || [];
-      if (!free) continue;
+      yield* verbose(`free=${free}`, pos);
+      if (!free)
+        {
+//          yield ['CACHE del full', chest];
+          note('full', pos);
+          continue;
+        }
+      note('todo', pos);
 
       // try to put some equal number of everything into the box
       //const k	= Object.keys(items);
@@ -103,12 +128,25 @@ function* autocraft()
     for (const [k,v] of Object.entries(items))
       if (v.want)
         {
-          console.error('AUTOCRAFT', k, v);
+          yield* verbose('crafting', v.want, v.id);
+          if (NOTE.fail?.[k]) continue;
+
           const n = yield ['CraftItem', v, v.want];
-          if (!n) continue;
+          note('craft', `${v.id}=${n}`);
+          if (!n)
+            {
+              note('fail', k);
+              continue;
+            }
+          yield ['CACHE del missing', k];
           const c = yield ['OPEN',chest];
-          yield yield ['put', c, v, n];
-          yield ['OPEN'];
+          try {
+            yield yield ['put', c, v, n];
+            yield ['OPEN'];
+          } catch (e) {
+            console.error('CRAFTput', e);
+            yield* verbose('WTF', `${e}`);
+          }
         }
 }
 
@@ -122,6 +160,7 @@ function* craftin()
     {
       const to	= {};
       const w	= yield ['OPEN',c];
+      yield* verbose('open', c);
       for (const i of w.items())
         {
           if (!i.id) continue;
@@ -132,30 +171,64 @@ function* craftin()
       yield yield ['wait'];
       for (const i of yield ['invs'])
         if (to[i.name])
-          ok	|= yield ['CraftWith', i, i.n];
+          {
+            yield* verbose('craft-from', i.name);
+            const did = yield ['CraftWith', i, i.n];
+            ok	|= did;
+            if (did)
+              note('did', i.name);
+            else
+              note('left', i.name);
+          }
     }
   yield yield ['PUT'];
   return ok && 'CRAFT done';
 }
 
-yield ['CACHE clear'];
-yield yield ['PUT'];
-yield yield ['drop'];
+let verbose = function*(..._) { yield [`act CRAFT`, _] };
 
-if (_.length)
-  for (const x of _)
+if (!_.length)
+  {
+    verbose = function*(){};
+
+    yield ['CACHE clear'];
+    yield yield ['PUT'];
+    yield yield ['drop'];
+
+    try { yield yield* craftin()   } catch (e) { console.error(e) }
+    try { yield yield* autocraft() } catch (e) { console.error(e) }
+  }
+else
+  switch (_[0])
     {
-      const k = x.split('=');
-      for (const i of yield ['item', k[0]])
+    default:
+      for (const x of _)
         {
-          const n = yield ['CraftItem', i, (k[1]|0)||1];
-          yield yield ['PUT'];
-          yield ['verbose crafted', n|0, i];
+          const k = x.split('=');
+          for (const i of yield ['item', k[0]])
+            {
+              const n = yield ['CraftItem', i, (k[1]|0)||1];
+              note('craft', `${i.id}=${n}`);
+              yield yield ['PUT'];
+              yield ['verbose crafted', n|0, i];
+            }
+        }
+      break;
+    case 'in':
+      try { yield* craftin()   } catch (e) { console.error(e); yield [`act CRAFT ${e}`] };
+      break;
+    case 'auto':
+      try { yield* autocraft() } catch (e) { console.error(e); yield [`act CRAFT ${e}`] }
+      break;
+    case 'clear':
+      NOTE = {};
+      note('craft', 'clear');
+    case '?':
+      for (const a in NOTE)
+        {
+          const l = Object.entries(NOTE[a].reduce((a,_) => { _=_.split('@')[0]; a[_] = 1+(a[_]??0); return a }, {})).map(([k,v]) => `${k}:${v}`);
+          console.log(a, l);
+          yield ['act',a,l];
         }
     }
-else
-  {
-    try { yield* craftin()   } catch (e) { console.error(e) }
-    try { yield* autocraft() } catch (e) { console.error(e) }
-  }
 
