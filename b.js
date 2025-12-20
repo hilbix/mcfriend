@@ -1347,7 +1347,7 @@ class Abi	// per spawn instance for bot
   async *Copen(c)	{ return new Container(await this.B.openBlock(c[0]._)) }
   async *Copene(c)	{ return new Container(await this.B.openEntity(c[0]._)) }
   async *Cwindow(c)	{ return this.B.currentWindow }
-  async *Cclose(c)	{ return await (c[0] ?? this.B.currentWindow).close() }
+  async *Cclose(c)	{ return await (c[0] ?? this.B.currentWindow)?.close() }
   async *Cj(c)		{ return toJ(c) }
   async *Cconsume()	{ return await this.B.consume() }
   // sadly Iterator.reduce() and Iterator.flatMap() are not available in my NodeJS
