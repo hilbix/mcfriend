@@ -9,14 +9,16 @@ if (!items || !items.length) throw `WTF? no items ${_}`;
 
 const want = Object.fromEntries(items.map(_ => [_.id,true]));
 
-let n=10;
+let did = false;
+let n=50;
 while (n>=0 && (next = yield* q()))
   {
-    yield ['act DIGGER', n, next];
+//    yield ['act DIGGER', n, next];
     if (want[next.id])
       {
         yield ['BREAKER', next];
         n--;
+	did = true;
       }
     else
       yield* q.ok(next);
@@ -24,3 +26,4 @@ while (n>=0 && (next = yield* q()))
 
 q.end();
 
+return did;
