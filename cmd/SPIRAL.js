@@ -9,35 +9,13 @@
 // for await (const block of iter()) { (yield* process(block)) && (yield* ok(block)) }	// process is your implementation
 // ok() can be called asynchronously out of sequence
 
-if (!validSign(_[0]))
-  {
-    const s = _[0];
-    yield ['act checking', s];
-    const t = yield ['SPOT', 5, s];
-    if (t !== false)
-      yield ['tp', t ?? s];
-    yield ['wait', 30];
+const s = yield ['validsign', _[0]];
+if (!s) return;	//invalid sign
 
-    const b = yield ['sign', s];
-    if (!b.valid)
-      {
-        yield ['act', s, 'not valid'];
-        return; // 'sign is not valid';
-      }
-
-    if (toJ(s.full) !== toJ(b.full))
-      throw 'sign has changed!?!';
-    _[0] = b;
-  }
-
-const s = _[0];
 const h = _[1] | 0;
 const p = yield ['locate', s];
 
 //console.error(Object.keys(s._), s.name, s._.id, p);
-
-//if (!isSign(s))	throw 'not a sign';
-//if (!s.valid)	throw 'sign is not valid';
 
 /*
 class YieldQ
