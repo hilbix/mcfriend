@@ -109,6 +109,10 @@ const K =
   , sticky_piston		: 4
   , stone_slab			: 4
 
+  , wheat			: 1
+  , carrots			: 1
+  , jungle_fence		: 3
+
 // UNKLAR
 
   , kelp			: 6
