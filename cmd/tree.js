@@ -8,9 +8,10 @@ try {
   if (!signs) return;
 
   let count = 0;
-  for (const s of signs)
+  for (const s_ of signs)
     {
-      if (!s.valid) continue;
+      const s = yield ['validsign', s_];
+      if (!s) continue;
       count++;
 
       const g	= yield ['locate', s];
