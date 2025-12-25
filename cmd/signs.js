@@ -26,6 +26,8 @@ switch (_[0])
                 break;
   case 'fix':	end	= function*(_) { return ['act', _, toJ(inf)]	};
                 check	= fix;
+                if (_.length === 1)
+                  _	= ['fix', 'BOTS', 'store'];
                 break;
   case 'bug':	check	= function*(_) { return !(yield* chest(_))	};
                 cache	= void 0;
