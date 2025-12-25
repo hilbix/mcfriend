@@ -29,7 +29,7 @@ function* scan_todo(s)
   const what	= s.text[3];
   const items	= {};
   try {
-    for (const i of yield [`item`, what])
+    for (const i of yield ['item', what])
       {
         i.free	= 0;
         i.have	= 0;
@@ -80,14 +80,17 @@ function* scan_todo(s)
 
 function* autocraft()
 {
-  const signs	= yield ['sign', 'craft'];
+  const signs	= yield ['sign craft'];
 
   const dests	= [];
 
-  for (const s of signs)
+  for (const s_ of signs)
     {
-      if (!s.text[3]) continue;
-      if (!s.valid) continue;
+      if (!s_.text[3]) continue;
+
+      const s = yield ['validsign', s_];
+      if (!s) continue;
+
       const pos = `${s.text[3]}@${s.pos().id}`;
 
       if (NOTE.full?.includes(pos))			// chest full
@@ -207,7 +210,7 @@ else
           const k = x.split('=');
           for (const i of yield ['item', k[0]])
             {
-              const n = yield ['CraftItem', i, (k[1]|0)||1];
+              const n = yield ['CraftItem', i, k[1]|0];
               note('craft', `${i.id}=${n}`);
               yield yield ['PUT'];
               yield ['verbose crafted', n|0, i];
