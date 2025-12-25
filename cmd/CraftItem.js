@@ -2,16 +2,19 @@
 
 const itm = _[0];
 const cc = _[1]|0;
-const cnt = cc > itm.max ? itm.max : cc ? cc : 1;
+const cnt = cc > itm.max ? itm.max : cc ? cc : itm.max;
 
 let table;
 
-for (const t of (yield ['sign', 'craft']).filter(_ => !_.text[3]))
+for (const t of (yield ['sign craft']).filter(_ => !_.text[3]))
   {
-    const d	= (yield ['block', t, 6]).filter(_ => _.id === 'crafting_table');
+    const s	= yield ['validsign', t];
+    if (!s) continue;
+
+    const d	= (yield ['block', s, 6]).filter(_ => _.id === 'crafting_table');
     if (d.length !== 1)
       {
-        yield ['note #crafting? ', t, d];
+        yield ['note #crafting? ', s, d];
         continue;
       }
     table	= d[0];
@@ -71,7 +74,11 @@ for (const x of r)
     yield ['verbose', table, itm, cnt];
 
     yield ['Move', table];
-    yield yield ['craft', table, x, cnt];
+    try {
+      yield yield ['craft', table, x, cnt];
+    } catch (e) {
+      console.error('craft failed:', itm.id);
+    }
     yield ['wait', 20];
 
     const after = yield ['have', itm];
@@ -79,7 +86,7 @@ for (const x of r)
       continue;
     tot += after - before;
 
-    if ((yield ['have', itm]) >= cnt)
+    if (after >= cnt)
       break;
   }
 
@@ -88,6 +95,8 @@ if (!tot)
     yield yield ['act failed to craft', itm, 'no', Object.keys(fail).join(' ')];
     yield yield ['PUT'];
   }
+else
+  yield ['act crafted', tot, itm];
 
 return tot;
 
