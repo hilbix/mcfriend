@@ -3,12 +3,12 @@ this.hist ??= [];
 
 const cmd =_.map(_ => 'string' !== typeof _ || _[0]!=='$' ? _ : Array.from(_.substr(2)).reduce((a,_) => a[_], hist[_[1]|0][0]));
 
-if (cmd[0] === `${parseInt(cmd[0])}`)
+if (`${cmd[0]}` === `${parseInt(cmd[0])}`)
   {
     const n = parseInt(cmd.shift());
-    for (let i=n; --i>=0; )
-      yield ['in 0', cmd];
-    return ['act run', n, 'times:', cmd];
+    if (n>1)
+      yield ['in 1 do', n-1, cmd];
+    return yield ['in 0', cmd];
   }
 
 const r = yield cmd;
