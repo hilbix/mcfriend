@@ -11,14 +11,15 @@ const want = Object.fromEntries(items.map(_ => [_.id,true]));
 
 let did = false;
 let n=50;
-while (n>=0 && (next = yield* q()))
+let m=1000;
+while (--m>=0 && n>=0 && (next = yield* q()))
   {
 //    yield ['act DIGGER', n, next];
     if (want[next.id])
       {
         yield ['BREAKER', next];
         n--;
-	did = true;
+        did = true;
       }
     else
       yield* q.ok(next);
@@ -26,4 +27,5 @@ while (n>=0 && (next = yield* q()))
 
 q.end();
 
-return did;
+return did || m<0;
+
