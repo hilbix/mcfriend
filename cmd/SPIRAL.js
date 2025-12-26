@@ -176,11 +176,10 @@ function* ring(y)
 
   //console.log('ring', y); //console.log('ring', y); console.log('ring', y); console.log('ring', y);
 
-  for (let a=-x; a<x; a++)	yield* out(a, y, x);
-  for (let a=-x; a<x; a++)	yield* out(x, y, a);
-  for (let a=-x; a<x; a++)	yield* out(a, y, -x);
-  for (let a=-x; a<x; a++)	yield* out(-x, y, a);
-
+  for (let a=-x; a <  x; a++)	yield* out( a, y,  x);
+  for (let a= x; a > -x; a--)	yield* out( x, y,  a);
+  for (let a=-x; a <  x; a++)	yield* out( a, y, -x);
+  for (let a= x; a > -x; a--)	yield* out(-x, y,  a);
 }
 
 function* iter()
