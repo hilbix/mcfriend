@@ -64,9 +64,9 @@ try {
                     continue;
                   }
 
-                had	= true;
                 yield yield ['equip hand', j];
-                yield yield ['place', u];
+                if (yield ['retry', 'place', u])
+                  had	= true;
               }
           if (!had) continue;
           yield yield ['in 1 tree'];
@@ -105,7 +105,7 @@ try {
 
       if (x.length && z.length)
         yield yield ['setSign', s, 0, x[0], z[0], l.length, type];	// l.length not used above
-      yield yield ['dig', l[0]];
+      yield ['retry', 'dig', l[0]];
 
   //    yield yield ['PUT'];
 
