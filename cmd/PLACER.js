@@ -23,7 +23,7 @@ for (const d of 'dewnsu')
     yield ['verbose place', item.type, b];
     try {
       yield yield ['equip hand', item.type];
-      yield ['placer', b, `${d}r`];
+      yield ['retry', 2, 'placer', b, `${d}r`];
       yield yield ['wait'];
       return;
     } catch {};
