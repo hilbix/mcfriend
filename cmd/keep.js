@@ -1,6 +1,8 @@
 // Keep pile of items in barrels
 // (This is stupid for now)
 
+const blacklist = {};
+
 const V=0;	// increment to reset things
 if (this.stock?.V !== V)
   this.stock		= {V};
@@ -97,6 +99,7 @@ async function* filler(stacks, empties)
     {
       const id	= x.id;
       if (!id) continue;
+      if (blacklist[id]) continue;	// do not repeat errors this turn
 
       const k	= keep[id]	??= keepcache[id] ??= ((yield [`set item:${x.id}:keep`]) ?? 0);
 
@@ -126,6 +129,7 @@ async function* filler(stacks, empties)
           } catch (e) {
             console.error('PUT err', e);
             yield ['act keep err', b, e];
+	    blacklist[id] = true;
             break;
           }
         }
