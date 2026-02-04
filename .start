@@ -6,7 +6,7 @@
 
 mystart()
 {
-  CON "tell $1 autostart"
+  [ f == "$1" ] || CON "tell $1 autostart"
 }
 
 run mystart
