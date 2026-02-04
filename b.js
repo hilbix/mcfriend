@@ -732,7 +732,7 @@ class Abi	// per spawn instance for bot
   get chat()	{ return (..._) => this._.Chat(..._) }
 
   // search entry in list
-  findList(val)		{ return this.listcache[val] ??= Object.keys(this.state.set.list).filter(_ => this.inList(_,val)) }
+  findList(val)		{ return this.listcache[val] ??= Object.keys(this.state.set.list ?? {}).filter(_ => this.inList(_,val)) }
   // list:	array or value
   // val:	value (key) to search for in list
   inList(list, val)
@@ -2156,6 +2156,7 @@ class Bot	// global instance for bot
 
   M_blockUpdate(orig, now)
     {
+      if (!this.abi) return console.error('blockUpdate without abi');	// too early?!?
       if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
       if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
       if (orig.name !== now.name) this.log('U', orig.name, now.name);
