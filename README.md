@@ -3,7 +3,9 @@
 > Not everything you see here is already implemented or working as advertized!  
 > Also it might be that features will change drastically.
 
-Currently I use a Vanilla Minecraft Server 1.20.4 which is not publicly open.
+# Only works for 1.20.4
+
+Currently I use a Vanilla Minecraft Server version 1.20.4 which is not publicly open.
 
 - with `online-mode=false`
 - with [timber](https://www.planetminecraft.com/data-pack/timber-datapack/) installed
