@@ -1,7 +1,9 @@
 {
   "dependencies": {
-    "mineflayer": "=4.25.0",
-    "prismarine-viewer": "^1.28.0"
+    "mineflayer": "^4.0.0",
+    "mineflayer-auto-eat": "^5.0.3",
+    "mineflayer-pathfinder": "^2.4.5",
+    "prismarine-viewer": "^1.33.0"
   },
   "name": "mcfriend",
   "description": "> This starts to work as intended.  Currently it still is a bit chaotic. > > Not everything you see here is already implemented or working as advertized!   > Also it might be that features will change drastically.",
@@ -11,7 +13,6 @@
   "directories": {
     "bot": "bot"
   },
-  "devDependencies": {},
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
