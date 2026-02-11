@@ -9,7 +9,7 @@ if (!signs) return ['act missing breaker signs'];
 let ok = false;
 for (const _ of signs)
   {
-    yield yield ['act breaker', `${_}`];
+//    yield yield ['act breaker', `${_}`];
     const q = yield ['SPIRAL', _];		// check the sign
     if (!q) continue;
     try {
