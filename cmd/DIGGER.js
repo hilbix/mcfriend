@@ -32,7 +32,7 @@ while (--m>=0 && n>=0 && (next = yield* q()))
     if (!ign[next.id])
       {
 	ign[next.id] = 1;
-        yield ['report DIGGER', next, _];
+        yield ['report', {pos:next}, next, _];
       }
   }
 
