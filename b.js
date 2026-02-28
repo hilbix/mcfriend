@@ -817,8 +817,8 @@ class Abi	// per spawn instance for bot
           for (let c=320; --c>=-64; )
             {
               const d = this.B.blockAt(v3(x, c, l));
-              if (isSign(d))   this._.in.add(this.Sign,  d);
-              if (isChesty(d)) this._.in.add(this.Chest, d);
+              if (isSign(d))   this._.in.add(this._Sign,  d);
+              if (isChesty(d)) this._.in.add(this._Chest, d);
             }
         }
     }
@@ -858,9 +858,33 @@ class Abi	// per spawn instance for bot
 //      this.chg[type] = true;
       D(`${type}(ok)`, p);
     }
+  *Ccache(c)
+    {
+      let p = this.state.cache ??= {};
+      const get = () => c.reduce((a,_) => a[_] ??= {}, p);
+      function* set(f)
+        {
+          const v = c.pop();
+          if (v === void 0 || c.length<2)
+            return yield 'missing arguments';
+          const p = get();
+          const l = p[''];
+          p[''] = f(v,l,p);	// void 0 == deleted in JSON
+          return l;
+        }
 
-  Chest(d) { this.remember(d, 'chest', isChestyFn(d)) }
-  Sign(d)
+      switch (c.shift())
+        {
+        default:	return yield 'cache get|set|add|del path path.. [value]';
+        case 'get':	return get()[''];
+        case 'set':	return yield* set( v      => [v]);
+        case 'del':	return yield* set((v,_,p) => v === true ? void 0 : _.filter(_ => _ != v));
+        case 'add':	return yield* set((v,_)   => _.push(v));
+        }
+    }
+
+  _Chest(d) { this.remember(d, 'chest', isChestyFn(d)) }
+  _Sign(d)
     {
       let sign, other;
 
@@ -938,7 +962,7 @@ class Abi	// per spawn instance for bot
       try {
         const fn	= vm.runInContext(`(async function*(src,PARENT,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1,displayErrors:true});
         const it	= fn.call(ctx, src, prev, cmd, a);		// this returns the iterator, but does not start it yet
-	it.cmd		= cmd;
+        it.cmd		= cmd;
         it.filename	= filename;
         return it;
       } catch (e) {
@@ -1337,7 +1361,7 @@ class Abi	// per spawn instance for bot
           this.sql_u	= this.sqlite.prepare('INSERT INTO kv values(?,?) ON CONFLICT(k) DO UPDATE SET v=?');
         }
       if (c.length === 1)
-	return this.sql_q.run(c[0]);
+        return this.sql_q.run(c[0]);
       if (c.length === 2)
         return this.sql_u.run(c[0],c[1],c[1]);
       throw `unknown number of arguments ${c.length}: [k] v`;
@@ -2157,8 +2181,8 @@ class Bot	// global instance for bot
 
   M_blockUpdate(orig, now)
     {
-      if (isSign(now)   || isSign(orig))   this.abi.Sign(now);
-      if (isChesty(now) || isChesty(orig)) this.abi.Chest(now);
+      if (isSign(now)   || isSign(orig))   this.abi._Sign(now);
+      if (isChesty(now) || isChesty(orig)) this.abi._Chest(now);
       if (orig.name !== now.name) this.log('U', orig.name, now.name);
     }
 
@@ -2280,6 +2304,7 @@ class Bot	// global instance for bot
       const x	= [], y = [];
       let p = 65;
       // XXX TODO XXX: Priorities shall be implicite
+      let sema;
       do
         try {
           while (this.run.length>1) this.run.next()[1](); // ignore all this.run but the last queued one
@@ -2303,7 +2328,7 @@ class Bot	// global instance for bot
                       this.run.add(...this.abi.runcmd(_[1], _[2]));
                     }
                   else
-                    this.late.timer ??= setInterval(() => this.late.time++, 1000);
+                    this.late.timer ??= setInterval(() => { this.late.time++; sema?.() }, 1000);
                 }
             }
 
@@ -2326,6 +2351,7 @@ class Bot	// global instance for bot
 
           if (this.state.set.conf?.verbose)
             X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
+	  a.push(new Promise(o => sema=o));
           await Promise.any(a);
           p	= 162 - p;
         } catch (e) {
