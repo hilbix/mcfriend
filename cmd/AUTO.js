@@ -6,6 +6,7 @@ yield ['wait 20'];
 
 //yield ['act AUTOSTART', _];
 yield ['hide Error: destination full'];
+yield ['CACHE clear'];
 
 yield yield ['stop'];
 
