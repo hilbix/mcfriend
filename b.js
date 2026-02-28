@@ -905,7 +905,7 @@ class Abi	// per spawn instance for bot
         });
 
       try {
-        const r = await this.yielder(inf, await this.cmdload(src, c));
+        const r = await this.yielder(inf, await this.cmdload(src, '(run)', c));
       } catch (e) {
         id.err(e);
         console.error(e);
@@ -917,7 +917,7 @@ class Abi	// per spawn instance for bot
         id.end();
       }
     }
-  async cmdload(src, c)
+  async cmdload(src, prev, c)
     {
       const load = async (_) =>
         {
@@ -925,9 +925,9 @@ class Abi	// per spawn instance for bot
           const code	= await Read(filename);
           return {filename,code}
         }
-      return this.vmrun(load, src, ...c);
+      return this.vmrun(load, src, prev, ...c);
     }
-  async vmrun(load, src, cmd, ...a)
+  async vmrun(load, src, prev, cmd, ...a)
     {
       if (/[^A-Za-z0-9]/.test(cmd)) throw new Error(`invalid name: ${cmd}`);
 
@@ -936,8 +936,9 @@ class Abi	// per spawn instance for bot
       const vm	= (await import('vm')).default;
       const ctx	= this.vmctx[filename] ??= vm.createContext(new CTX(this, filename));
       try {
-        const fn	= vm.runInContext(`(async function*(src,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1,displayErrors:true});
-        const it	= fn.call(ctx, src, cmd, a);		// this returns the iterator, but does not start it yet
+        const fn	= vm.runInContext(`(async function*(src,PARENT,arg0,_) {'use strict';\n${code}\n});`, ctx, {filename,lineOffset:-1,displayErrors:true});
+        const it	= fn.call(ctx, src, prev, cmd, a);		// this returns the iterator, but does not start it yet
+	it.cmd		= cmd;
         it.filename	= filename;
         return it;
       } catch (e) {
@@ -1037,7 +1038,7 @@ class Abi	// per spawn instance for bot
                   // TODO XXX TODO: Perhaps this is wrong.
                   // Perhaps we want to run the other script in OUR context, not in ITS context
                   // but leave this to the future
-                  iters.unshift(await this.cmdload(inf.src, c))		// push execution of subcommand
+                  iters.unshift(await this.cmdload(inf.src, iter.cmd, c))	// push execution of subcommand
                   continue;
                 } catch (cause) {					// cmdload failed
                   if (cause.code !== 'ENOENT')
