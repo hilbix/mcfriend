@@ -96,7 +96,7 @@ if (!tot)
     yield yield ['PUT'];
   }
 else
-  yield ['act crafted', tot, itm];
+  yield ['report', {pos:(yield ['pos'])}, 'crafted', tot, itm];
 
 return tot;
 
