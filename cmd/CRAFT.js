@@ -213,7 +213,7 @@ else
               const n = yield ['CraftItem', i, k[1]|0];
               note('craft', `${i.id}=${n}`);
               yield yield ['PUT'];
-              yield ['verbose crafted', n|0, i];
+              yield ['report', {pos:(yield ['pos'])}, 'crafted', n|0, i];
             }
         }
       break;
