@@ -67,7 +67,9 @@ try {
                 yield yield ['equip hand', j];
                 if (yield ['retry', 'place', u])
                   had	= true;
-              }
+                else
+                  yield ['report', {pos:u}, 'cannot place', j];
+               }
           if (!had) continue;
           yield yield ['in 1 tree'];
           return ['verbose tree plant', s];
@@ -105,7 +107,8 @@ try {
 
       if (x.length && z.length)
         yield yield ['setSign', s, 0, x[0], z[0], l.length, type];	// l.length not used above
-      yield ['retry', 'dig', l[0]];
+      if (!yield ['retry', 'dig', l[0]])
+        yield ['report', {pos:l[0]}, 'dig failed'];
 
   //    yield yield ['PUT'];
 
