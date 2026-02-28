@@ -1,6 +1,6 @@
 // reporting system
 //
-// BOT: report WHAT report
+// BOT: report [{cmd, pos}] text
 //
 // You:
 // report
@@ -14,17 +14,38 @@ this.enable	??= false;
 
 if (_.length>1)
   {
+    const o = 'object' === typeof _[0] ? _.shift() : {};
+    _.unshift(PARENT);
     const j = _.map(_ => `${_}`).join(' ');
-    if (1 === (reported[j] = 1+(reported[j]|0)))
+    const r = reported[j] ??= [0];
+    if ((r[0]+=1) === 1)
       {
         reports.push(j);
         if (enable)
           yield ['act REPORT', _];
       }
+    if (Object.keys(o).length)
+      {
+        const j = toJ(o);
+        for (const t of reported[j])
+          if (toJ(t) === j)
+            return;
+        reported[j].push(o);
+      }
     return;
   }
 
-switch (_[0])
+function* jump(k)
+{
+  for (const x of reports)
+    for (const y of reported[x])
+      if (y.pos)
+        return yield ['say /tp', src._, (yield ['locate', y.pos]).id];
+  return yield ['act no reports with position'];
+}
+
+const a = _[0];
+switch (a)
   {
   case 'ON':	enable	= true; return;
   case 'OFF':	enable	= false; return;
@@ -36,11 +57,17 @@ switch (_[0])
 if (!reports.length)
   return yield ['act no reports'];
 
-let n = (_[0]|0) || 10;
+switch (a)
+  {
+  case 'j': return yield* jump();
+  }
+
+let n = (a|0) || 10;
 
 for (const x of reports)
   {
-    yield ['act REPORT', ME, x];
+    const r = reported[x];
+    yield ['act', r.length, r[0], x];
     if (--n<0)
       break;
   }
