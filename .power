@@ -5,6 +5,6 @@
 # timeout is needed as sometimes things hang, dunno why
 while	timeout 1000 ./.max
 	timeout 1000 ./.start
-	date && ! read -t1000
+	date && ! read -t2000
 do :; done
 
