@@ -27,7 +27,7 @@ if (_.length>1)
     if (Object.keys(o).length)
       {
         const j = toJ(o);
-        for (const t of reported[j])
+        for (const t of (reported[j] ??= []))
           if (toJ(t) === j)
             return;
         reported[j].push(o);
