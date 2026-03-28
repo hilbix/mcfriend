@@ -1,7 +1,8 @@
-// CACHE clear
+// CACHE list
 // CACHE get TAG what
-// CACHE set TAG what
-// CACHE del TAG what
+// CACHE set TAG what data..
+// CACHE del TAG wha
+// CACHE clear
 
 this.cache	??= {};
 
