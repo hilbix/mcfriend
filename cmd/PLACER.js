@@ -1,6 +1,6 @@
 // PLACER block item[s]
 //
-// Plase the first available item at the given block
+// Place the first available item at the given block
 
 const block = _.shift();
 const items = yield ['item', _];
