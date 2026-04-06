@@ -301,7 +301,8 @@ const ChestType =
       switch (_.getProperties().type)
         {
         case 'single':	return 'S';	// single chest type
-        case 'left':	return 'D';	// double chest type
+        case 'left':	return 'L';	// double chest type
+        case 'right':	return 'R';	// double chest type
         }
     }
   , trapped_chest: _ =>
@@ -309,7 +310,8 @@ const ChestType =
       switch (_.getProperties().type)
         {
         case 'single':	return 'St';	// single chest type
-        case 'left':	return 'Dt';	// double chest type
+        case 'left':	return 'Lt';	// double chest type
+        case 'right':	return 'Rt';	// double chest type
         }
     }
   , barrel:		'B'
@@ -528,6 +530,7 @@ class Pos extends My
   get x()		{ return this._.x }
   get y()		{ return this._.y }
   get z()		{ return this._.z }
+  get xyz()		{ return [this._.x, this._.y, this._.z] }
   };
 
 const isMy	= _ => _ instanceof My;
@@ -1213,10 +1216,14 @@ class Abi	// per spawn instance for bot
           }
       return r.map(_ => new Entity(_));
     }
+  *Cchesty(c)
+    {
+      return c.map(_ => { const b = this.B.blockAt(_._vec); return isChestyFn(b)(b) });
+    }
   *Cchest(c)
     {
-      const type = c[0];
-      const r = [];
+      const type= c[0];
+      const r	= [];
       for (const [id,v] of Object.entries(this.state.chest))
 //        { console.error('chest', {id,v}, type, v===type);
         if (v === type)
