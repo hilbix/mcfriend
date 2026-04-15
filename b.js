@@ -1180,7 +1180,7 @@ class Abi	// per spawn instance for bot
 
   *Cwho(c,src)		{ return new Player(src._) }
   *Cplayer(c,src)	{ return new Player(c[0] ?? src._) }
-  *Cpos(c,src)		{ return new Pos(...(c.length ? c : [this.B.entity.position])) }
+  *Cpos(c,src)		{ return new Pos(...(c.length ? c : [this.B.entity.position.x-0.5, this.B.entity.position.y+0.9, this.B.entity.position.z-0.5])) }
   async *Clocate(c,src)	{ const p = yield* c[0].locate(this); return c.length === 1 ? p : new Pos(p.vec(...(c.slice(1)))) }
   *Cdist(c,src)		{ return this.B.entity.position.distanceTo((yield* c[0].locate())._) }
   *Cbot()		{ return new Player(this._.botname) }
@@ -1406,6 +1406,13 @@ class Abi	// per spawn instance for bot
       const l	= (yield* (p ?? new Pos(this.B.entity.position)).locate()).vec(d);
       const b	= this.B.blockAt(l);
       return await this.B.placeBlock(b, INV(d));
+    }
+  async *Cplaced([p,dir])
+    {
+      const d	= DIR(dir??'d');
+      const l	= (yield* p.locate()).vec();
+      const b	= this.B.blockAt(l);
+      return await this.B._genericPlace(b, d, { swingArm: 'right' });
     }
   async *Cclick(c)
     {
