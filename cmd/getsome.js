@@ -2,6 +2,8 @@
 //
 // returns the first item found (or fetched)
 
+//const i = _.map(_ => isString(_) ? (yield ['item', _]) : _);
+
 for (const item of _)
   if (yield ['have', item])
     return item;
