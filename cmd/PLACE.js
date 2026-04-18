@@ -2,86 +2,77 @@
 //
 // This (ab)uses low level Mineflayer internals to do it right
 //
-// yield ['PLACE', dest, dir, opt..]
+// yield ['PLACE', dest, ref, orient]
 //
-// dest=	block to put
-// ref=		reference to click on (defines block rotation)
+// dest=	position to put
+// ref=		block to click on to place (default: block below dest)
+// orient=	orientation (default: from ref)
 //
 // More options possibly follow
 
-// Stolen from mineflayer/lib/plugins/place_block.js
+const nothing = () => {};
 
-function onceWithCleanup (emitter, event, { timeout = 0, checkCondition = undefined } = {}) {
-  const task = createTask()
-
-  const onEvent = (...data) => {
-    if (typeof checkCondition === 'function' && !checkCondition(...data)) {
-      return
-    }
-
-    task.finish(data)
-  }
-
-  bot.addListener(event, onEvent)
-
-  if (typeof timeout === 'number' && timeout > 0) {
-    // For some reason, the call stack gets lost if we don't create the error outside of the .then call
-    const timeoutError = new Error(`Event ${event} did not fire within timeout of ${timeout}ms`)
-    sleep(timeout).then(() => {
-      if (!task.done) {
-        task.cancel(timeoutError)
-      }
-    })
-  }
-
-  task.promise.catch(() => {}).finally(() => emitter.removeListener(event, onEvent))
-
-  return task.promise
-}
-
-function ev(B, ev, check, timeout)
+// compare onceWithCleanup() in node_modules/mineflayer/lib/promise_utils.js
+function ev(ev, check, timeout)
 {
+  //console.error('EV', ev, check, timeout);
   let x;
-  x.p	= new Promise((o,k) => x = {o,k});
+  const p	= new Promise((o,k) => x = {o,k:_ => { console.error('cancel', _); k(_) }});
 
   const on = (..._) =>
     {
-      const r = check(..._);
-      if (r) x.o(r);
+      try {
+        console.error('ON', _);
+        const r = check(..._);
+        console.error('ON:', r);
+        if (r) x.o(r);
+      } catch (e) {
+        console.error(e);
+	x.k(e);
+      }
     };
 
-  B.addListener(ev, on);
-  x.p.finally(() => B.removeListener(ev, on));
+  const timeoutError = new Error(`Event ${ev} did not fire within timeout of ${timeout}ms`)
+  sleep(timeout).then(() => x.k(timeoutError));
 
-  sleep(timeout).then(x.k);
-  return x.p;
+  B.addListener(ev, on);
+  p.catch(nothing).finally(() => { x.k=nothing; B.removeListener(ev, on) });
+  return p;
 }
 
-async function await_block(bot, dest, oldBlock)
+// Stolen from mineflayer/lib/plugins/place_block.js
+// dest		Block to change
+// ref		Block to put things on
+// ori		Block/Pos etc. or Vec3 for facing
+async function* place_block(dest, ref, ori)
 {
-  let newBlock = bot.blockAt(dest)
-  if (oldBlock.type === newBlock.type)
-    [oldBlock, newBlock] = await ev(bot, `blockUpdate:${dest}`, (o,n) => { if (!o || !n || o.type !== n.type) return [o,n] });
+  const b	= yield ['block', dest];
+  const r	= yield ['block', ref];
+  const delta	= b.sub(r);
+  delta.x	= 0.5 + delta.x * 0.5;
+  delta.y	= 0.5 + delta.y * 0.5;
+  delta.z	= 0.5 + delta.z * 0.5;
+  if (delta.y === 0.5) delta.y = 0.25;	// lower half
+  yield ['act placing', b, 'onto', r, 'facing', ori, 'with', delta];
 
-  // blockUpdate emits (null, null) when the world unloads
-  if (!oldBlock && !newBlock) {
-    return
-  }
-  if (oldBlock?.type === newBlock.type) {
-    throw new Error(`No block has been placed : the block is still ${oldBlock?.name}`)
+  const e	= ev(`blockUpdate:${b._vec}`, (o,n) => { if (!o || !n || o.type !== n.type) return [o,n] }, 5000);
+  await B._genericPlace(r._, ori, { delta, swingArm:'right' });
+  const [o, n] = await e;
+
+  yield ['act have', o?.type, n?.type, o?.location, n?.location];
+  if (!o && !n) return;
+  if (o?.type === n?.type) {
+    throw new Error(`No block has been placed : the block is still ${o?.name}`)
   } else {
-    bot.emit('blockPlaced', oldBlock, newBlock)
+    B.emit('blockPlaced', o, n)
   }
 }
 
 const B		= __ABI__.B;
-const dest	= _.shift();
-const ref	= _.shift();
+const dest	= yield ['block', _.shift() ]
+const ref	= yield ['block', _.shift() ?? dest.pos(0,-1,0) ]
+const ori	= _.shift() ?? ref;
 //const opt	= _.reduce((a,_) => Object.entries(_).reduce((a,[k,v]) => { a[k]=v; return a }, a), {});
 
-const before	= yield ['block', dest];
-const delta	= dest.sub(isMy(ref) ? (yield ['locate', ref]) : ref)._vec;
-
-await B._genericPlace(ref, delta, { delta, swingArm:'right' });
-await await_block(B, dest, before);
+yield* place_block(dest, ref, isMy(ori) ? ori.sub(dest) : ori);
 
