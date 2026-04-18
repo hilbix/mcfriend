@@ -105,7 +105,8 @@ try {
       yield yield ['axe'];
       yield ['Move', s];
 
-      if (x.length && z.length)
+      const was	= s._.block.getSignText()[0].split('\n')[3];
+      if (was === '' && x.length && z.length)				// no more destroy existings signs
         yield yield ['setSign', s, 0, x[0], z[0], l.length, type];	// l.length not used above
       if (!(yield ['retry', 'dig', l[0]]))
         yield ['report', {pos:l[0]}, 'dig failed'];
