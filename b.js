@@ -291,7 +291,7 @@ class Q
 const isSign	= _ => _?.name.endsWith('_sign');
 const isTree	= _ => _?.name.endsWith('_log');
 const isDirt	= _ => _?.name.endsWith('dirt');
-const isAir	= _ => _?.name === 'air' || _?.name.endsWith('_air');
+const isAir	= _ => _?.name === 'air' || _?.name?.endsWith('_air');
 
 const isChesty	= _ => ChestType[_?.name];
 const isChestyFn= _ => { const c = isChesty(_); return !c || isString(c) ? () => c : c };
