@@ -9,6 +9,8 @@ const box = _[0];
 
 if (box === last && open) return open;
 
+await __ABI__.B.setControlState('sneak', false);
+
 try {
   if (open)
     yield yield ['close', open];
