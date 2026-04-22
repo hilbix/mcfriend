@@ -2,8 +2,9 @@
 //
 // This (ab)uses low level Mineflayer internals to do it right
 //
-// yield ['PLACE', dest, ref, orient]
+// yield ['PLACE', item, dest, ref, orient]
 //
+// item=	item name, will be fetched if not in inv
 // dest=	position to put
 // ref=		block to click on to place (default: block below dest)
 // orient=	orientation (default: from ref)
@@ -69,10 +70,22 @@ async function* place_block(dest, ref, ori)
 }
 
 const B		= __ABI__.B;
+const item	= yield ['item', _.shift()];
 const dest	= yield ['block', _.shift() ]
 const ref	= yield ['block', _.shift() ?? dest.pos(0,-1,0) ]
 const ori	= _.shift() ?? ref;
 //const opt	= _.reduce((a,_) => Object.entries(_).reduce((a,[k,v]) => { a[k]=v; return a }, a), {});
 
+const p		= yield ['pos'];
+const i		= yield ['getsome', item];
+yield ['TP', p];
+
+yield ['equip hand', i.type];
+await B.setControlState('sneak', true);
+yield ['wait', 10];
+
 yield* place_block(dest, ref, isMy(ori) ? ori.sub(dest) : ori);
+
+await B.setControlState('sneak', false);
+yield ['wait', 10];
 
