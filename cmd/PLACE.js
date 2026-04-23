@@ -50,7 +50,7 @@ async function* place_block(dest, ref, p)
   const r	= yield ['block', b.pos(ref)];
   const d	= b.sub(r);
 
-  yield ['act placing', b, 'onto', r, 'with', ref._vec];
+//  yield ['act placing', b, 'onto', r, 'with', ref._vec];
 
   yield ['TP', p.pos(0,b.sub(p).y,0)];
   const e	= ev(`blockUpdate:${b._vec}`, (o,n) => { if (!o || !n || o.type !== n.type) return [o,n] }, 5000);
@@ -58,7 +58,7 @@ async function* place_block(dest, ref, p)
   yield ['TP', p];
   try {
     const [o, n] = await e;
-    yield ['act have', o?.type, n?.type, o?.location, n?.location];
+//    yield ['act have', o?.type, n?.type, o?.location, n?.location];
     if (!o && !n) return;
     if (o?.type === n?.type) {
       throw new Error(`No block has been placed : the block is still ${o?.name}`)
