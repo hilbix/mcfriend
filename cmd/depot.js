@@ -24,7 +24,7 @@
 //	stop if either full or an item has no free room in the depot
 // phase 9: goto phase 3
 
-const V=1;	// increment to reset things
+const V=2;	// increment to reset things
 const FLOOR = 'cobblestone';
 //const FLOOR = 'diorite'; 'blackstone';
 
@@ -77,7 +77,8 @@ async function* P0()
 
 function* bug(..._)
 {
-  yield ['act depot:', _];
+  yield ['act depot:', `${_}`];
+  yield ['report bug', _];
   return self.phase = 0;
 }
 
@@ -89,8 +90,7 @@ function* bug(..._)
 // .c check for changed area
 function* P1()
 {
-  for (const _ of 'floor'.split(' '))
-    self[_]	= yield [`set depot:${_}`];
+//  for (const _ of 'floor'.split(' ')) self[_]	= yield [`set depot:${_}`];
 
   const area	= yield ['AREA depot'];
   if (area?.length !== 1)
@@ -122,7 +122,7 @@ function* P1()
 
   self.r	= r;
 //  yield ['act depot p', p]; yield ['act depot a', a]; yield ['act depot b', b];
-  yield ['act depot at', x,y,w,h];
+  yield ['report at', x,y,w,h];
   yield* move();
 }
 
@@ -135,7 +135,7 @@ function* P1()
 // ffffff	f=floor
 // --^		first pos (-1)
 //    ^--	second pos (+1)
-function* move()
+function* move(_ = 0)
 {
   const r		= self.r;
   const {x,y,w,h,l,i,j}	= r;
@@ -149,7 +149,10 @@ function* move()
   r.p	= p;
   r.z	= t ? 1 : -1;
 
-  yield ['Move', p, 3];
+  yield ['TP', p.pos(_ * r.z, 0, _ * r.z)];
+  //yield ['Move', p, 3];
+  //yield ['act MOVE HERE', p];
+  yield ['wait', 1];
   return r;
 }
 
@@ -172,7 +175,7 @@ function inc()
 // phase 2: scan 1x3 sign+doublechest locations.
 //	location is alternating left and right.
 //	record the locations and the items
-//	(All 10 locations two locations are skipped (for now))
+//	~~(All 10 locations two locations are skipped (for now))~~
 //	this phase ends when the first improper/free location is found
 function* P2()
 {
@@ -265,34 +268,40 @@ function* put(n,m,t)
       return false;
   
     default:
-      yield ['note breaking', b];
+//      yield ['note breaking', b];
       yield ['BREAKER', b];
   
     case 'air':
     case 'cave_air':
       break;
     }
-  yield ['PLACER', b, t];
+  try {
+    yield ['PLACE', t, b];
+  } catch {
+  }
   return true;
 }
 
 // phase 5: prepare base of free location from phase 2
-async function* P5()
+function* P5()
 {
+  let fail = false;
+
+  const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
   for (const i of [0,1,2])
-    yield* put(i, -1, FLOOR);
+    fail |= yield* put(i, -1, FLOOR);
+  if (fail)
+    return 0;
 }
 
 // phase 6: extend location one step higher
 //	then goto phase 2 to scan the location again
 async function* P6()
 {
-  const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
+  const {x,y,w,h,l,p,d,i,j,z}	= yield* move(1);
 
-  const b	= yield ['block', p.pos(1*z, 0, 0)];
-
-  yield ['act P6'];
-  yield ['DOUBLE', b];
+//  yield ['act BOT', p];
+  return (yield ['doublecheststack']) ? 0 : 2;
 }
 
 // phase 7: wait for new items in the input chests
@@ -313,10 +322,9 @@ async function* P9()
 }
 
 try {
-
-  //yield ['act PHASE', self.phase];
-  yield ['report phase', self.phase];
-  const r = yield* (eval(`P${self.phase}`))();
+  let o = self.phase;
+  yield ['report phase', o];
+  const r = yield* (eval(`P${o}`))();
 
   if (r === void 0)
     self.phase++;
@@ -325,9 +333,9 @@ try {
   if (self.phase)
     yield yield [`in 1 depot`]; // gen ${self.gen}`];
   else
-    yield ['act depot stopped'];
+    yield ['report stopped', o];
 } catch (e) {
-  yield ['act depot err', self.phase, `${e}`];
+  bug(`P${self.phase} ${e}`);
   self.phase	= 0;
   throw e;
 }
