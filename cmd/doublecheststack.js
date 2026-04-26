@@ -50,8 +50,9 @@ yield ['act 2', c[1], p2];
             yield ['BREAKER', p0];
           yield ['TP', p];
 //          yield ['wait', 10];
-          yield ['PLACE', 'jungle_sign', p0, p1];
-          break;
+          if (!(yield ['PLACE', 'jungle_sign', p0, p1]))
+            return 1;
+	  break;
         }
     }
 
