@@ -50,9 +50,9 @@ async function* place_block(dest, ref, p)
   const r	= yield ['block', b.pos(ref)];
   const d	= b.sub(r);
 
-//  yield ['act placing', b, 'onto', r, 'with', ref._vec];
+  yield ['act PLACE', b, 'onto', r, 'with', ref._vec];
 
-  yield ['TP', p.pos(0,b.sub(p).y,0)];
+  yield ['TP', p.pos(0,b.sub(p).y+4,0)];
   const e	= ev(`blockUpdate:${b._vec}`, (o,n) => { if (!o || !n || o.type !== n.type) return [o,n] }, 5000);
   await B._genericPlace(r._, d, { swingArm:'right' });
   yield ['TP', p];
@@ -78,27 +78,35 @@ const DIR =
   , s: [ 0,  0,  1]
   };
 
-function dir(r, b)
+function* dir(r, b)
 {
   if (isMy(r))
     return r.sub(b);
-  return DIR[_.shift()] ?? DIR.d;
+  const d = DIR[_.shift()];
+  if (d)
+    return d;
+  for (const a of yield ['block', dest, 6])
+    if (!isAir(a))
+      return a.sub(b);
+  return DIR.d;
 }
 
 const B		= __ABI__.B;
 const item	= yield ['item', _.shift()];
 const dest	= yield ['block', _.shift() ];
-const ref	= yield ['pos', dir(_.shift(), dest)];
+const ref	= yield ['pos', yield* dir(_.shift(), dest)];
 
 const p		= yield ['pos'];
 const i		= yield ['getsome', item];
 
 yield ['equip hand', i.type];
 await B.setControlState('sneak', true);
-//yield ['wait', 10];
+yield ['wait', 1];
 
-yield* place_block(dest, ref, p);
+const ret	= yield* place_block(dest, ref, p);
 
 await B.setControlState('sneak', false);
 //yield ['wait', 10];
+
+return ret;
 
