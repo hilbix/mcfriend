@@ -2,7 +2,7 @@
 
 try {
   const p = yield ['locate', _];
-  //yield ['act tp', _, p];
+//  yield ['act tp', _, p];
 //  yield yield ['say /gamemode spectator'];
   yield yield ['tp', p];
   for (let i = 100; --i>=0; yield ['wait', 2])
