@@ -1342,6 +1342,7 @@ class Abi	// per spawn instance for bot
           switch (c[1])
             {
             default:	return yield* m(Array.from(c[1]), _ => p.dir(_));
+            case 4:	return yield* delta({x:-1},{z:-1},{x:1},{z:1});
             case 6:	return yield* delta({x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
             case 7:	return yield* delta({},{x:-1},{y:-1},{z:-1},{x:1},{y:1},{z:1});
             case 27:	return yield* delta(...([0,-1,1].map(x => [0,-1,1].map(z => [0,-1,1].map(y => ({x,y,z})))).flat(3)));
