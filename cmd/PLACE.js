@@ -52,6 +52,11 @@ async function* place_block(dest, ref, p)
 
   yield ['act PLACE', b, 'onto', r, 'with', ref._vec];
 
+  // XXX TODO XXX following +4 is a workaround and wrong
+  // This shall allow to place a block to where the bot currently stands
+  // The correct thing is:
+  // - detect, if p intersects with the destination (2 high)
+  // - if so, teleport 4 more up
   yield ['TP', p.pos(0,b.sub(p).y+4,0)];
   const e	= ev(`blockUpdate:${b._vec}`, (o,n) => { if (!o || !n || o.type !== n.type) return [o,n] }, 5000);
   await B._genericPlace(r._, d, { swingArm:'right' });
