@@ -104,6 +104,8 @@ const ref	= yield ['pos', yield* dir(_.shift(), dest)];
 
 const p		= yield ['pos'];
 const i		= yield ['getsome', item];
+if (!i)
+  throw `out of ${item}`;
 
 yield ['equip hand', i.type];
 await B.setControlState('sneak', true);
