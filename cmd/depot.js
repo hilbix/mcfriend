@@ -138,7 +138,7 @@ function* P1()
 function* move(_ = 0)
 {
   const r		= self.r;
-  const {x,y,w,h,l,i,j}	= r;
+  const {x,y,w,l,i,j}	= r;
 
   const t	= j&1;
   const u	= (j/2)|0;
@@ -148,10 +148,9 @@ function* move(_ = 0)
   const p	= yield ['pos', m,l,n];
   r.p	= p;
   r.z	= t ? 1 : -1;
+  r.b	= p.pos(_ * r.z, 0, _ * r.z);
 
-  yield ['TP', p.pos(_ * r.z, 0, _ * r.z)];
-  //yield ['Move', p, 3];
-  //yield ['act MOVE HERE', p];
+  yield ['TP1', r.b];
   yield ['wait', 1];
   return r;
 }
@@ -189,24 +188,27 @@ function* P2()
     }
 
   const s	= yield ['sign',  p.pos(0,0,0)];
-  if (!s.valid) return;
+  if (!isSign(s)) return;
 
-  yield ['act AAAA', s, i,j,p];
+//  yield ['act AAAA', s, i,j,p];
   let n;
   for (n=0; n+l<200; n++)
     {
-      const b0	= yield ['block',  p.pos(  0, n, 0)];
+      const b0	= yield ['sign',   p.pos(  0, n, 0)];
       const b1	= yield ['chesty', p.pos(  z, n, 0)];
       const b2	= yield ['chesty', p.pos(z+z, n, 0)];
 
-      if (b1[0] !== 'L' || b2[0] !== 'R')
+      if (b1[0] !== 'L' && b1[0] !== 'R')
         {
-          yield ['act XXXX', n, b0, b1, b2];
+//          yield ['act noDBL', n, b0, b1, b2];
           break;
         }
-      yield ['act BBBB', n, b1, b2];
-      if (n && !isAir(b0))
-        break;
+      if (!isSign(b0))
+        {
+//          yield ['act noSig', n, b0, b1, b0.name];
+          break;
+        }
+//      yield ['act K', n, b0];
     }
 
   if (!n)
@@ -268,7 +270,7 @@ function* put(n,m,t)
       return false;
   
     default:
-//      yield ['note breaking', b];
+      yield ['note BREAK', b];
       yield ['BREAKER', b];
   
     case 'air':
@@ -298,10 +300,10 @@ function* P5()
 //	then goto phase 2 to scan the location again
 async function* P6()
 {
-  const {x,y,w,h,l,p,d,i,j,z}	= yield* move(1);
+  const {x,y,w,h,l,p,d,i,j,z,b}	= yield* move(1);
 
 //  yield ['act BOT', p];
-  return (yield ['doublecheststack']) ? 0 : 2;
+  return (yield ['doublecheststack', -z-z]) ? 2 : 0;
 }
 
 // phase 7: wait for new items in the input chests
