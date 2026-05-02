@@ -633,6 +633,7 @@ class Sign extends My
   get full()		{ return this._.full }
   get dim()		{ return this._.dim }
   get block()		{ return this._.block }
+  get name()		{ return this._.block.name }
   cmp(_)		{ }
   };
 
