@@ -69,6 +69,7 @@ async function* place_block(dest, ref, p)
       throw new Error(`No block has been placed : the block is still ${o?.name}`)
     } else {
       B.emit('blockPlaced', o, n)
+      return 1;
     }
   } finally {
   }
@@ -111,6 +112,9 @@ yield ['wait', 1];
 const ret	= yield* place_block(dest, ref, p);
 
 await B.setControlState('sneak', false);
+//yield ['wait', 1];
+//yield ['click', dest];
+//yield ['close', dest];
 //yield ['wait', 10];
 
 return ret;
