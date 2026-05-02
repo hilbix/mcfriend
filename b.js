@@ -1187,6 +1187,7 @@ class Abi	// per spawn instance for bot
   *Cbot()		{ return new Player(this._.botname) }
   *Chand()		{ return new Item(this.B.heldItem) }
   *Cinv(c)		{ return new Item(this.B.inventory.slots[c[0]]) }
+  *Cfree()		{ return this.B.inventory.slots.map((_,i) => _ ? void 0 : i).filter(_ => _ !== void 0) }
   *Cinvs(c)
     {
       const match = this.matcher(c);
