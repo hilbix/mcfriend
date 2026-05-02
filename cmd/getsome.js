@@ -10,6 +10,9 @@ for (const item of _)
 
 yield ['home'];
 
+if ((yield ['free']).length <= 2)
+  yield ['put'];
+
 for (const item of _)
   {
     yield [`get ${item.id}=${item.max}`];
