@@ -1,4 +1,5 @@
 // Place a double chest with a sign
+// with bot placed at the given position.
 //
 // TP to the middle position where to place it in front of the bot
 // then call this with the direction x=-2 .. 2 (0 is same as +2)
@@ -29,9 +30,9 @@ try {
       const p2	= yield ['block', p.pos(-(x??-y)       , z,   y??x)];
       const c	= yield ['chesty', p1, p2];
 
-yield ['act 0', toJ({x,y}), p0];
-yield ['act 1', c[0], p1];
-yield ['act 2', c[1], p2];
+//yield ['act 0', toJ({x,y}), p0];
+//yield ['act 1', c[0], p1];
+//yield ['act 2', c[1], p2];
 
       if (c[0] !== 'R' && c[1] !== 'L')
         {
@@ -50,9 +51,7 @@ yield ['act 2', c[1], p2];
             yield ['BREAKER', p0];
           yield ['TP', p];
 //          yield ['wait', 10];
-          if (!(yield ['PLACE', 'jungle_sign', p0, p1]))
-            return 1;
-	  break;
+          return (yield ['PLACE', 'jungle_sign', p0, p1]);
         }
     }
 
