@@ -37,7 +37,7 @@ try {
       if (c[0] !== 'R' && c[1] !== 'L')
         {
           if (isAir(p1))
-            yield ['PLACE chest', p1, isAir(p2) ? 'd' : p2];
+            yield ['PLACE chest', p1, p2]; // isAir(p2) ? 'd' : p2];
           else if (isAir(p2))
             yield ['PLACE chest', p2, p1];
           else
