@@ -32,17 +32,18 @@ const FLOOR = 'cobblestone';
 if (this.self?.V !== V)
   this.self		= {V, phase:1, gen:0};
 
-// function dump(_, x)
-// {
-//   if (x<4)
-//     {
-//       if (Array.isArray(_))
-//         return _.map(_ => dump(_, x+1));
-//       if ('object' === typeof _)
-//         return Object.entries(_).map(([k,v]) => `${k}=${dump(v,x+1).join(',')}`);
-//     }
-//   return [toJ(_)];
-// }
+function dump(_, x)
+{
+  if (x<4)
+    {
+      if (Array.isArray(_))
+        return _.map(_ => dump(_, x+1));
+      if ('object' === typeof _)
+        return Object.entries(_).map(([k,v]) => `${k}=${dump(v,x+1).join(',')}`);
+    }
+  return [toJ(_)];
+}
+
 //
 // yield ['act DEPOT', dump(self, 0)];
 
@@ -56,6 +57,7 @@ switch (_[0])
 
   case '0':	self.phase = 1; self.gen++; break;
   case 'gen':	if (`${self.gen}` !== _[1]) return; break;
+  case 'list':	yield* list(); return;
   }
 
 // functions return:
@@ -169,6 +171,9 @@ function inc()
   if (3 * ++r.j <= r.w-r.x)
     return 0;
   r.j	= 0;
+
+  // XXX TODO XXX probably depot too small error
+  return self.phase = 0;
 }
 
 // phase 2: scan 1x3 sign+doublechest locations.
@@ -184,7 +189,7 @@ function* P2()
     {
       const b = yield ['block', p.pos(z*_, -1, 0)];
       if (b.id !== FLOOR)
-        return;
+        return;		// unprepared position found, next state
     }
 
   const s	= yield ['sign',  p.pos(0,0,0)];
@@ -198,27 +203,62 @@ function* P2()
       const b1	= yield ['chesty', p.pos(  z, n, 0)];
       const b2	= yield ['chesty', p.pos(z+z, n, 0)];
 
-      if (b1[0] !== 'L' && b1[0] !== 'R')
+      if (b1[0] !== 'R' && b2[0] !== 'L')	// missing chest
+        break;
+      if (!isSign(b0))				// missing sign
+        break;
+
+      // get what shall be in the chest
+      const t	= s._.block.getSignText()[0].split('\n')[3];
+      if (t === '')
         {
-//          yield ['act noDBL', n, b0, b1, b2];
-          break;
+          // look into the chest
         }
-      if (!isSign(b0))
-        {
-//          yield ['act noSig', n, b0, b1, b0.name];
-          break;
-        }
-//      yield ['act K', n, b0];
+
     }
 
   if (!n)
-    return;
+    return;		// free location found, next state
+
+  // we found a usable position
+  // remember chest and stack height
 
   d.x ??= [];
-  d.x.push(s, n);
+  d.x.push([s, n, z]);
 
   return inc();
 }
+
+/*
+        const r = yield ['OPEN', c];
+
+        // locate the needed item
+        const v = r.items().filter(yield* itemFilter(k));
+        if (!v.length)
+          {
+            //yield ['act', k, 'not in', c]
+            //yield ['OPEN'];
+            continue;
+          }
+
+        // take the item and close
+        try {
+          const t       = c.container;
+          if (t === true)
+            yield ['take', r, v[0], n];
+*/
+
+function* list()
+{
+  for (const [k,v] of Object.entries(self.r))
+    yield ['act Dlst', k, `${dump(v)}`.substr(0,40)];
+  for (const [k,v] of Object.entries(self.r.d ?? {}))
+    yield ['act DlsD', k, `${dump(v)}`.substr(0,40)];
+  const x = (self.r.d?.x ?? []).reduce((_,[s,n]) => { (_[toJ(s.full)] ??= []).push(n); return _ }, {});
+  for (const [k,v] of Object.entries(x))
+    yield ['act DlsX', k, `${dump(v)}`.substr(0,40)];
+}
+
 
 //  self.iter	= yield ['block', self.area];
 //  self.iter	= self.iter();
@@ -303,7 +343,6 @@ async function* P6()
 {
   const {x,y,w,h,l,p,d,i,j,z,b}	= yield* move(1);
 
-//  yield ['act BOT', p];
   return (yield ['doublecheststack', -z-z]) ? 2 : 0;
 }
 
@@ -334,7 +373,7 @@ try {
   else if (r)
     self.phase	= r;
   if (self.phase)
-    yield yield [`in 1 depot`]; // gen ${self.gen}`];
+    yield yield [`in 0 depot gen ${self.gen}`];
   else
     yield ['report stopped', o];
 } catch (e) {
