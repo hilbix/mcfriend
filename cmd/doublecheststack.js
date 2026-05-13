@@ -34,25 +34,40 @@ try {
 //yield ['act 1', c[0], p1];
 //yield ['act 2', c[1], p2];
 
-      if (c[0] !== 'R' && c[1] !== 'L')
+      if (c[0] === 'R' && c[1] === 'L')
         {
-          if (isAir(p1))
-            yield ['PLACE chest', p1, p2]; // isAir(p2) ? 'd' : p2];
-          else if (isAir(p2))
-            yield ['PLACE chest', p2, p1];
-          else
-            yield ['BREAKER', p1, p2];
-          yield ['TP', p];
+          if (isSign(p0))
+            continue;	// sign placed and chests (probably) OK
+
+          if (isAir(p0))
+            return yield ['PLACE', 'jungle_sign', p0, p1];
+          yield ['BREAKER', p0];
           break;
         }
-      if (!isSign(p0))
+
+      // make tabula rasa if sign position alread filled
+      if (!isAir(p0))
         {
-          if (!isAir(p0))
-            yield ['BREAKER', p0];
-          yield ['TP', p];
-//          yield ['wait', 10];
-          return (yield ['PLACE', 'jungle_sign', p0, p1]);
+          yield ['BREAKER', p0, p1, p2];
+          break;
         }
+
+      // we now either AIR P1 P2 where P1 and P2 are
+      // either air or something which is wrongly placed
+
+      if (isAir(p1))
+        yield ['PLACE chest', p1];	// Place P1 onto P2
+      else
+        {
+          yield ['BREAKER', p1];	// wrongly placed
+          break;
+        }
+      if (isAir(p2))
+        yield ['PLACE chest', p2, p1];	// Place P2 onto P1
+      else
+        yield ['BREAKER', p2];		// wrongly placed
+
+      break;
     }
 
 //  yield ['act ok'];
