@@ -5,6 +5,8 @@
 // signs list		list first empty sign
 // signs N list		list Nth sign after first
 // signs fix BOTS store	make line one and two
+// signs bug		show buggy signs without suitable chest
+// signs check		check contents of chest
 
 let n		= _[0]|0;
 if (`${n}` === _[0])
@@ -12,8 +14,10 @@ if (`${n}` === _[0])
 else
   n		= void 0;
 
+const unused	= '\n\n\n';
+
 let check	= function*(_) { return true }
-let tag		= '\n\n\n';
+let tag		= unused;
 let end		= function*(_) { return yield ['JUMP', _] };
 
 this.cache	??= {};
@@ -32,6 +36,9 @@ switch (_[0])
   case 'bug':	check	= function*(_) { return !(yield* chest(_))	};
                 cache	= void 0;
                 break;
+  case 'check':	check	= sane;
+                tag	= void 0;
+                break;
   }
 
 n ??= 0;
@@ -41,11 +48,12 @@ const inf	= { cache:Object.keys(cache).length};
 
 for await (const a of yield ['osign'])
   {
-    if (a.full[0] !== tag || cache[a]) continue;
+    if ((tag && a.full[0] !== tag) || cache[a]) continue;
     const c = yield* check(a);
     if (!c) continue;
 
-    if (c === 1) cache[a] = true;
+    if (parseInt(c)|0) cache[a] = true;
+    if (parseInt(c)<0) continue;
 
     // check for chest type
     //yield ['act', n, a, c];
@@ -136,5 +144,27 @@ function* fix(c)
   else
     inf.had = 1+(inf.had|0);
   return true;
+}
+
+function* sane(c)
+{
+  const b	= yield* chest(c);
+  if (!b)
+    return -1;
+
+  const i = yield* items(b);
+  if (!i)
+    return -1;
+  const e	= Object.entries(i);
+  if (!e.length)
+    return -1;
+  if (c.full[0] === unused)
+    {
+      yield ['act chest not empty', b];
+      return 1;
+    }
+  console.error('SANE', i);
+  yield ['act found', b, e.length];
+  return 1;
 }
 
