@@ -181,7 +181,7 @@ function inc()
 //	record the locations and the items
 //	~~(All 10 locations two locations are skipped (for now))~~
 //	this phase ends when the first improper/free location is found
-function* P2()
+async function* P2()
 {
   const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
 
@@ -194,6 +194,8 @@ function* P2()
 
   const s	= yield ['sign',  p.pos(0,0,0)];
   if (!isSign(s)) return;
+
+  let k		= s._.block.getSignText()[0].split('\n')[3];
 
 //  yield ['act AAAA', s, i,j,p];
   let n;
@@ -208,13 +210,36 @@ function* P2()
       if (!isSign(b0))				// missing sign
         break;
 
-      // get what shall be in the chest
-      const t	= s._.block.getSignText()[0].split('\n')[3];
-      if (t === '')
-        {
-          // look into the chest
-        }
+      // look into the chest
+      const r	= yield ['OPEN', yield ['block', p.pos(z,n,0)]];
+      const v	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id).map(_ => [_.id, true])));
 
+      if (!k)
+        k	= v[0] ?? '';
+
+      // get what shall be in the chest
+      const t	= b0._.block.getSignText()[0].split('\n')[3];
+      // not yet defined (or wrongly defined)?
+      if (t !== k)
+        {
+          // set it
+          const p = s._.pos;
+          yield ['say /data modify block', p.x,p.y,p.z, `front_text.messages[2] set value ${toJ(toJ(k))}`];
+          // hack:
+          await clickhack(s);
+          break;
+        }
+      if (!k)
+        break;	// empty unnamed chest, hence free
+
+      // is there something wrong in the chest?
+      const w = r.items().filter(_ => _.id && _.id !== k);
+      if (w.length)
+        {
+          yield ['take', r, w[0], w[0].count];
+          // what if no free inv?
+          break;
+        }
     }
 
   if (!n)
@@ -224,16 +249,24 @@ function* P2()
   // remember chest and stack height
 
   d.x ??= [];
-  d.x.push([s, n, z]);
+  d.x.push([k, n, z]);
 
   return inc();
 }
 
+function clickhack(sign)
+{
+  return new Promise((o,k) =>
+    {
+      if (!sign._.block) return k('no sign');
+      __ABI__.B.once('windowOpen', win => o(win, this.__ABI__.B.closeWindow()));
+      __ABI__.B.activateBlock(sign._.block);
+    });
+}
+
 /*
-        const r = yield ['OPEN', c];
 
         // locate the needed item
-        const v = r.items().filter(yield* itemFilter(k));
         if (!v.length)
           {
             //yield ['act', k, 'not in', c]
@@ -289,6 +322,9 @@ async function* P2x()
 //	until there are no items left which can be put into depot
 async function* P3()
 {
+  for (const i of yield ['invs'])
+    {
+    }
 }
 
 // phase 4:
@@ -308,12 +344,12 @@ function* put(n,m,t)
     {
     case t:
       return false;
-  
+
     default:
       yield ['note BREAK', b];
       yield ['BREAKER', b];
       return true;
-  
+
     case 'air':
     case 'cave_air':
       break;
