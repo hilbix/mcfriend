@@ -8,10 +8,11 @@ if (validSign(_[0]))
   return _[0];
 
 const s	= _[0];
+if (s === 'CLR') this.invalid = {};
 const known = invalid[`${s}`];
 
 if (!known)
-  yield ['act checking', s];
+  yield ['act VS checking', s];
 
 const t = yield ['SPOT', 5, s];
 if (t !== false)
