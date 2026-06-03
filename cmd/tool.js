@@ -15,7 +15,7 @@ for (let retry=2;; retry--)
       return yield ['equip hand', w[0]];	// Equip tool already in inventory
     if (retry<0)
       break;
-    yield ['supply', `stone_${tool}`];
+    yield ['supply', `wooden_${tool}`];
   }
 
 throw `missing ${tool}`;
