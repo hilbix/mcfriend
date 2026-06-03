@@ -490,6 +490,7 @@ class CTX
       this.isSign	= isSign;
       this.validSign	= _ => abi.validSign(_);
       this.isMy		= isMy;
+      this.BUG		= (..._) => abi.bug(_);
 
       // XXX TODO XXX: THIS SHOULD GO INTO SOME AUTOLOADED LIB!
       this.itemFilter	= function*(_)
@@ -519,6 +520,10 @@ class My
   dir(_)		{ return this.vec(DIR(_)) }
   pos(x,y,z)		{ return new Pos(this.vec(x??0,y??0,z??0)) }
   *locate()		{ return this._pos ??= new Pos(this._vec) }
+
+  get x()		{ return this._vec.x }
+  get y()		{ return this._vec.y }
+  get z()		{ return this._vec.z }
   };
 class Pos extends My
   {
@@ -527,9 +532,6 @@ class Pos extends My
   get _vec()		{ return this._ }
   constructor(x,y,z)	{ super(x instanceof My ? x._vec : x instanceof v3.Vec3 ? x : a2v([parseFloat(x),parseFloat(y),parseFloat(z)])) }
   *locate()		{ return this }
-  get x()		{ return this._.x }
-  get y()		{ return this._.y }
-  get z()		{ return this._.z }
   get xyz()		{ return [this._.x, this._.y, this._.z] }
   };
 
@@ -710,6 +712,9 @@ class Survey
 
 class Abi	// per spawn instance for bot
   {
+  #debug;
+  bug(_) { console.log('D', ..._); this.#debug	= _ }
+
   constructor(_)
     {
       this._		= _;
@@ -926,6 +931,8 @@ class Abi	// per spawn instance for bot
       const id = new Survey(({id,d,e,r,s}) =>
         {
           const v = [];
+          if (this.#debug)
+            v.push(['D'].concat(mkArr(this.#debug)));
           if (inf.iters)
             inf.iters.forEach((_,i) => v.unshift([id, i, _.state, _.filename]));
           v.unshift([id,s,d,r,e, src._, toJ(c)]);
@@ -2368,7 +2375,7 @@ class Bot	// global instance for bot
 
           if (this.state.set.conf?.verbose)
             X(`${x.map((_,i) => _ ? String.fromCodePoint(p+i)+r[i].debug : '').join('') || '@'}`);
-	  a.push(new Promise(o => sema=o));
+          a.push(new Promise(o => sema=o));
           await Promise.any(a);
           p	= 162 - p;
         } catch (e) {
