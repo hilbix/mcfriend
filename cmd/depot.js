@@ -24,24 +24,31 @@
 //	stop if either full or an item has no free room in the depot
 // phase 9: goto phase 3
 
-const V=2;	// increment to reset things
+const V=4;	// increment to reset things
 const FLOOR = 'cobblestone';
 //const FLOOR = 'diorite'; 'blackstone';
 
 // create depot content if not already present
 if (this.self?.V !== V)
-  this.self		= {V, phase:1, gen:0};
+  this.self		= {V, phase:1, gen:0, empty:{}};
+
+const speed = 0;
 
 function dump(_, x)
 {
+  x |= 0;
   if (x<4)
     {
       if (Array.isArray(_))
         return _.map(_ => dump(_, x+1));
-      if ('object' === typeof _)
+      if (_ && 'object' === typeof _)
         return Object.entries(_).map(([k,v]) => `${k}=${dump(v,x+1).join(',')}`);
     }
-  return [toJ(_)];
+  try {
+    return [toJ(_)];
+  } catch (e) {
+    return [`${e}`];
+  }
 }
 
 //
@@ -56,8 +63,9 @@ switch (_[0])
   default:	return yield ['act not understood:', _];
 
   case '0':	self.phase = 1; self.gen++; break;
-  case 'gen':	if (`${self.gen}` !== _[1]) return; break;
+  case 'gen':	if (`${self.gen}` !== _[1]) return; if (_[2]) self.phase=_[2]; break;
   case 'list':	yield* list(); return;
+  case 'clr':	self.empty = {}; return;
   }
 
 // functions return:
@@ -114,10 +122,10 @@ function* P1()
 
   const r	= {x,y,w,h,l};			// coordinates
   const c	= toJ(r);			// stringified
-  let d		= yield ['cache get depot', c];	// cache data
+  let d		= yield ['cache get depot d', c];	// cache data
 
-  r.dirt	= d?.[0]?.c !== c;		// check if area was changed
-  r.d		= r.dirt ? {c} : d[0];		// kick data if area changed
+  self.dirt	= d?.[0]?.c !== c;		// check if area was changed
+  r.d		= self.dirt ? {c,x:{}} : d[0];	// kick data if area changed
   r.i		= 0;				// iterator w
   r.j		= 0;				// iterator h
   r.k		= 0;				// iterator l
@@ -183,14 +191,16 @@ function inc()
 //	this phase ends when the first improper/free location is found
 async function* P2()
 {
-  const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
+  const {w,h,l,p,d,i,j,z}	= yield* move();
 
+  BUG('P2', 0);
   for (const _ of [0,1,2])
     {
       const b = yield ['block', p.pos(z*_, -1, 0)];
       if (b.id !== FLOOR)
         return;		// unprepared position found, next state
     }
+  BUG('P2', 1);
 
   const s	= yield ['sign',  p.pos(0,0,0)];
   if (!isSign(s)) return;
@@ -199,8 +209,9 @@ async function* P2()
 
 //  yield ['act AAAA', s, i,j,p];
   let n;
-  for (n=0; n+l<200; n++)
+  for (n=0; n+l<200; )
     {
+      BUG('P2', 2);
       const b0	= yield ['sign',   p.pos(  0, n, 0)];
       const b1	= yield ['chesty', p.pos(  z, n, 0)];
       const b2	= yield ['chesty', p.pos(z+z, n, 0)];
@@ -210,23 +221,42 @@ async function* P2()
       if (!isSign(b0))				// missing sign
         break;
 
+      // get from sign what shall be in the chest
+      const t	= b0._.block.getSignText()[0].split('\n')[2];
+      if (!k)
+        k	= t;
+
+      BUG('P2', 3);
       // look into the chest
       const r	= yield ['OPEN', yield ['block', p.pos(z,n,0)]];
-      const v	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id).map(_ => [_.id, true])));
 
-      if (!k)
-        k	= v[0] ?? '';
+      if (!k)	// preset with something from the chest content
+        k	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id && !d.x?.[_.id]).map(_ => [_.id, true])))[0] ?? '';
 
-      // get what shall be in the chest
-      const t	= b0._.block.getSignText()[0].split('\n')[3];
+      n++;	// we have a chest
+
+      // XXX TODO XXX CHANGE THIS to proper handling of manual changes
+      //
+      // Leave this to the future, for now we just overwrite the index below.
+      //
+      // Everything is ok if either d.x[k] is unknown or is us (.i,.j == i,j).  Else:
+      //
+      // T.B.D.
+
       // not yet defined (or wrongly defined)?
       if (t !== k)
         {
+          yield ['OPEN'];	// close chest
+
           // set it
           const p = s._.pos;
-          yield ['say /data modify block', p.x,p.y,p.z, `front_text.messages[2] set value ${toJ(toJ(k))}`];
-          // hack:
-          await clickhack(s);
+          BUG('P2', 4, k, t);
+          yield ['say /data modify block', b0.x,b0.y,b0.z, `front_text.messages[2] set value ${toJ(toJ(k))}`];
+          try {
+            await clickhack(s);
+          } catch (e) {
+            console.error(e);
+          }
           break;
         }
       if (!k)
@@ -236,50 +266,42 @@ async function* P2()
       const w = r.items().filter(_ => _.id && _.id !== k);
       if (w.length)
         {
+          BUG('P2', 5);
           yield ['take', r, w[0], w[0].count];
           // what if no free inv?
           break;
         }
     }
 
-  if (!n)
-    return;		// free location found, next state
-
   // we found a usable position
-  // remember chest and stack height
+  // remember location and stack height
+  // Note that we can only remember 1 stack per item type
+  // (perhaps this is wrong for special items like broken bow?)
 
-  d.x ??= [];
-  d.x.push([k, n, z]);
+  const o = d.x[k];
+  const x = d.x[k] = {i, j, n};
+  if (o !== x)
+    self.dirt	= true;
 
-  return inc();
+  return n && k ? inc() : void 0;
 }
 
 function clickhack(sign)
 {
-  return new Promise((o,k) =>
+  BUG('clickhack', 0, sign._pos);
+  if (!sign._.block)
+    return Promise.reject('no sign');
+  const p = new Promise((o,k) =>
     {
-      if (!sign._.block) return k('no sign');
-      __ABI__.B.once('windowOpen', win => o(win, this.__ABI__.B.closeWindow()));
-      __ABI__.B.activateBlock(sign._.block);
+      BUG('clickhack', 1);
+      __ABI__.B.once('windowOpen', o);
+      sleep(2000).then(() => k('windowOpen did not fire within 10s'));
     });
+  BUG('clickhack', 2);
+  p.then(() => { BUG('clickhack', 6); return this.__ABI__.B.closeWindow() }).catch(console.error);
+  BUG('clickhack', 3);
+  return __ABI__.B.activateBlock(sign._.block).then(_ => { BUG('clickhack', 4, _); return p });
 }
-
-/*
-
-        // locate the needed item
-        if (!v.length)
-          {
-            //yield ['act', k, 'not in', c]
-            //yield ['OPEN'];
-            continue;
-          }
-
-        // take the item and close
-        try {
-          const t       = c.container;
-          if (t === true)
-            yield ['take', r, v[0], n];
-*/
 
 function* list()
 {
@@ -292,46 +314,90 @@ function* list()
     yield ['act DlsX', k, `${dump(v)}`.substr(0,40)];
 }
 
-
-//  self.iter	= yield ['block', self.area];
-//  self.iter	= self.iter();
-//  const {v1,d1}	= await self.iter.next();
-async function* P2x()
+function jump(x)
 {
-  yield ['Move', value, 3];
-  const pos	= value.pos(0,-1,0);
+  const r = self.r;
 
-//  yield ['act', 'P', pos, self.pick];
-
-  const y	= pos.y;
-  const d	= [];
-  const pile	= yield ['block', pos.pos(0,-1,0), pos.pos(0,250-y,0)];
-  for await (const x of pile())
-    {
-//      yield ['act', 'H', pos, x]; return self.phase = 0;
-      if (isAir(x)) continue;
-      d.unshift(x);
-    }
-
-  yield ['act HERE', value, d];
-  return self.phase = 0;
-  return 0;
+  r.i	= x.i;
+  r.j	= x.j;
 }
 
 // phase 3: put item from inventory into depot
 //	until there are no items left which can be put into depot
 async function* P3()
 {
+  let had;
+
+  const r = self.r;
+  const x = r.d.x;
+  let	flag;
+
+  // preset the current pos to append
+  x[''] ??= {i:r.i, j:r.j, n:0};
+
+  const i0 = __ABI__.B.inventory.inventoryStart;
+  const i1 = __ABI__.B.inventory.inventoryEnd;
+   
   for (const i of yield ['invs'])
     {
+      if (!i.id) continue;
+      if (had && i.id !== had) continue;
+      if (i._.slot < i0 || i._.slot >= i1) continue;
+
+      const r	= x[i.id] ?? (flag=x['']);
+      if (!r.n) continue;
+
+//      console.log('ITEM', i0, i1, i);
+      yield ['report put', i.id, i.n, r];
+
+      const {p,z}	= yield* move(jump(r));
+      const b	= yield ['block', p.pos(z, r.n-1, 0)];
+      const c	= yield ['OPEN', b];
+
+      try {
+        yield yield ['put', c, i, i.n];
+      } catch (e) {
+        if (e.message === 'destination full')
+          {
+            yield ['OPEN'];     // take item out of your hand!
+            yield ['wait'];
+            return 6;
+          }
+      }
+      had	= i.id;
+    }
+  if (had)
+    {
+      yield ['OPEN'];
+      return flag ? 2 : 0;	// re-evaluate(2) or again with next item
     }
 }
 
 // phase 4:
 //	if inventory is clean, goto phase 7
-//	if item is known in depot but has no free room, goto phase 6
+//	if item is known in depot but has no free room,
+//		goto phase 6 with correct location
+//
 async function* P4()
 {
+  const x = self.r.d.x;
+
+  const i0 = __ABI__.B.inventory.inventoryStart;
+  const i1 = __ABI__.B.inventory.inventoryEnd;
+
+  for (const i of yield ['invs'])
+    {
+      if (!i.id) continue;
+      if (i._.slot < i0 || i._.slot >= i1) continue;
+
+      const c = x[i.id];
+      const r = c ?? x[''];
+      // stack is full, so raise the stack
+      jump(r);
+      // height === 0 then prepare the position
+      return r.n ? 6 : void 0;
+    }
+  return 7;
 }
 
 function* put(n,m,t)
@@ -356,7 +422,8 @@ function* put(n,m,t)
     }
   try {
     yield ['PLACE', t, b];
-  } catch {
+  } catch(e) {
+    console.error(e);
   }
   return true;
 }
@@ -382,9 +449,88 @@ async function* P6()
   return (yield ['doublecheststack', -z-z]) ? 2 : 0;
 }
 
+function Q(afn)
+{
+  const x = [];
+  const iter = afn(_ => x.push(_));
+  return next;
+
+
+  async function* next()
+    { 
+      let v;
+
+      while (!x.length)
+        {
+          const r = await iter.next(v);
+          yield ['act D NX', r.done, r.value];
+          if (r.done)
+            return;
+          v = yield r.value;
+        }
+//      yield ['act D q', x];
+      return x.shift();
+    }
+}
+
+async function* inputs(q)
+{
+  for (const s of 'keepin take'.split(' '))
+    for (const c of (yield ['CHEST', s]) || [])
+      {
+        yield ['act D in', c];
+        await q(c);
+      }
+}
+
 // phase 7: wait for new items in the input chests
 async function* P7()
 {
+  let m = __ABI__.B.inventory.inventoryEnd - __ABI__.B.inventory.inventoryStart;
+  let n = 0;
+
+  const q = Q(inputs);
+  while (_ = (yield* q()))
+    {
+      const [c,s_] = _;
+//      yield ['act GOT c', c];
+      if (self.empty[c])
+        {
+          yield ['act D ign', s_];
+          continue;
+        }
+      const w   = yield ['OPEN', c];
+
+      let is = void 0;
+
+      for (const i of w?.items())
+        if (i.id)
+          {
+            is=true;
+            yield ['act D take', s_, i];
+            yield ['take', w,i,i.n];
+            if (++n >= m)
+              return 3;
+          }
+      if (!is)
+        {
+          yield ['act D empty', s_];
+          self.empty[c] = 1;
+        }
+    }
+
+  yield ['act D got', n];
+  if (n < m)
+    self.empty	= {};	// reset cache
+
+  if (n)
+    return 3;
+
+  // retry in a few seconds
+  // we should use AGAIN for better backoff.
+  // But this not yet supports parameters I think.
+  yield yield [`in 20 depot gen ${self.gen} 7`];
+  return self.phase = 0;
 }
 
 // phase 8: take items from the input chests
@@ -396,25 +542,33 @@ async function* P8()
 // phase 9: goto phase 3
 async function* P9()
 {
-  return self.phase = 0;
+  return 3;
+//  return self.phase = 0;
 }
 
 try {
   let o = self.phase;
   yield ['report phase', o];
+  BUG('run', o);
   const r = yield* (eval(`P${o}`))();
-
+  BUG('ret', r);
   if (r === void 0)
     self.phase++;
   else if (r)
     self.phase	= r;
   if (self.phase)
-    yield yield [`in 0 depot gen ${self.gen}`];
+    yield yield [`in ${speed} depot gen ${self.gen}`];
   else
     yield ['report stopped', o];
+  if (self.dirt)
+    {
+      self.dirt	= void 0;
+      yield ['cache set depot d', self.r.d];	// cache the updated data
+    }
 } catch (e) {
+  console.error(e);
   bug(`P${self.phase} ${e}`);
-  self.phase	= 0;
+//  self.phase	= 0;
   throw e;
 }
 
