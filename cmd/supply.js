@@ -5,7 +5,7 @@
 // XXX TODO XXX this currenlty freaks out if something is missing completely
 
 if (!_.length)
-  _	= '*_sword *_axe torch=40 jungle_button=40 baked_potato=20 cooked_chicken=20'.split(' ');
+  _	= '*_sword wooden_axe torch=40 jungle_button=40 baked_potato=20 cooked_chicken=20'.split(' ');
 
 for (const x of _)
   {
