@@ -210,9 +210,10 @@ async function* P2()
   const s	= yield ['sign',  p.pos(0,0,0)];
   if (!isSign(s)) return;
 
-  let k		= s._.block.getSignText()[0].split('\n')[3];
+  let k		= s._.block.getSignText()[0].split('\n')[2];
 
-//  yield ['act AAAA', s, i,j,p];
+//  yield ['act AAAA', k, s, i,j,p];
+
   let n;
   for (n=0; n+l<200; )
     {
@@ -222,6 +223,7 @@ async function* P2()
 
       if (b1[0] !== 'R' && b1[1] !== 'L')	// missing chest
         break;
+
       if (!isSign(b0))				// missing sign
         break;
 
@@ -237,11 +239,11 @@ async function* P2()
       if (!r)
         {
 	  // open failed for unknown reason
-          yield ['BUG: Cannot open', rb, s];
+          yield ['act BUG: Cannot open', rb, s];
 	  break;
 	}
 
-      if (!k)	// preset with something from the chest content
+      if (!k)	// preset with something from the chest's content
         k	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id && !d.x?.[_.id]).map(_ => [_.id, true])))[0] ?? '';
 
       n++;	// we have a chest
@@ -343,8 +345,6 @@ function jump(x)
 //	until there are no items left which can be put into depot
 async function* P3()
 {
-  let had;
-
   const r = self.r;
   const x = r.d.x;
   let	flag;
@@ -355,6 +355,7 @@ async function* P3()
   const i0 = __ABI__.B.inventory.inventoryStart;
   const i1 = __ABI__.B.inventory.inventoryEnd;
    
+  let had;
   for (const i of yield ['invs'])
     {
       if (!i.id) continue;
@@ -365,7 +366,7 @@ async function* P3()
       if (!r.n) continue;
 
 //      console.log('ITEM', i0, i1, i);
-      yield ['report put', i.id, i.n, r];
+      yield ['act Dput', i.id, i.n, toJ(r)];
 
       const {p,z}	= yield* move(jump(r));
       const b	= yield ['block', p.pos(z, r.n-1, 0)];
