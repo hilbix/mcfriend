@@ -102,9 +102,14 @@ function* P1()
 {
 //  for (const _ of 'floor'.split(' ')) self[_]	= yield [`set depot:${_}`];
 
+  yield ['drop'];
+
   const area	= yield ['AREA depot'];
+  if (!area)
+    return yield* bug('no area', toJ(area));
+    
   if (area?.length !== 1)
-    return yield* bug('areas?', area.length, area);
+    return yield* bug('areas?', area?.length, toJ(area));
 
   let [a,b]	= area[0];
   a		= a.pos();
@@ -213,22 +218,28 @@ async function* P2()
     {
       BUG('P2', 2);
       const b0	= yield ['sign',   p.pos(  0, n, 0)];
-      const b1	= yield ['chesty', p.pos(  z, n, 0)];
-      const b2	= yield ['chesty', p.pos(z+z, n, 0)];
+      const b1	= yield ['chesty', p.pos(  z, n, 0), p.pos(z+z, n, 0)];
 
-      if (b1[0] !== 'R' && b2[0] !== 'L')	// missing chest
+      if (b1[0] !== 'R' && b1[1] !== 'L')	// missing chest
         break;
       if (!isSign(b0))				// missing sign
         break;
 
       // get from sign what shall be in the chest
-      const t	= b0._.block.getSignText()[0].split('\n')[2];
+      const tx	= b0._.block.getSignText()[0].split('\n');
       if (!k)
-        k	= t;
+        k	= tx[2];
 
       BUG('P2', 3);
       // look into the chest
-      const r	= yield ['OPEN', yield ['block', p.pos(z,n,0)]];
+      const rb	= yield ['block', p.pos(z,n,0)];
+      const r	= yield ['OPEN', rb];
+      if (!r)
+        {
+	  // open failed for unknown reason
+          yield ['BUG: Cannot open', rb, s];
+	  break;
+	}
 
       if (!k)	// preset with something from the chest content
         k	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id && !d.x?.[_.id]).map(_ => [_.id, true])))[0] ?? '';
@@ -244,14 +255,18 @@ async function* P2()
       // T.B.D.
 
       // not yet defined (or wrongly defined)?
-      if (t !== k)
+      if (tx[2] !== k || (n<2 && !tx[1]))
         {
+          const ts = [ tx[0] || "BOTS" , tx[1] || "store", k ];
+
           yield ['OPEN'];	// close chest
 
           // set it
           const p = s._.pos;
-          BUG('P2', 4, k, t);
-          yield ['say /data modify block', b0.x,b0.y,b0.z, `front_text.messages[2] set value ${toJ(toJ(k))}`];
+          BUG('P2', 4, k, tx);
+	  for (let i = n<2 ? 0 : 2; i < ts.length; i++)
+            yield ['say /data modify block', b0.x,b0.y,b0.z, `front_text.messages[${i}] set value ${toJ(toJ(ts[i]))}`];
+
           try {
             await clickhack(s);
           } catch (e) {
@@ -272,6 +287,8 @@ async function* P2()
           break;
         }
     }
+
+  yield ['OPEN'];	// close chest
 
   // we found a usable position
   // remember location and stack height
@@ -363,6 +380,8 @@ async function* P3()
             yield ['wait'];
             return 6;
           }
+	// we are in some unknown state, start all over
+	return 1;
       }
       had	= i.id;
     }
@@ -475,12 +494,11 @@ function Q(afn)
 
 async function* inputs(q)
 {
-  for (const s of 'keepin take'.split(' '))
-    for (const c of (yield ['CHEST', s]) || [])
-      {
-        yield ['act D in', c];
-        await q(c);
-      }
+  for (const c of (yield ['CHEST', 'keepin']) || [])
+    {
+      yield ['act D in', c];
+      await q(c);
+    }
 }
 
 // phase 7: wait for new items in the input chests
@@ -551,7 +569,7 @@ try {
   yield ['report phase', o];
   BUG('run', o);
   const r = yield* (eval(`P${o}`))();
-  BUG('ret', r);
+  BUG('ret', o, r);
   if (r === void 0)
     self.phase++;
   else if (r)
