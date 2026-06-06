@@ -30,20 +30,11 @@ for (let i=10; --i>=0; )
     last = box;
     return open;
   } catch (e) {
-    yield ['verbose open', e];
-    console.error('open fail', _);
-    if (!_[0]?.put)
-      break;
+    yield [`verbose open ${e}`];
+    console.error('open fail', _, e);
+//    if (!_[0]?.put) break;
   }
 
+console.error('OPEN FAILED', _);
 yield ['note OPEN FAILED', _];
 
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
-console.error('OPEN FAILED', _);
