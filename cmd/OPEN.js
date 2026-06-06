@@ -21,10 +21,9 @@ last = void 0;
 
 if (!box) return;
 
-yield ['Move', box, 3];
-
 for (let i=10; --i>=0; )
   try {
+    yield ['Move', box, 3];
     yield yield ['wait'];
     open = yield ['open', _];
     last = box;
