@@ -5,7 +5,7 @@
 // then call this with the direction x=-2 .. 2 (0 is same as +2)
 
 const p = yield ['pos'];
-yield ['act pos', p];
+yield ['act DC pos', p];
 
 function get(_)
 {
