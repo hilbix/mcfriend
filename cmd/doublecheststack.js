@@ -23,17 +23,18 @@ function get(_)
 const [x,y] = get(_.shift());
 
 try {
-  for (let z=0; z<100; z++)
+  for (let z=0; p.y+z<319; z++)
     {
       const p0	= yield ['block', p.pos(  x??y        , z, -(y??-x))];
       const p1	= yield ['block', p.pos(x==void 0 && y, z, y==void 0 && x)];
-      const p2	= yield ['block', p.pos(-(x??-y)       , z,   y??x)];
+      const p2	= yield ['block', p.pos(-(x??-y)      , z,   y??x)];
       const c	= yield ['chesty', p1, p2];
 
 //yield ['act 0', toJ({x,y}), p0];
 //yield ['act 1', c[0], p1];
 //yield ['act 2', c[1], p2];
 
+      BUG('DC a', c);
       if (c[0] === 'R' && c[1] === 'L')
         {
           if (isSign(p0))
