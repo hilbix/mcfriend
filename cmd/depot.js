@@ -351,6 +351,8 @@ async function* P3()
   const x = r.d.x;
   let	flag;
 
+  yield ['act P3', self.r.i, self.r.j];
+
   // preset the current pos to append
   x[''] ??= {i:r.i, j:r.j, n:0};
 
@@ -403,6 +405,10 @@ async function* P3()
 async function* P4()
 {
   const x = self.r.d.x;
+  yield ['act P4', self.r.i, self.r.j];
+
+  // preset the last empty pos to append
+  x[''] = {i:self.r.i, j:self.r.j, n:0};
 
   const i0 = __ABI__.B.inventory.inventoryStart;
   const i1 = __ABI__.B.inventory.inventoryEnd;
@@ -415,7 +421,9 @@ async function* P4()
       const c = x[i.id];
       const r = c ?? x[''];
       // stack is full, so raise the stack
+      yield ['act P4:', self.r.i, self.r.j, c === r, toJ(c)];
       jump(r);
+      yield ['act P4=', self.r.i, self.r.j, c === r, toJ(c)];
       // height === 0 then prepare the position
       return r.n ? 6 : void 0;
     }
@@ -425,6 +433,7 @@ async function* P4()
 function* put(n,m,t)
 {
   const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
+  yield ['act PUT', i, j];
 
   const b	= yield ['block', p.pos(n*z, m, 0)];
 
@@ -456,6 +465,7 @@ function* P5()
   let fail = false;
 
   const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
+  yield ['act P5', i, j];
   for (const i of [0,1,2])
     fail |= yield* put(i, -1, FLOOR);
   if (fail)
@@ -467,6 +477,7 @@ function* P5()
 async function* P6()
 {
   const {x,y,w,h,l,p,d,i,j,z,b}	= yield* move(1);
+  yield ['act P6', i, j];
 
   return (yield ['doublecheststack', -z-z]) ? 2 : 0;
 }
@@ -476,7 +487,6 @@ function Q(afn)
   const x = [];
   const iter = afn(_ => x.push(_));
   return next;
-
 
   async function* next()
     { 
