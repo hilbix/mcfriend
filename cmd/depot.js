@@ -288,6 +288,8 @@ async function* P2()
           // what if no free inv?
           break;
         }
+      if (r.items().filter(_ => _).length < 54)	// stop at chests with empty slots
+        break;
     }
 
   yield ['OPEN'];	// close chest
