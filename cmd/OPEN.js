@@ -32,6 +32,8 @@ for (let i=10; --i>=0; )
   } catch (e) {
     yield ['verbose open', e];
     console.error('open fail', _);
+    if (!_[0]?.put)
+      break;
   }
 
 yield ['note OPEN FAILED', _];
