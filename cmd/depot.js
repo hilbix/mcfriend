@@ -92,6 +92,10 @@ function* bug(..._)
   return self.phase = 0;
 }
 
+function again()
+{
+}
+
 // Initialization phase, setup self.r
 // .x .y .w .h and .l (level=height)
 // .p current pos
@@ -112,11 +116,11 @@ function* P1()
     return yield* bug('areas?', area?.length, toJ(area));
 
   let [a,b]	= area[0];
-  a		= a.pos();
-  b		= b.pos();
+  a		= a.pos();	// area sign 1
+  b		= b.pos();	// area sign 2
   let [x,w]	= a.x <= b.x ? [a.x, b.x] : [b.x, a.x];
   let [y,h]	= a.z <= b.z ? [a.z, b.z] : [b.z, a.z];
-  x		+= 1;
+  x		+= 1;		// inner between signs
   y		+= 1;
   w		-= 1;
   h		-= 1;
@@ -131,9 +135,10 @@ function* P1()
 
   self.dirt	= d?.[0]?.c !== c;		// check if area was changed
   r.d		= self.dirt ? {c,x:{}} : d[0];	// kick data if area changed
+
   r.i		= 0;				// iterator w
   r.j		= 0;				// iterator h
-  r.k		= 0;				// iterator l
+  r.k		= 0;				// iterator l (height)
 
   self.r	= r;
 //  yield ['act depot p', p]; yield ['act depot a', a]; yield ['act depot b', b];
@@ -165,8 +170,11 @@ function* move(_ = 0)
   r.z	= t ? 1 : -1;
   r.b	= p.pos(_ * r.z, 0, _ * r.z);
 
-  yield ['TP1', r.b];
-  yield ['wait', 1];
+  do
+    {
+      yield ['TP1', r.b];
+      yield ['wait', 1];
+    } while ((yield ['pos']).sub(r.b) > 0.5);
   return r;
 }
 
@@ -175,6 +183,11 @@ function* move(_ = 0)
 function inc()
 {
   const r		= self.r;
+  if (!r) return 0;
+
+  if (r.last)
+    return jump(r.last);
+
 //  const {x,y,w,h,l,i,j}	= r;
 
   if (++r.i <= r.h-r.y)
@@ -196,26 +209,38 @@ function inc()
 //	this phase ends when the first improper/free location is found
 async function* P2()
 {
-  const {w,h,l,p,d,i,j,z}	= yield* move();
+  const {w,h,l,p,d,i,j,z,last}	= yield* move();
+
+  if (last?.i === i && last.j === j)
+    self.r.last = void 0;
 
   BUG('P2', 0);
   for (const _ of [0,1,2])
     {
       const b = yield ['block', p.pos(z*_, -1, 0)];
       if (b.id !== FLOOR)
-        return;		// unprepared position found, next state
+        {
+          self.r.last = self.r;		// remember .i and .j
+          return;			// unprepared position found, next state
+        }
     }
   BUG('P2', 1);
 
   const s	= yield ['sign',  p.pos(0,0,0)];
-  if (!isSign(s)) return;
+  if (!isSign(s))
+    {
+      self.r.last	= self.r;	// remember .i and .j
+      return;				// incomplete position found, next state
+    }
 
-  let k		= s._.block.getSignText()[0].split('\n')[2];
+  // prepared position, hopefully
+  const kt	= s._.block.getSignText()[0].split('\n');
+  let k		= kt[2];
 
 //  yield ['act AAAA', k, s, i,j,p];
 
-  let n;
-  for (n=0; n+l<200; )
+  let n = 0;
+  while (n+l<200)
     {
       BUG('P2', 2);
       const b0	= yield ['sign',   p.pos(  0, n, 0)];
@@ -238,12 +263,12 @@ async function* P2()
       const r	= yield ['OPEN', rb];
       if (!r)
         {
-	  // open failed for unknown reason
+          // open failed for unknown reason
           yield ['act BUG: Cannot open', rb, s];
-	  break;
-	}
+          return 0;	// do not break here, instead: retry later
+        }
 
-      if (!k)	// preset with something from the chest's content
+      if (!k)	// [C] preset with something from the chest's content
         k	= Object.keys(Object.fromEntries(r.items().filter(_ => _.id && !d.x?.[_.id]).map(_ => [_.id, true])))[0] ?? '';
 
       n++;	// we have a chest
@@ -256,6 +281,17 @@ async function* P2()
       //
       // T.B.D.
 
+      // is there something wrong in the chest?
+      // if above [C] did not find anything suitable as last resort,
+      // then empty the whole chest!
+      const w = r.items().filter(_ => _.id && _.id !== k);
+      BUG('P2 w', w.length);
+      for (const e of w)
+        {
+          yield ['drop'];
+          yield ['take', r, e, e.count];
+        }
+
       // not yet defined (or wrongly defined)?
       if (tx[2] !== k || (n<2 && !tx[1]))
         {
@@ -266,7 +302,7 @@ async function* P2()
           // set it
           const p = s._.pos;
           BUG('P2', 4, k, tx);
-	  for (let i = n<2 ? 0 : 2; i < ts.length; i++)
+          for (let i = n<2 ? 0 : 2; i < ts.length; i++)
             yield ['say /data modify block', b0.x,b0.y,b0.z, `front_text.messages[${i}] set value ${toJ(toJ(ts[i]))}`];
 
           try {
@@ -279,21 +315,20 @@ async function* P2()
       if (!k)
         break;	// empty unnamed chest, hence free
 
-      // is there something wrong in the chest?
-      const w = r.items().filter(_ => _.id && _.id !== k);
-      if (w.length)
-        {
-          BUG('P2', 5);
-          yield ['take', r, w[0], w[0].count];
-          // what if no free inv?
-          break;
-        }
-      if (r.items().filter(_ => _).length < 54)	// stop at chests with empty slots
+      const v = r.items().filter(_ => !_.id);
+      BUG('P2 v', v.length);
+      if (v.length)		// stop at chests with empty slots
         break;
     }
+  self.r.k	= k;
+  BUG('P2 k', k, n, kt[2]);
 
   yield ['OPEN'];	// close chest
-
+  if (kt[3] != n)
+    {
+      yield ['say /data modify block', p.x,p.y,p.z, 'front_text.messages[3] set value', toJ(toJ(`${n}`))];
+      yield ['act depot', n, s];
+    }
   // we found a usable position
   // remember location and stack height
   // Note that we can only remember 1 stack per item type
@@ -304,7 +339,13 @@ async function* P2()
   if (o !== x)
     self.dirt	= true;
 
-  return n && k ? inc() : void 0;
+  if (!n || !k)
+    {
+      // there is no usable bottom location
+      self.r.last	= self.r;	// remember .i and .j and .k
+      return;
+    }
+  return inc();	// all ok
 }
 
 function clickhack(sign)
@@ -370,10 +411,11 @@ async function* P3()
       if (!r.n) continue;
 
 //      console.log('ITEM', i0, i1, i);
-      yield ['act Dput', i.id, i.n, toJ(r)];
 
       const {p,z}	= yield* move(jump(r));
       const b	= yield ['block', p.pos(z, r.n-1, 0)];
+
+      yield ['act Dput', i.id, i.n, toJ(r), b];
       const c	= yield ['OPEN', b];
 
       try {
@@ -385,8 +427,8 @@ async function* P3()
             yield ['wait'];
             return 6;
           }
-	// we are in some unknown state, start all over
-	return 1;
+        // we are in some unknown state, start all over
+        return 1;
       }
       had	= i.id;
     }
@@ -464,6 +506,8 @@ function* P5()
 {
   let fail = false;
 
+  jump(self.r.last);
+
   const {x,y,w,h,l,p,d,i,j,z}	= yield* move();
   yield ['act P5', i, j];
   for (const i of [0,1,2])
@@ -478,6 +522,8 @@ async function* P6()
 {
   const {x,y,w,h,l,p,d,i,j,z,b}	= yield* move(1);
   yield ['act P6', i, j];
+
+  yield ['act DEPOT ext', yield ['sign', p]];
 
   return (yield ['doublecheststack', -z-z]) ? 2 : 0;
 }
