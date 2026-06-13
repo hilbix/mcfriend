@@ -29,7 +29,7 @@ for (let i=10; --i>=0; )
     last = box;
     return open;
   } catch (e) {
-    yield [`verbose open ${e}`];
+    yield [`verbose open ${i}: ${e}`];
     console.error('open fail', _, e);
 //    if (!_[0]?.put) break;
   }
