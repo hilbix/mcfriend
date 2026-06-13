@@ -38,7 +38,8 @@ function* put(item, ...where)
       try {
         const cnt = item.n || h;
         yield yield ['put', r, item, cnt];
-        yield ['verbose put', cnt, item, s];
+	BUG('PUT', cnt, item, s);
+//        yield ['verbose put', cnt, item, s];
         return true;
       } catch (e) {
         if (e.message === 'destination full')
