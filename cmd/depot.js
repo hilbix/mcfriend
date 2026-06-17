@@ -551,22 +551,25 @@ function Q(afn)
     }
 }
 
-async function* inputs(q)
+function inputs(what)
 {
-  for (const c of (yield ['CHEST', 'keepin']) || [])
+  return async function*(q)
     {
-      yield ['act D in', c];
-      await q(c);
+      for (const c of (yield ['CHEST',what]) || [])
+        {
+          yield ['act D in', c];
+          await q(c);
+        }
     }
 }
 
-// phase 7: wait for new items in the input chests
+// phase 7: take items from the input chests
 async function* P7()
 {
   let m = __ABI__.B.inventory.inventoryEnd - __ABI__.B.inventory.inventoryStart;
   let n = 0;
 
-  const q = Q(inputs);
+  const q = Q(inputs('keepin'));
   while (_ = (yield* q()))
     {
       const [c,s_] = _;
@@ -602,25 +605,24 @@ async function* P7()
 
   if (n)
     return 3;
+}
 
+// phase 8: check if there are other inputs available
+async function* P8()
+{
+}
+
+// phase 9: wait for new items
+async function* P9()
+{
   // retry in a few seconds
   // we should use AGAIN for better backoff.
   // But this not yet supports parameters I think.
   yield yield [`in 20 depot gen ${self.gen} 7`];
   return self.phase = 0;
-}
 
-// phase 8: take items from the input chests
-//	stop if either full or an item has no free room in the depot
-async function* P8()
-{
-}
-
-// phase 9: goto phase 3
-async function* P9()
-{
-  return 3;
 //  return self.phase = 0;
+//  return 3;
 }
 
 try {
