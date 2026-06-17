@@ -30,6 +30,8 @@ for (let i=10; --i>=0; )
     return open;
   } catch (e) {
     yield [`verbose open ${i}: ${e}`];
+    if (!(yield ['chesty', _])[0])
+      break;
     console.error('open fail', _, e);
 //    if (!_[0]?.put) break;
   }
