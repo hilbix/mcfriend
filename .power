@@ -3,6 +3,7 @@
 # vim ft=bash
 
 con execute as Individulas run attribute @s minecraft:generic.luck base set 666
+con execute as Individulas run attribute @s minecraft:generic.luck base set 666
 
 # timeout is needed as sometimes things hang, dunno why
 while	timeout 1000 ./.max
