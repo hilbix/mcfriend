@@ -6,6 +6,8 @@
 // phase 0: stopped
 // phase 1: init area
 //
+// Folgendes überarbeiten:
+//
 // phase 2: scan 1x3 sign+doublechest locations.
 //	location is alternating left and right.
 //	record the locations and the items
@@ -24,13 +26,17 @@
 //	stop if either full or an item has no free room in the depot
 // phase 9: goto phase 3
 
-const V=4;	// increment to reset things
+const V=5;	// increment to reset things
 const FLOOR = 'cobblestone';
 //const FLOOR = 'diorite'; 'blackstone';
 
 // create depot content if not already present
 if (this.self?.V !== V)
-  this.self		= {V, phase:1, gen:0, empty:{}};
+  this.self		= {V, phase:1, gen:0, empty:{}, skip:{}};
+
+function skip()
+{
+}
 
 const speed = 0;
 
@@ -92,10 +98,6 @@ function* bug(..._)
   return self.phase = 0;
 }
 
-function again()
-{
-}
-
 // Initialization phase, setup self.r
 // .x .y .w .h and .l (level=height)
 // .p current pos
@@ -141,6 +143,7 @@ function* P1()
   r.k		= 0;				// iterator l (height)
 
   self.r	= r;
+  self.skip	= {};
 //  yield ['act depot p', p]; yield ['act depot a', a]; yield ['act depot b', b];
   yield ['report at', x,y,w,h];
   yield* move();
@@ -202,6 +205,14 @@ function inc()
   return self.phase = 0;
 }
 
+function setlast()
+{
+  const r	= self.r;
+  r.last = r;				// remember .i and .j
+  r.d.x[''] ??= {i:r.i, j:r.j, n:0};	// preset last
+}
+
+
 // phase 2: scan 1x3 sign+doublechest locations.
 //	location is alternating left and right.
 //	record the locations and the items
@@ -211,27 +222,23 @@ async function* P2()
 {
   const {w,h,l,p,d,i,j,z,last}	= yield* move();
 
+  yield ['act DEPOT chk', j,i, self.skip[i]?.[j]];
+
   if (last?.i === i && last.j === j)
     self.r.last = void 0;
 
-  BUG('P2', 0);
+  //BUG('P2', 0);
   for (const _ of [0,1,2])
     {
       const b = yield ['block', p.pos(z*_, -1, 0)];
       if (b.id !== FLOOR)
-        {
-          self.r.last = self.r;		// remember .i and .j
-          return;			// unprepared position found, next state
-        }
+        return setlast();		// unprepared position found, next state
     }
-  BUG('P2', 1);
+  //BUG('P2', 1);
 
   const s	= yield ['sign',  p.pos(0,0,0)];
   if (!isSign(s))
-    {
-      self.r.last	= self.r;	// remember .i and .j
-      return;				// incomplete position found, next state
-    }
+    return setlast();			// incomplete position found, next state
 
   // prepared position, hopefully
   const kt	= s._.block.getSignText()[0].split('\n');
@@ -324,28 +331,34 @@ async function* P2()
   BUG('P2 k', k, n, kt[2]);
 
   yield ['OPEN'];	// close chest
+
+  (self.skip[i] ??= {})[j] = 10 + n + 100 * Math.random();
   if (kt[3] != n)
     {
       yield ['say /data modify block', p.x,p.y,p.z, 'front_text.messages[3] set value', toJ(toJ(`${n}`))];
       yield ['act depot', n, s];
     }
+
   // we found a usable position
   // remember location and stack height
   // Note that we can only remember 1 stack per item type
   // (perhaps this is wrong for special items like broken bow?)
 
-  const o = d.x[k];
+  const o = d.x[k];	// alte Position von diesem Item
   const x = d.x[k] = {i, j, n};
-  if (o !== x)
+  if (toJ(o) !== toJ(x))
     self.dirt	= true;
 
   if (!n || !k)
+    return setlast();		// there is no usable bottom location
+
+  do
     {
-      // there is no usable bottom location
-      self.r.last	= self.r;	// remember .i and .j and .k
-      return;
-    }
-  return inc();	// all ok
+      inc();			// skip to next position to check
+    } while ((self.skip[self.r.i] ??= {})[self.r.j]--);
+
+//  yield ['act DEPOT next', self.r.j, self.r.i];
+  return 0;	// all ok
 }
 
 function clickhack(sign)
@@ -392,7 +405,7 @@ async function* P3()
   const x = r.d.x;
   let	flag;
 
-  yield ['act P3', self.r.i, self.r.j];
+//  yield ['act P3', self.r.i, self.r.j, r.i, r.j];
 
   // preset the current pos to append
   x[''] ??= {i:r.i, j:r.j, n:0};
@@ -415,7 +428,7 @@ async function* P3()
       const {p,z}	= yield* move(jump(r));
       const b	= yield ['block', p.pos(z, r.n-1, 0)];
 
-      yield ['act Dput', i.id, i.n, toJ(r), b];
+      yield ['act Dput', i.id, i.n, toJ(r), toJ(flag), b];
       const c	= yield ['OPEN', b];
 
       try {
@@ -435,6 +448,8 @@ async function* P3()
   if (had)
     {
       yield ['OPEN'];
+      if (flag)
+        r.d.x[''] = void 0;	// invalidate cached empty item, as it is now used
       return flag ? 2 : 0;	// re-evaluate(2) or again with next item
     }
 }
