@@ -3,11 +3,12 @@
 
 const keep = {};
 let hadsign;
+const cache = {};
 
 function* put(item, ...where)
 {
   // this is not correct in case the put chest is full we shall fallback to store
-  for (const [c,s] of (yield ['CHEST', where]) || [])
+  for (const [c,s] of (cache[toJ(where)] ??= (yield ['CHEST', where]) || []))
     {
       if (!c) continue;
 
@@ -19,7 +20,7 @@ function* put(item, ...where)
         if (i !== 'MISC') throw e;		// ignore MISC
       }
 
-      if (yield ['CACHE get full', c]) continue;
+      if (yield ['CACHE get full', c]) { console.log('FULL', c); continue; }
 
       const h = (yield ['have', item.id]) - (parseInt(keep[item.id])|0);
 //      console.error(`PUT have ${h} ${keep[item.id]}`, yield ['have', item.id], hadsign);
@@ -46,6 +47,7 @@ function* put(item, ...where)
           {
             yield ['OPEN'];	// take item out of your hand!
             yield ['wait'];
+            yield ['act FULL', c, e.message];
             yield yield ['CACHE set full', c, e.message];
           }
         else
@@ -101,7 +103,7 @@ for (const i of more)
 for (const i of much)
   (yield* put(i, 'toomuch', 'MISC')) || over.push(i);
 for (const i of over)
-  (yield* put(i, 'overflow', 'MISC')) || (yield * put(i, 'destroy', 'MISC')) || (yield ['note cannot put', i]);
+  (yield* put(i, 'overflow', 'MISC')) || (yield * put(i, 'destroy', 'MISC')) || ((yield ['CACHE clear']), (yield ['note cannot put', i]));
 
 yield ['OPEN'];	// close everything
 
