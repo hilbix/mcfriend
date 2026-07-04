@@ -428,7 +428,7 @@ async function* P3()
       const {p,z}	= yield* move(jump(r));
       const b	= yield ['block', p.pos(z, r.n-1, 0)];
 
-      yield ['act Dput', i.id, i.n, toJ(r), toJ(flag), b];
+//      yield ['act Dput', i.id, i.n, toJ(r), toJ(flag), b];
       const c	= yield ['OPEN', b];
 
       try {
@@ -462,7 +462,7 @@ async function* P3()
 async function* P4()
 {
   const x = self.r.d.x;
-  yield ['act P4', self.r.i, self.r.j];
+//  yield ['act P4', self.r.i, self.r.j];
 
   // preset the last empty pos to append
   x[''] = {i:self.r.i, j:self.r.j, n:0};
@@ -478,9 +478,9 @@ async function* P4()
       const c = x[i.id];
       const r = c ?? x[''];
       // stack is full, so raise the stack
-      yield ['act P4:', self.r.i, self.r.j, c === r, toJ(c)];
+//      yield ['act P4:', self.r.i, self.r.j, c === r, toJ(c)];
       jump(r);
-      yield ['act P4=', self.r.i, self.r.j, c === r, toJ(c)];
+//      yield ['act P4=', self.r.i, self.r.j, c === r, toJ(c)];
       // height === 0 then prepare the position
       return r.n ? 6 : void 0;
     }
@@ -556,7 +556,7 @@ function Q(afn)
       while (!x.length)
         {
           const r = await iter.next(v);
-          yield ['act D NX', r.done, r.value];
+//          yield ['act D NX', r.done, r.value];
           if (r.done)
             return;
           v = yield r.value;
@@ -591,7 +591,7 @@ async function* P7()
 //      yield ['act GOT c', c];
       if (self.empty[c])
         {
-          yield ['act D ign', s_];
+//          yield ['act D ign', s_];
           continue;
         }
       const w   = yield ['OPEN', c];
@@ -602,19 +602,19 @@ async function* P7()
         if (i.id)
           {
             is=true;
-            yield ['act D take', s_, i];
+//            yield ['act D take', s_, i];
             yield ['take', w,i,i.n];
             if (++n >= m)
               return 3;
           }
       if (!is)
         {
-          yield ['act D empty', s_];
+//          yield ['act D empty', s_];
           self.empty[c] = 1;
         }
     }
 
-  yield ['act D got', n];
+//  yield ['act D got', n];
   if (n < m)
     self.empty	= {};	// reset cache
 
@@ -633,6 +633,8 @@ async function* P9()
   // retry in a few seconds
   // we should use AGAIN for better backoff.
   // But this not yet supports parameters I think.
+  self.empty	= {};
+  yield ['validsign CLR'];
   yield yield [`in 20 depot gen ${self.gen} 7`];
   return self.phase = 0;
 
