@@ -13,7 +13,7 @@ let	id	= _.shift();
 switch (cmd)
   {
   case 'list':	return cache;
-  case 'clear':	return cache={};
+  case 'clear':	return this.cache={};
   }
 
 if (isMy(id))
